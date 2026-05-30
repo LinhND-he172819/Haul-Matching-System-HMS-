@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\HMS.Shared\HMS.Shared.Core\HMS.Shared.Core.csproj" />
+    <ProjectReference Include="..\..\HMS.Shared\HMS.Shared.Infrastructure\HMS.Shared.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Application\DTOs\" />
+    <Folder Include="Application\Services\" />
+    <Folder Include="Core\Models\" />
+    <Folder Include="Core\Interfaces\" />
+    <Folder Include="Infrastructure\Queries\" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+	  <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.12" />
+	  <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\HMS.Modules.Identity\HMS.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\HMS.Modules.Warehouse\HMS.Modules.Warehouse.csproj" />
+    <ProjectReference Include="..\Modules\HMS.Modules.Transport\HMS.Modules.Transport.csproj" />
+    <ProjectReference Include="..\Modules\HMS.Modules.Finance\HMS.Modules.Finance.csproj" />
+    <ProjectReference Include="..\Modules\HMS.Modules.Matching\HMS.Modules.Matching.csproj" />
+    <ProjectReference Include="..\Modules\HMS.Modules.Realtime\HMS.Modules.Realtime.csproj" />
+  </ItemGroup>
+
+</Project>
