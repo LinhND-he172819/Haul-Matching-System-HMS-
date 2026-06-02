@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HMS SignalR Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+</head>
+<body>
+    <h2>Trạng thái: <span id="status" style="color: red;">Đang kết nối...</span></h2>
+    
+    <div style="border: 1px solid #333; padding: 15px; margin-top: 20px; width: 300px; background-color: #f9f9f9;">
+        <h3>📊 Admin Dashboard (Live)</h3>
+        <p>Active Trips: <b id="activeTrips">0</b></p>
+        <p>In-Transit: <b id="inTransit">0</b></p>
+        <p>Utilisation: <b id="utilisation">0</b>%</p>
+        <p>Delayed Hub Items: <b id="delayedItems">0</b></p>
+        <p style="font-size: 12px; color: gray;">Last Updated: <span id="lastUpdated">-</span></p>
+    </div>
+
+    <ul id="messagesList"></ul>
+
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7059/hub/fleet") // Thay cổng nếu máy bạn chạy cổng khác
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        // 1. Lắng nghe thông báo hệ thống chung
+        connection.on("ReceiveSystemMessage", (message) => {
+            const li = document.createElement("li");
+            li.textContent = `Server: ${message}`;
+            document.getElementById("messagesList").appendChild(li);
+        });
+
+        // 2. LẮNG NGHE SỰ KIỆN MỚI CỦA ADMIN DASHBOARD
+        connection.on("ReceiveAdminStats", (stats) => {
+            console.log("Nhận data mới:", stats);
+            document.getElementById("activeTrips").textContent = stats.activeTripCount;
+            document.getElementById("inTransit").textContent = stats.inTransitShipments;
+            document.getElementById("utilisation").textContent = stats.avgVehicleUtilisation;
+            document.getElementById("delayedItems").textContent = stats.hubItemsWaitingOver3Days;
+            document.getElementById("lastUpdated").textContent = new Date(stats.lastUpdated).toLocaleTimeString();
+            
+            // Tạo hiệu ứng chớp tắt nhỏ để biết data vừa được update
+            document.getElementById("lastUpdated").style.color = "green";
+            setTimeout(() => document.getElementById("lastUpdated").style.color = "gray", 1000);
+        });
+
+        async function start() {
+            try {
+                await connection.start();
+                document.getElementById("status").textContent = "Kết nối thành công (Connected)";
+                document.getElementById("status").style.color = "green";
+            } catch (err) {
+                console.error("Lỗi kết nối:", err);
+                document.getElementById("status").textContent = "Lỗi kết nối!";
+            }
+        }
+        start();
+    </script>
+</body>
+</html>
