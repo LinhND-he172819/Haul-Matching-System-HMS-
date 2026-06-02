@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HMS SignalR Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+</head>
+<body>
+    <h2>Trạng thái: <span id="status" style="color: red;">Đang kết nối...</span></h2>
+    <ul id="messagesList"></ul>
+
+    <script>
+        // Khởi tạo kết nối tới Endpoint vừa map trong Program.cs (sửa port 5000 theo port chạy thực tế của bạn)
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7059/hub/fleet")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        // Lắng nghe sự kiện "ReceiveSystemMessage" từ Server gửi về
+        connection.on("ReceiveSystemMessage", (message) => {
+            const li = document.createElement("li");
+            li.textContent = `Server nói: ${message}`;
+            document.getElementById("messagesList").appendChild(li);
+        });
+
+        // Start kết nối
+        async function start() {
+            try {
+                await connection.start();
+                document.getElementById("status").textContent = "Kết nối thành công (Connected)";
+                document.getElementById("status").style.color = "green";
+            } catch (err) {
+                console.error("Lỗi kết nối:", err);
+                document.getElementById("status").textContent = "Lỗi kết nối!";
+            }
+        }
+        start();
+    </script>
+</body>
+</html>

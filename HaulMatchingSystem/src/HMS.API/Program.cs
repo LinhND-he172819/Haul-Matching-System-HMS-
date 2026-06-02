@@ -1,15 +1,39 @@
+﻿using HMS.Modules.Realtime.Hubs;
+using HMS.Modules.Realtime.Interfaces;
+using HMS.Modules.Realtime.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// 1. Đăng ký cấu hình CORS cho SignalR
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SignalRPolicy", policy =>
+    {
+        //policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // Domain của React/Vue Admin & App
+        policy.SetIsOriginAllowed(origin => true) //test tạm thời, cho phép tất cả origin (không khuyến khích trong production)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // Bắt buộc phải có để WebSocket hoạt động
+    });
+});
+
+// 2. Đăng ký dịch vụ SignalR
+builder.Services.AddSignalR();
+
+//Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Đăng ký Dispatcher
+builder.Services.AddScoped<IRealtimeDispatcher, RealtimeDispatcher>();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
@@ -32,6 +56,12 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+
+// 3. Kích hoạt CORS
+app.UseCors("SignalRPolicy");
+
+// 4. Map đường dẫn (Endpoint) tới Hub
+app.MapHub<HmsFleetHub>("/hub/fleet");
 
 app.Run();
 
