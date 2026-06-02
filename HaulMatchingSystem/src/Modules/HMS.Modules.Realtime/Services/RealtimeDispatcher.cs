@@ -19,7 +19,7 @@ namespace HMS.Modules.Realtime.Services
 
         public async Task SendSystemNotificationAsync(string message)
         {
-            _logger.LogInformation($"Broadcasting system notification: {message}");
+            _logger.LogInformation($"[SignalR] THÔNG BÁO HỆ THỐNG: {message}");
             await _hubContext.Clients.All.SendAsync("ReceiveSystemMessage", message);
         }
 
@@ -31,13 +31,13 @@ namespace HMS.Modules.Realtime.Services
 
         public async Task SendAnomalyAlertAsync(AnomalyAlertPayload payload)
         {
-            _logger.LogWarning($"[SignalR] ALERT: {payload.AlertType} on Trip {payload.TripId}");
+            _logger.LogWarning($"[SignalR] CẢNH BÁO: {payload.AlertType} trên Chuyến {payload.TripId}");
             await _hubContext.Clients.All.SendAsync("ReceiveAnomalyAlert", payload);
         }
 
         public async Task BroadcastShipmentStatusAsync(ShipmentStatusEventPayload payload)
         {
-            _logger.LogInformation($"[SignalR] Shipment {payload.QrCode} changed to {payload.NewStatus}");
+            _logger.LogInformation($"[SignalR] Shipment {payload.QrCode} chuyển sang trạng thái {payload.NewStatus}");
 
             // Có thể đẩy riêng cho 1 Customer cụ thể nếu hệ thống có tracking ConnectionId theo UserId
             // Hiện tại đẩy lên All để Admin Map cập nhật
@@ -47,6 +47,11 @@ namespace HMS.Modules.Realtime.Services
         public async Task BroadcastTripStatusAsync(TripStatusEventPayload payload)
         {
             await _hubContext.Clients.All.SendAsync("ReceiveTripUpdate", payload);
+        }
+
+        public async Task BroadcastAdminStatsAsync(AdminStatsPayload stats)
+        {
+            await _hubContext.Clients.Group("AdminGroup").SendAsync("ReceiveAdminStats", stats);
         }
     }
 }

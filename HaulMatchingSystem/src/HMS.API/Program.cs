@@ -1,10 +1,11 @@
 ﻿using HMS.Modules.Realtime.Hubs;
 using HMS.Modules.Realtime.Interfaces;
 using HMS.Modules.Realtime.Services;
+using HMS.Modules.Realtime.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Đăng ký cấu hình CORS cho SignalR
+// Đăng ký cấu hình CORS cho SignalR
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("SignalRPolicy", policy =>
@@ -17,7 +18,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 2. Đăng ký dịch vụ SignalR
+// Đăng ký dịch vụ SignalR
 builder.Services.AddSignalR();
 
 //Swagger
@@ -26,6 +27,9 @@ builder.Services.AddSwaggerGen();
 
 // Đăng ký Dispatcher
 builder.Services.AddScoped<IRealtimeDispatcher, RealtimeDispatcher>();
+
+// Đăng ký Background Worker để gửi số liệu Admin Dashboard
+builder.Services.AddHostedService<DashboardStatsWorker>();
 
 var app = builder.Build();
 
@@ -57,10 +61,10 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
-// 3. Kích hoạt CORS
+// Kích hoạt CORS
 app.UseCors("SignalRPolicy");
 
-// 4. Map đường dẫn (Endpoint) tới Hub
+// Map Endpoint tới Hub
 app.MapHub<HmsFleetHub>("/hub/fleet");
 
 app.Run();
