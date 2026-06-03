@@ -2,8 +2,8 @@
 {
     public enum TripStatus
     {
-        Active, 
-        Completed, 
+        Active,
+        Completed,
         Breakdown
     }
 }

@@ -2,6 +2,7 @@
 using HMS.Modules.Realtime.Interfaces;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
+using HMS.Modules.Transport;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,8 @@ builder.Services.AddScoped<IRealtimeDispatcher, RealtimeDispatcher>();
 
 // Đăng ký Background Worker để gửi số liệu Admin Dashboard
 builder.Services.AddHostedService<DashboardStatsWorker>();
+
+builder.Services.AddTransportModule();
 
 var app = builder.Build();
 
@@ -66,6 +69,7 @@ app.UseCors("SignalRPolicy");
 
 // Map Endpoint tới Hub
 app.MapHub<HmsFleetHub>("/hub/fleet");
+app.MapTransportModule();
 
 app.Run();
 
