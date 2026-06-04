@@ -2,6 +2,15 @@
 using HMS.Modules.Realtime.Interfaces;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
+using HMS.Modules.Matching.Infrastructure;
+using HMS.Modules.Matching.Core.Interfaces;
+using HMS.Modules.Matching.Application.Services;
+using HMS.Modules.Matching.Infrastructure.Redis;
+using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
+using HMS.API.Middleware;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,9 +30,41 @@ builder.Services.AddCors(options =>
 // Đăng ký dịch vụ SignalR
 builder.Services.AddSignalR();
 
+// Add controllers
+builder.Services.AddControllers();
+// FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<HMS.Modules.Matching.Application.Validators.SelectedRequestValidator>();
+
+// DbContext (configure via env var or default sqlite for local dev)
+var conn = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(conn))
+{
+    conn = "Host=localhost;Database=hms_matching;Username=postgres;Password=postgres";
+}
+
+builder.Services.AddDbContext<MatchingDbContext>(opt =>
+    opt.UseNpgsql(conn)
+);
+
+// Redis
+var redisConn = builder.Configuration.GetValue<string>("Redis:Connection") ?? "localhost:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisConn));
+builder.Services.AddScoped<IRedisLockService, RedisLockService>();
+
+// Repos & services
+builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
+builder.Services.AddScoped<IMatchingService, MatchingService>();
+
+// Exception middleware (registered as transient through pipeline)
+
 //Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    var xmlFile = System.IO.Path.ChangeExtension(System.Reflection.Assembly.GetEntryAssembly()?.Location ?? "", ".xml");
+    if (System.IO.File.Exists(xmlFile)) c.IncludeXmlComments(xmlFile);
+});
 
 // Đăng ký Dispatcher
 builder.Services.AddScoped<IRealtimeDispatcher, RealtimeDispatcher>();
@@ -39,6 +80,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Use exception middleware
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseAuthorization();
+
+app.MapControllers();
 
 app.UseHttpsRedirection();
 
