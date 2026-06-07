@@ -84,6 +84,9 @@ if (app.Environment.IsDevelopment())
 // Use exception middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+// Kích hoạt CORS
+app.UseCors("SignalRPolicy");
+
 app.UseAuthorization();
 
 app.MapControllers();
@@ -109,8 +112,7 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
-// Kích hoạt CORS
-app.UseCors("SignalRPolicy");
+
 
 // Map Endpoint tới Hub
 app.MapHub<HmsFleetHub>("/hub/fleet");

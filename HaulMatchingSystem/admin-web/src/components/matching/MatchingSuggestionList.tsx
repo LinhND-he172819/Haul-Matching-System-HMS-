@@ -1,5 +1,4 @@
-import React from 'react';
-import { ShipmentSuggestionDto } from '../../api/matchingApi';
+import type { ShipmentSuggestionDto } from '../../api/matchingApi';
 import ShipmentSuggestionCard from './ShipmentSuggestionCard';
 
 interface Props {

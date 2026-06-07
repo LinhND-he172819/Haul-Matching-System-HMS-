@@ -9,12 +9,12 @@ namespace HMS.Modules.Matching.Controllers
 {
     [ApiController]
     [Route("api/drivers/me/matching-suggestions")]
-    [Authorize]
+    //[Authorize]
     public class DriverMatchingController : ControllerBase
     {
         private readonly IMatchingService _service;
         private readonly ILogger<DriverMatchingController> _logger;
-
+        private static readonly Guid DevDriverId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         public DriverMatchingController(IMatchingService service, ILogger<DriverMatchingController> logger)
         {
             _service = service;
@@ -29,8 +29,9 @@ namespace HMS.Modules.Matching.Controllers
         public async Task<IActionResult> GetSuggestions(CancellationToken ct)
         {
             // assume DriverId in claims sub
-            var driverIdClaim = User.FindFirst("sub")?.Value;
-            if (!Guid.TryParse(driverIdClaim, out var driverId)) return Forbid();
+            //var driverIdClaim = User.FindFirst("sub")?.Value;
+            //if (!Guid.TryParse(driverIdClaim, out var driverId)) return Forbid();
+            var driverId = DevDriverId;
 
             var res = await _service.GetSuggestionsForDriverAsync(driverId, ct);
             if (res == null) return NotFound();
@@ -43,8 +44,9 @@ namespace HMS.Modules.Matching.Controllers
         [HttpPost("accept-all")]
         public async Task<IActionResult> AcceptAll(CancellationToken ct)
         {
-            var driverIdClaim = User.FindFirst("sub")?.Value;
-            if (!Guid.TryParse(driverIdClaim, out var driverId)) return Forbid();
+            //var driverIdClaim = User.FindFirst("sub")?.Value;
+            //if (!Guid.TryParse(driverIdClaim, out var driverId)) return Forbid();
+            var driverId = DevDriverId;
 
             await _service.AcceptAllAsync(driverId, ct);
             return Ok(new { message = "Accepted" });
@@ -56,8 +58,9 @@ namespace HMS.Modules.Matching.Controllers
         [HttpPost("reject-all")]
         public async Task<IActionResult> RejectAll(CancellationToken ct)
         {
-            var driverIdClaim = User.FindFirst("sub")?.Value;
-            if (!Guid.TryParse(driverIdClaim, out var driverId)) return Forbid();
+            //var driverIdClaim = User.FindFirst("sub")?.Value;
+            //if (!Guid.TryParse(driverIdClaim, out var driverId)) return Forbid();
+            var driverId = DevDriverId;
 
             await _service.RejectAllAsync(driverId, ct);
             return Ok(new { message = "Rejected" });
@@ -69,8 +72,9 @@ namespace HMS.Modules.Matching.Controllers
         [HttpPost("accept-selected")]
         public async Task<IActionResult> AcceptSelected([FromBody] AcceptSelectedRequest request, CancellationToken ct)
         {
-            var driverIdClaim = User.FindFirst("sub")?.Value;
-            if (!Guid.TryParse(driverIdClaim, out var driverId)) return Forbid();
+            //var driverIdClaim = User.FindFirst("sub")?.Value;
+            //if (!Guid.TryParse(driverIdClaim, out var driverId)) return Forbid();
+            var driverId = DevDriverId;
 
             await _service.AcceptSelectedAsync(driverId, request, ct);
             return Ok(new { message = "Accepted" });
@@ -82,8 +86,9 @@ namespace HMS.Modules.Matching.Controllers
         [HttpPost("reject-selected")]
         public async Task<IActionResult> RejectSelected([FromBody] RejectSelectedRequest request, CancellationToken ct)
         {
-            var driverIdClaim = User.FindFirst("sub")?.Value;
-            if (!Guid.TryParse(driverIdClaim, out var driverId)) return Forbid();
+            //var driverIdClaim = User.FindFirst("sub")?.Value;
+            //if (!Guid.TryParse(driverIdClaim, out var driverId)) return Forbid();
+            var driverId = DevDriverId;
 
             await _service.RejectSelectedAsync(driverId, request, ct);
             return Ok(new { message = "Rejected" });

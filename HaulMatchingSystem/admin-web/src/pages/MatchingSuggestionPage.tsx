@@ -1,11 +1,18 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as signalR from '@microsoft/signalr';
 import TripCapacitySummary from '../components/matching/TripCapacitySummary';
 import MatchingSuggestionList from '../components/matching/MatchingSuggestionList';
 import ActionsBar from '../components/matching/ActionsBar';
 import ConfirmDialog from '../components/matching/ConfirmDialog';
-import Toast, { ToastType } from '../components/matching/Toast';
-import { fetchMatchingSuggestions, MatchingSuggestionsResponse, postAcceptAll, postRejectAll, postAcceptSelected, postRejectSelected } from '../api/matchingApi';
+import Toast, { type ToastType } from '../components/matching/Toast';
+import {
+    fetchMatchingSuggestions,
+    postAcceptAll,
+    postRejectAll,
+    postAcceptSelected,
+    postRejectSelected,
+    type MatchingSuggestionsResponse
+} from '../api/matchingApi';
 
 export default function MatchingSuggestionPage() {
     const [data, setData] = useState<MatchingSuggestionsResponse | null>(null);

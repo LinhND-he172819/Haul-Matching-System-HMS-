@@ -1,4 +1,4 @@
-import DashboardPage from './pages/DashboardPage';
+// import DashboardPage from './pages/DashboardPage';
 import MatchingSuggestionPage from './pages/MatchingSuggestionPage';
 
 function App() {
