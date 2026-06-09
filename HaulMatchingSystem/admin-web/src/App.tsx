@@ -1,10 +1,24 @@
+import { useState } from 'react';
 import DriverTripsPage from './pages/DriverTripsPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+
+type Page = 'login' | 'register' | 'home';
 
 function App() {
-  // For demo, show MatchingSuggestionPage; in real app add router
+  const [currentPage, setCurrentPage] = useState<Page>('login');
+
+  const handleNavigate = (page: Page) => {
+    setCurrentPage(page);
+  };
+
   return (
-    <DriverTripsPage />
-  )
+    <>
+      {currentPage === 'login' && <LoginPage onNavigate={handleNavigate} />}
+      {currentPage === 'register' && <RegisterPage onNavigate={handleNavigate} />}
+      {currentPage === 'home' && <DriverTripsPage />}
+    </>
+  );
 }
 
 export default App;
