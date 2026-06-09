@@ -1,16 +1,20 @@
-﻿using HMS.Modules.Realtime.Hubs;
+﻿using FluentValidation;
+using FluentValidation.AspNetCore;
+using HMS.API.Middleware;
+using HMS.Modules.Identity.Application.DTOs;
+using HMS.Modules.Identity.Core.Interfaces;
+using HMS.Modules.Matching.Application.Services;
+using HMS.Modules.Matching.Core.Interfaces;
+using HMS.Modules.Matching.Infrastructure;
+using HMS.Modules.Matching.Infrastructure.Redis;
+using HMS.Modules.Realtime.Hubs;
 using HMS.Modules.Realtime.Interfaces;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
-using HMS.Modules.Matching.Infrastructure;
-using HMS.Modules.Matching.Core.Interfaces;
-using HMS.Modules.Matching.Application.Services;
-using HMS.Modules.Matching.Infrastructure.Redis;
+using HMS.Modules.Transport;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
-using HMS.API.Middleware;
-using FluentValidation;
-using FluentValidation.AspNetCore;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,7 +39,8 @@ builder.Services.AddControllers();
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<HMS.Modules.Matching.Application.Validators.SelectedRequestValidator>();
-
+builder.Services.Configure<JwtConfigs>(builder.Configuration.GetSection("Jwt"));
+var jwtConfigs = builder.Configuration.GetSection("Jwt").Get<JwtConfigs>();
 // DbContext (configure via env var or default sqlite for local dev)
 var conn = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(conn))
@@ -46,7 +51,7 @@ if (string.IsNullOrEmpty(conn))
 builder.Services.AddDbContext<MatchingDbContext>(opt =>
     opt.UseNpgsql(conn)
 );
-
+builder.Services.AddScoped<IIdentityDbContext>(provider => provider.GetRequiredService<MatchingDbContext>());
 // Redis
 var redisConn = builder.Configuration.GetValue<string>("Redis:Connection") ?? "localhost:6379";
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisConn));
@@ -71,6 +76,8 @@ builder.Services.AddScoped<IRealtimeDispatcher, RealtimeDispatcher>();
 
 // Đăng ký Background Worker để gửi số liệu Admin Dashboard
 builder.Services.AddHostedService<DashboardStatsWorker>();
+
+builder.Services.AddTransportModule();
 
 var app = builder.Build();
 
@@ -116,6 +123,7 @@ app.MapGet("/weatherforecast", () =>
 
 // Map Endpoint tới Hub
 app.MapHub<HmsFleetHub>("/hub/fleet");
+app.MapTransportModule();
 
 app.Run();
 

@@ -1,10 +1,11 @@
 using HMS.Modules.Identity.Core.Entities;
+using HMS.Modules.Identity.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace HMS.Modules.Matching.Infrastructure
 {
-    public class MatchingDbContext : DbContext
+    public class MatchingDbContext : DbContext, IIdentityDbContext
     {
         public MatchingDbContext(DbContextOptions<MatchingDbContext> options) : base(options)
         {

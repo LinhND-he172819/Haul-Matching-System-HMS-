@@ -12,7 +12,7 @@ namespace HMS.Modules.Identity.Core.Entities
         public Guid Id { get; set; }
         public string Name { get; set; }
         public string Address { get; set; }
-        public Point GeoLocation { get; set; } // Sử dụng NetTopologySuite.Geometries.Point
+        //public Point GeoLocation { get; set; } // Sử dụng NetTopologySuite.Geometries.Point
         public DateTime CreatedAt { get; set; }
     }
 }

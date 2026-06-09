@@ -21,7 +21,8 @@ namespace HMS.Modules.Identity.Core.Entities
         public DateTime? ResetTokenExpiresAt { get; set; }
 
         public string Role { get; set; } = null!; // Nên map sang UserRole Enum trong C#
-
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public bool IsDeleted { get; set; }

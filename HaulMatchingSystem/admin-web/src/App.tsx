@@ -1,10 +1,9 @@
-// import DashboardPage from './pages/DashboardPage';
-import MatchingSuggestionPage from './pages/MatchingSuggestionPage';
+import DriverTripsPage from './pages/DriverTripsPage';
 
 function App() {
   // For demo, show MatchingSuggestionPage; in real app add router
   return (
-    <MatchingSuggestionPage />
+    <DriverTripsPage />
   )
 }
 
