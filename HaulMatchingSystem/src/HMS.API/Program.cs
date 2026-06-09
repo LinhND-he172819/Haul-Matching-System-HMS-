@@ -40,7 +40,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<HMS.Modules.Matching.Applic
 var conn = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(conn))
 {
-    conn = "Host=localhost;Database=hms_matching;Username=postgres;Password=postgres";
+    conn = "Host=localhost;Database=hms_matching;Username=postgres;Password=123";
 }
 
 builder.Services.AddDbContext<MatchingDbContext>(opt =>

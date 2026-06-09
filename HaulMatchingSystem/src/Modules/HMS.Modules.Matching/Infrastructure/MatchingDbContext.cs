@@ -1,3 +1,4 @@
+using HMS.Modules.Identity.Core.Entities;
 using HMS.Modules.Matching.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,8 @@ namespace HMS.Modules.Matching.Infrastructure
         public DbSet<Vehicle> Vehicles { get; set; } = null!;
         public DbSet<Shipment> Shipments { get; set; } = null!;
         public DbSet<TripShipment> TripShipments { get; set; } = null!;
+        public DbSet<Hub> Hubs { get; set; }
+        public DbSet<User> Users { get; set; } 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
