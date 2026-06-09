@@ -9,13 +9,23 @@ interface AdminStats {
     lastUpdated: string;
 }
 
-export default function DashboardPage() {
-    const [stats, setStats] = useState<AdminStats | null>(null);
+interface DashboardPageProps {
+    sidebar?: React.ReactNode;
+}
+
+export default function DashboardPage({ sidebar }: DashboardPageProps) {
+    const [stats, setStats] = useState<AdminStats | null>({
+        activeTripCount: 12,
+        inTransitShipments: 342,
+        avgVehicleUtilisation: 78.5,
+        hubItemsWaitingOver3Days: 4,
+        lastUpdated: new Date().toISOString()
+    });
     const [connectionStatus, setConnectionStatus] = useState<string>('Đang kết nối...');
 
     useEffect(() => {
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("https://localhost:7059/hub/fleet") // CHÚ Ý: Đổi port nếu backend chạy cổng khác
+            .withUrl((import.meta.env.VITE_API_URL ?? "https://localhost:7059") + "/hub/fleet") // CHÚ Ý: Đổi port nếu backend chạy cổng khác
             .withAutomaticReconnect()
             .configureLogging(signalR.LogLevel.Information)
             .build();
@@ -43,26 +53,7 @@ export default function DashboardPage() {
     return (
         <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden">
             {/* --- SIDEBAR --- */}
-            <nav className="bg-surface-container-lowest border-r border-outline-variant fixed left-0 h-full w-64 flex flex-col py-6 px-4 z-20 hidden xl:flex">
-                <div className="mb-8 flex items-center gap-3 px-2">
-                    <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary">
-                        <span className="material-symbols-outlined text-[20px]">local_shipping</span>
-                    </div>
-                    <div>
-                        <h1 className="text-headline-lg font-headline-lg text-primary">Ghép Chuyến</h1>
-                        <p className="text-label-md font-label-md text-on-surface-variant">Logistics Console</p>
-                    </div>
-                </div>
-                <button className="w-full bg-primary hover:bg-primary-container text-on-primary text-label-lg font-label-lg py-3 rounded-lg mb-6 transition-colors flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined">add</span> New Shipment
-                </button>
-                <div className="flex-1 space-y-1">
-                    <a className="flex items-center gap-3 px-3 py-2 rounded-lg text-primary font-bold border-r-4 border-primary bg-surface-container-low transition-colors duration-200 group" href="#">
-                        <span className="material-symbols-outlined group-hover:scale-98 transition-transform">dashboard</span>
-                        <span className="text-label-lg font-label-lg">Dashboard</span>
-                    </a>
-                </div>
-            </nav>
+            {sidebar}
 
             {/* --- MAIN CONTENT --- */}
             <div className="flex-1 flex flex-col xl:ml-64 w-full">
@@ -155,11 +146,45 @@ export default function DashboardPage() {
                                 </h3>
                             </div>
                             <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                                {/* Overload warning */}
+                                <div className="bg-surface-container p-3 rounded border-l-4 border-on-tertiary-container flex gap-3 items-start">
+                                    <span className="material-symbols-outlined text-on-tertiary-container text-[20px] mt-0.5">warning</span>
+                                    <div>
+                                        <h4 className="text-label-lg font-bold text-on-surface">Cảnh Báo Vận Hành (Overload)</h4>
+                                        <p className="text-body-md text-on-surface-variant mt-1">
+                                            Xe tải của tài xế <strong>Phạm Minh Chiến (51C-998.76)</strong> tại Kho Gò Vấp vượt quá tải trọng cho phép (105%). Đề xuất ghép chuyến đã bị tạm ngưng để kiểm tra.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Vehicle breakdown incident */}
+                                <div className="bg-surface-container p-3 rounded border-l-4 border-error flex gap-3 items-start">
+                                    <span className="material-symbols-outlined text-error text-[20px] mt-0.5">report</span>
+                                    <div>
+                                        <h4 className="text-label-lg font-bold text-error">Sự Cố Kỹ Thuật (Breakdown)</h4>
+                                        <p className="text-body-md text-on-surface-variant mt-1">
+                                            Tài xế <strong>Hoàng Văn Hải (Xe Container 29C-555.22)</strong> báo cáo sự cố nổ lốp trên Quốc Lộ 1A. Điều phối viên cần liên hệ đội cứu hộ và điều chuyển hàng hóa.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Success trip completion */}
+                                <div className="bg-surface-container p-3 rounded border-l-4 border-secondary flex gap-3 items-start">
+                                    <span className="material-symbols-outlined text-secondary text-[20px] mt-0.5">check_circle</span>
+                                    <div>
+                                        <h4 className="text-label-lg font-bold text-on-surface">Hoàn Thành Chuyến Đi</h4>
+                                        <p className="text-body-md text-on-surface-variant mt-1">
+                                            Tài xế <strong>Ngô Quốc Bảo (51D-123.45)</strong> đã hoàn thành chuyến ghép hàng <strong>TRIP-049</strong> về Kho Tân Bình thành công và an toàn.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Socket listening message */}
                                 <div className="bg-surface-container p-3 rounded border-l-4 border-outline flex gap-3 items-start opacity-70">
                                     <span className="material-symbols-outlined text-outline text-[20px] mt-0.5">info</span>
                                     <div>
-                                        <h4 className="text-label-lg font-label-lg text-on-surface">System Running</h4>
-                                        <p className="text-body-md font-body-md text-on-surface-variant mt-1">Real-time socket listening for anomaly alerts.</p>
+                                        <h4 className="text-label-lg font-label-lg text-on-surface">Kết Nối Hệ Thống</h4>
+                                        <p className="text-body-md text-on-surface-variant mt-1">Đang lắng nghe tín hiệu thời gian thực (SignalR socket) để cập nhật danh mục cảnh báo tiếp theo.</p>
                                     </div>
                                 </div>
                             </div>
