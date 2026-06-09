@@ -1,7 +1,9 @@
 ﻿using FluentValidation;
 using FluentValidation.AspNetCore;
 using HMS.API.Middleware;
+using HMS.Modules.Identity;
 using HMS.Modules.Identity.Application.DTOs;
+using HMS.Modules.Identity.Application.Services;
 using HMS.Modules.Identity.Core.Interfaces;
 using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Core.Interfaces;
@@ -52,6 +54,7 @@ builder.Services.AddDbContext<MatchingDbContext>(opt =>
     opt.UseNpgsql(conn)
 );
 builder.Services.AddScoped<IIdentityDbContext>(provider => provider.GetRequiredService<MatchingDbContext>());
+builder.Services.AddIdentityModule(builder.Configuration);
 // Redis
 var redisConn = builder.Configuration.GetValue<string>("Redis:Connection") ?? "localhost:6379";
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisConn));

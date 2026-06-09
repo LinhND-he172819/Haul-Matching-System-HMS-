@@ -7,12 +7,16 @@
 
   <ItemGroup>
     <Folder Include="API\" />
-    <Folder Include="Application\DTOs\" />
-    <Folder Include="Application\Services\" />
     <Folder Include="Core\Enums\" />
-    <Folder Include="Core\Interfaces\" />
     <Folder Include="Infrastructure\Configurations\" />
     <Folder Include="Infrastructure\Repositories\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.12" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.1.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
   </ItemGroup>
 
   <PropertyGroup>

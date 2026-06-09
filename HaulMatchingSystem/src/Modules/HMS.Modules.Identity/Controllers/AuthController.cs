@@ -1,0 +1,83 @@
+﻿using HMS.Modules.Identity.Application.DTOs;
+using HMS.Modules.Identity.Application.Services;
+using HMS.Modules.Identity.Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+namespace HMS.Modules.Identity.Controllers
+{
+    [ApiController]
+    [Route("api/auth")]
+    public class AuthController : ControllerBase
+    {
+        private readonly IAuthService _authService;
+        private readonly IUserService _userService;
+        public AuthController(IAuthService authService, IUserService userService)
+        {
+            _authService = authService;
+            _userService = userService;
+        }
+
+        /// <summary>
+        /// API Đăng nhập hệ thống
+        /// </summary>
+        [HttpPost("login")]
+        [AllowAnonymous] // Cho phép tất cả mọi người truy cập không cần token
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _authService.LoginAsync(request);
+
+            if (result == null)
+                return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác!" });
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// API Làm mới AccessToken khi bị hết hạn
+        /// </summary>
+        [HttpPost("refresh-token")]
+        [AllowAnonymous] // Vì lúc này accessToken cũ đã hết hạn nên API này không được chặn [Authorize]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            var result = await _authService.RefreshTokenAsync(request.AccessToken, request.RefreshToken);
+
+            if (result == null)
+                return BadRequest(new { message = "RefreshToken không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!" });
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// API Đăng ký tài khoản mới
+        /// </summary>
+        [HttpPost("register")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var isSuccess = await _userService.RegisterAsync(request);
+                if (!isSuccess)
+                    return BadRequest(new { message = "Đăng ký tài khoản thất bại, vui lòng thử lại!" });
+
+                return Ok(new { message = "Đăng ký tài khoản thành công!" });
+            }
+            catch (Exception ex)
+            {
+                // Bắt lỗi trùng email được quăng ra từ Service
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+    }
+}

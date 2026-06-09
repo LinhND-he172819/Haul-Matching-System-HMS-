@@ -36,9 +36,6 @@ namespace HMS.Modules.Identity.Application.Services
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
             if (!isPasswordValid) return null;
 
-            // Giả lập tạm thời nếu chưa cài thư viện hash: 
-            if (user.PasswordHash != request.Password) return null;
-
             // Tạo cặp Token mới
             var accessToken = GenerateAccessToken(user);
             var refreshToken = GenerateRefreshToken();
