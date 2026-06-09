@@ -12,7 +12,7 @@ public static class TransportModule
 {
     public static IServiceCollection AddTransportModule(this IServiceCollection services)
     {
-        services.AddSingleton<ITripRepository, InMemoryTripRepository>();
+        services.AddScoped<ITripRepository, PostgresTripRepository>();
         services.AddScoped<ITripService, TripService>();
 
         return services;

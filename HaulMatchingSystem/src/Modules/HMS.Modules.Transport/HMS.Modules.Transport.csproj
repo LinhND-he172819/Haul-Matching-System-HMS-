@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Npgsql" Version="8.0.6" />
     <ProjectReference Include="..\..\HMS.Shared\HMS.Shared.Core\HMS.Shared.Core.csproj" />
     <ProjectReference Include="..\..\HMS.Shared\HMS.Shared.Infrastructure\HMS.Shared.Infrastructure.csproj" />
   </ItemGroup>

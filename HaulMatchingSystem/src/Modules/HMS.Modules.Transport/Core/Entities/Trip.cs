@@ -42,7 +42,7 @@ public sealed class Trip
     public DateTimeOffset? FinishedAt { get; private set; }
     public int Version { get; private set; }
     public TripStatus Status { get; private set; }
-    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public static Trip Create(
@@ -72,6 +72,43 @@ public sealed class Trip
             NormalizeRouteLineString(routeLineString),
             currentLoadWeightKg,
             currentLoadVolumeCbm);
+    }
+
+    public static Trip Rehydrate(
+        Guid id,
+        Guid driverId,
+        Guid vehicleId,
+        Guid originHubId,
+        Guid destHubId,
+        string routeLineString,
+        decimal currentLoadWeightKg,
+        decimal currentLoadVolumeCbm,
+        DateTimeOffset? startedAt,
+        DateTimeOffset? finishedAt,
+        int version,
+        TripStatus status,
+        DateTimeOffset createdAt,
+        DateTimeOffset updatedAt)
+    {
+        var trip = new Trip(
+            id,
+            driverId,
+            vehicleId,
+            originHubId,
+            destHubId,
+            NormalizeRouteLineString(routeLineString),
+            currentLoadWeightKg,
+            currentLoadVolumeCbm)
+        {
+            StartedAt = startedAt,
+            FinishedAt = finishedAt,
+            Version = version,
+            Status = status,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+
+        return trip;
     }
 
     public void UpdateDetails(
