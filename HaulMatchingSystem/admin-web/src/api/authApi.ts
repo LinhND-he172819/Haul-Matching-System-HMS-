@@ -14,12 +14,15 @@ export interface RegisterRequest {
     hubId?: string;
 }
 
-export interface TokenResponse {
+export interface AuthResponse {
+    userId: string;
+    fullName: string;
+    role: string;
     accessToken: string;
     refreshToken: string;
 }
 
-export async function login(request: LoginRequest): Promise<TokenResponse> {
+export async function login(request: LoginRequest): Promise<AuthResponse> {
     const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

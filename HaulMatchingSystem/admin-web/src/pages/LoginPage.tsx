@@ -23,6 +23,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
             const res = await login(formData);
             localStorage.setItem('accessToken', res.accessToken);
             localStorage.setItem('refreshToken', res.refreshToken);
+            localStorage.setItem('fullName', res.fullName);
             onNavigate('home');
         } catch (err) {
             if (err instanceof Error) {

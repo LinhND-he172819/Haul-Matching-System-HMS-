@@ -2,6 +2,7 @@ import { useState } from 'react';
 import DriverTripsPage from './pages/DriverTripsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import HomePage from './pages/HomePage';
 
 type Page = 'login' | 'register' | 'home';
 
@@ -16,7 +17,7 @@ function App() {
     <>
       {currentPage === 'login' && <LoginPage onNavigate={handleNavigate} />}
       {currentPage === 'register' && <RegisterPage onNavigate={handleNavigate} />}
-      {currentPage === 'home' && <DriverTripsPage />}
+      {currentPage === 'home' && <HomePage onNavigate={handleNavigate} />}
     </>
   );
 }
