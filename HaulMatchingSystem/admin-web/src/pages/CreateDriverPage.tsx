@@ -29,6 +29,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [selectedHubId, setSelectedHubId] = useState('');
     
     // Vehicle fields
@@ -129,6 +130,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
             generatedPassword += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         setPassword(generatedPassword);
+        setConfirmPassword(generatedPassword);
         showToast('Đã tạo mật khẩu ngẫu nhiên bảo mật', 'success');
     };
 
@@ -136,8 +138,13 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
         e.preventDefault();
 
         // Validation
-        if (!fullName || !phone || !email || !password || !selectedHubId || !licensePlate) {
+        if (!fullName || !phone || !email || !password || !confirmPassword || !selectedHubId || !licensePlate) {
             showToast('Vui lòng điền đầy đủ các thông tin bắt buộc!', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            showToast('Mật khẩu nhập lại không khớp!', 'error');
             return;
         }
 
@@ -164,6 +171,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
             setPhone('');
             setEmail('');
             setPassword('');
+            setConfirmPassword('');
             setSelectedHubId('');
             setLicensePlate('');
             setTruckType('Xe Tải Nhẹ 1.5 Tấn');
@@ -339,6 +347,24 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                                         </span>
                                                     </div>
                                                 )}
+                                            </div>
+                                        </div>
+
+                                        {/* Confirm Password */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-label-md font-bold text-on-surface-variant">
+                                                Nhập lại mật khẩu <span className="text-error">*</span>
+                                            </label>
+                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
+                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">lock_reset</span>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Nhập lại mật khẩu để xác nhận" 
+                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
+                                                    value={confirmPassword}
+                                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                                    required 
+                                                />
                                             </div>
                                         </div>
                                     </div>

@@ -26,6 +26,7 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [selectedHubId, setSelectedHubId] = useState('');
     const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
     
@@ -53,7 +54,7 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
             // Map users to Customers list
             const customerUsers = usersData
                 .filter(u => u.role === 'Customer')
-                .map((u, index) => {
+                .map((u) => {
                     const hub = hubsData.find(h => h.id === u.hubId);
                     return {
                         id: u.id.substring(0, 8).toUpperCase(), // Display shortened ID for beauty
@@ -100,6 +101,7 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
             generatedPassword += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         setPassword(generatedPassword);
+        setConfirmPassword(generatedPassword);
         showToast('Đã tạo mật khẩu ngẫu nhiên bảo mật', 'success');
     };
 
@@ -107,8 +109,13 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
         e.preventDefault();
 
         // Validation
-        if (!fullName || !phone || !email || !password) {
+        if (!fullName || !phone || !email || !password || !confirmPassword) {
             showToast('Vui lòng điền đầy đủ thông tin bắt buộc!', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            showToast('Mật khẩu nhập lại không khớp!', 'error');
             return;
         }
 
@@ -131,6 +138,7 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
             setPhone('');
             setEmail('');
             setPassword('');
+            setConfirmPassword('');
             setSelectedHubId('');
             setStatus('Active');
             
@@ -278,11 +286,12 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
                                             {password && (
                                                 <div className="px-1 mt-1 flex flex-col gap-1">
                                                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                                        <div className={`h-full ${strength.color} ${strength.width} transition-all duration-300`}></div>
+                                                        <div className={`h-full transition-all duration-300 ${strength.width} ${strength.color}`} />
                                                     </div>
-                                                    <span className={`text-[11px] font-bold ${strength.textClass}`}>
-                                                        Mật khẩu: {strength.label}
-                                                    </span>
+                                                    <div className="flex justify-between items-center text-[11px]">
+                                                        <span className="text-on-surface-variant/70">Độ mạnh mật khẩu</span>
+                                                        <span className={`font-bold ${strength.textClass}`}>{strength.label}</span>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -309,6 +318,24 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
                                                     </option>
                                                 ))}
                                             </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Confirm Password */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-label-md font-bold text-on-surface-variant">
+                                            Nhập lại mật khẩu <span className="text-error">*</span>
+                                        </label>
+                                        <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
+                                            <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">lock_reset</span>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Nhập lại mật khẩu để xác nhận" 
+                                                className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                required 
+                                            />
                                         </div>
                                     </div>
 

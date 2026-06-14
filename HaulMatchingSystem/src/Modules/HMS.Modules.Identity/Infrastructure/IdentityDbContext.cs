@@ -6,9 +6,8 @@ namespace HMS.Modules.Identity.Infrastructure
 {
     public class IdentityDbContext : DbContext, IIdentityDbContext
     {
-        public IdentityDbContext(DbContextOptions<IdentityDbContext> options) : base(options)
-        {
-        }
+        public IdentityDbContext(DbContextOptions<IdentityDbContext> options)
+            : base(options) { }
 
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Hub> Hubs { get; set; } = null!;
@@ -21,11 +20,9 @@ namespace HMS.Modules.Identity.Infrastructure
             modelBuilder.Entity<User>(b =>
             {
                 b.ToTable("users", "identity");
-                
+
                 b.HasKey(u => u.Id);
-                b.Property(u => u.Id)
-                 .HasColumnName("id")
-                 .HasDefaultValueSql("gen_random_uuid()");
+                b.Property(u => u.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
 
                 b.Property(u => u.HubId).HasColumnName("hub_id");
                 b.Property(u => u.FullName).HasColumnName("full_name").IsRequired();
@@ -37,6 +34,9 @@ namespace HMS.Modules.Identity.Infrastructure
                 b.Property(u => u.ResetPasswordToken).HasColumnName("reset_password_token");
                 b.Property(u => u.ResetTokenExpiresAt).HasColumnName("reset_token_expires_at");
                 b.Property(u => u.Role).HasColumnName("role").IsRequired();
+                b.Property(u => u.RefreshToken).HasColumnName("refresh_token");
+                b.Property(u => u.RefreshTokenExpiryTime)
+                    .HasColumnName("refresh_token_expiry_time");
                 b.Property(u => u.CreatedAt).HasColumnName("created_at");
                 b.Property(u => u.UpdatedAt).HasColumnName("updated_at");
                 b.Property(u => u.IsDeleted).HasColumnName("is_deleted");
@@ -45,11 +45,9 @@ namespace HMS.Modules.Identity.Infrastructure
             modelBuilder.Entity<Hub>(b =>
             {
                 b.ToTable("hubs", "identity");
-                
+
                 b.HasKey(h => h.Id);
-                b.Property(h => h.Id)
-                 .HasColumnName("id")
-                 .HasDefaultValueSql("gen_random_uuid()");
+                b.Property(h => h.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
 
                 b.Property(h => h.Name).HasColumnName("name").IsRequired();
                 b.Property(h => h.Address).HasColumnName("address").IsRequired();
@@ -61,11 +59,9 @@ namespace HMS.Modules.Identity.Infrastructure
             modelBuilder.Entity<Vehicle>(b =>
             {
                 b.ToTable("vehicles", "identity");
-                
+
                 b.HasKey(v => v.Id);
-                b.Property(v => v.Id)
-                 .HasColumnName("id")
-                 .HasDefaultValueSql("gen_random_uuid()");
+                b.Property(v => v.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
 
                 b.Property(v => v.HubId).HasColumnName("hub_id").IsRequired();
                 b.Property(v => v.LicensePlate).HasColumnName("license_plate").IsRequired();

@@ -5,7 +5,7 @@ interface HomePageProps {
     onLogout?: () => void;
 }
 
-export default function HomePage({ onNavigate, onLogout }: HomePageProps) {
+export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePageProps) {
     const [pickup, setPickup] = useState('');
     const [dropoff, setDropoff] = useState('');
     const [date, setDate] = useState('06/06/2026');

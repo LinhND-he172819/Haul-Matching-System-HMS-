@@ -2,21 +2,21 @@ using HMS.Modules.Identity.Core.Entities;
 using HMS.Modules.Identity.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using Vehicle = HMS.Modules.Matching.Core.Models.Vehicle;
 
 namespace HMS.Modules.Matching.Infrastructure
 {
     public class MatchingDbContext : DbContext, IIdentityDbContext
     {
-        public MatchingDbContext(DbContextOptions<MatchingDbContext> options) : base(options)
-        {
-        }
+        public MatchingDbContext(DbContextOptions<MatchingDbContext> options)
+            : base(options) { }
 
         public DbSet<Trip> Trips { get; set; } = null!;
         public DbSet<Vehicle> Vehicles { get; set; } = null!;
         public DbSet<Shipment> Shipments { get; set; } = null!;
         public DbSet<TripShipment> TripShipments { get; set; } = null!;
         public DbSet<Hub> Hubs { get; set; }
-        public DbSet<User> Users { get; set; } 
+        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

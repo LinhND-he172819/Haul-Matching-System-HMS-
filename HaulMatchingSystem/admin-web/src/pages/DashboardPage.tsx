@@ -25,9 +25,9 @@ export default function DashboardPage({ sidebar }: DashboardPageProps) {
 
     useEffect(() => {
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl((import.meta.env.VITE_API_URL ?? "https://localhost:7059") + "/hub/fleet") // CHÚ Ý: Đổi port nếu backend chạy cổng khác
+            .withUrl((import.meta.env.VITE_API_URL ?? "https://localhost:7059") + "/hub/fleet")
             .withAutomaticReconnect()
-            .configureLogging(signalR.LogLevel.Information)
+            .configureLogging(signalR.LogLevel.Warning)
             .build();
 
         connection.on("ReceiveAdminStats", (data: AdminStats) => {
@@ -50,6 +50,20 @@ export default function DashboardPage({ sidebar }: DashboardPageProps) {
 
     const formattedTime = stats ? new Date(stats.lastUpdated).toLocaleTimeString('vi-VN') : '--:--:--';
 
+    const hubsData = [
+        { name: 'Kho Gò Vấp - TP.HCM', value: 85, color: 'bg-primary' },
+        { name: 'Kho Tân Bình - TP.HCM', value: 72, color: 'bg-secondary' },
+        { name: 'Kho Hà Nội', value: 90, color: 'bg-primary-container text-primary' },
+        { name: 'Kho Đà Nẵng', value: 65, color: 'bg-error' },
+    ];
+
+    const activeDrivers = [
+        { name: 'Nguyễn Văn Hùng', vehicle: '51C-123.45', route: 'TP.HCM -> Đà Nẵng', status: 'Đang di chuyển', color: 'text-secondary bg-secondary/10' },
+        { name: 'Phạm Minh Chiến', vehicle: '51C-998.76', route: 'Kho Gò Vấp -> Kho Tân Bình', status: 'Đang xếp hàng', color: 'text-primary bg-primary/10' },
+        { name: 'Hoàng Văn Hải', vehicle: '29C-555.22', route: 'Hà Nội -> Hà Tĩnh', status: 'Sự cố (Breakdown)', color: 'text-error bg-error/10' },
+        { name: 'Trần Thanh Sơn', vehicle: '43C-888.11', route: 'Đà Nẵng -> Quy Nhơn', status: 'Nghỉ ngơi', color: 'text-slate-500 bg-slate-100' },
+    ];
+
     return (
         <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden">
             {/* --- SIDEBAR --- */}
@@ -68,8 +82,8 @@ export default function DashboardPage({ sidebar }: DashboardPageProps) {
                             <span className={`w-2 h-2 rounded-full ${connectionStatus === 'Connected' ? 'bg-secondary live-pulse' : 'bg-error'}`}></span>
                             {connectionStatus}
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-surface-variant overflow-hidden border border-outline-variant/50 ml-2">
-                            <img alt="User Avatar" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLsAnOAwTMZ6WYlncjkQ1wDt3lh-5zxXSSS8JggN1WvIsN8EuRxgEIdFOjF9I1_IhNz75PX8mHdibja7ELV4_3v0bVkMJLEaGeaaQVolYGiFyeLnJ13AmHloSfAL5cv_9FiHGaCngsQzKDui3CrqaSwov1bKnbVGvda30ObggYAs_Di8Q_l54hEDSewYFtlGK4wk_bc_l7fKJoXtxssZT84eHh3fzZ9XbCLzIBt0x9yzQRo1g6lxMUhRoag" />
+                        <div className="w-8 h-8 rounded-full bg-primary-fixed text-primary overflow-hidden border border-outline-variant/50 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[20px]">person</span>
                         </div>
                     </div>
                 </header>
@@ -98,7 +112,7 @@ export default function DashboardPage({ sidebar }: DashboardPageProps) {
                                     <span className="material-symbols-outlined text-[20px]">route</span>
                                 </div>
                             </div>
-                            <span className="text-display-lg font-display-lg text-on-surface">{stats?.activeTripCount || '--'}</span>
+                            <span className="text-display-lg font-display-lg text-on-surface">{stats?.activeTripCount ?? '--'}</span>
                         </div>
 
                         <div className="bg-surface-container-lowest rounded-xl p-card-padding card-shadow border border-outline-variant/20 flex flex-col justify-between">
@@ -109,16 +123,16 @@ export default function DashboardPage({ sidebar }: DashboardPageProps) {
                                     <span className="absolute inset-0 bg-primary/20 rounded-full live-pulse"></span>
                                 </div>
                             </div>
-                            <span className="text-display-lg font-display-lg text-on-surface">{stats?.inTransitShipments || '--'}</span>
+                            <span className="text-display-lg font-display-lg text-on-surface">{stats?.inTransitShipments ?? '--'}</span>
                         </div>
 
                         <div className="bg-surface-container-lowest rounded-xl p-card-padding card-shadow border border-outline-variant/20 flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">Vehicle Utilisation</span>
-                                <span className="text-headline-md font-headline-md text-on-tertiary-container">{stats?.avgVehicleUtilisation || 0}%</span>
+                                <span className="text-headline-md font-headline-md text-on-tertiary-container">{stats?.avgVehicleUtilisation ?? 0}%</span>
                             </div>
                             <div className="w-full bg-surface-container-high rounded-full h-2 mb-3 overflow-hidden">
-                                <div className="bg-on-tertiary-container h-2 rounded-full transition-all duration-500" style={{ width: `${stats?.avgVehicleUtilisation || 0}%` }}></div>
+                                <div className="bg-on-tertiary-container h-2 rounded-full transition-all duration-500" style={{ width: `${stats?.avgVehicleUtilisation ?? 0}%` }}></div>
                             </div>
                         </div>
 
@@ -131,8 +145,162 @@ export default function DashboardPage({ sidebar }: DashboardPageProps) {
                                 </div>
                             </div>
                             <div className="relative z-10">
-                                <span className="text-display-lg font-display-lg text-error">{stats?.hubItemsWaitingOver3Days || '--'}</span>
+                                <span className="text-display-lg font-display-lg text-error">{stats?.hubItemsWaitingOver3Days ?? '--'}</span>
                                 <span className="text-label-md font-label-md text-error ml-2">shipments at risk</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Charts Row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-gutter mb-gutter">
+                        {/* Line Chart: Performance */}
+                        <div className="bg-surface-container-lowest rounded-xl p-card-padding card-shadow border border-outline-variant/20 flex flex-col h-[350px]">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-headline-md font-headline-md text-on-surface flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary">timeline</span> Hiệu Suất Ghép Chuyến (Trips Completed)
+                                </h3>
+                                <span className="text-xs text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-full font-bold">Theo tháng</span>
+                            </div>
+                            <div className="flex-1 flex items-center justify-center p-2">
+                                <svg viewBox="0 0 500 180" className="w-full h-full">
+                                    <defs>
+                                        <linearGradient id="line-grad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="var(--md-sys-color-primary)" stopOpacity="0.3" />
+                                            <stop offset="100%" stopColor="var(--md-sys-color-primary)" stopOpacity="0.0" />
+                                        </linearGradient>
+                                    </defs>
+                                    <line x1="30" y1="20" x2="480" y2="20" stroke="var(--md-sys-color-outline-variant)" strokeOpacity="0.2" strokeDasharray="4" />
+                                    <line x1="30" y1="65" x2="480" y2="65" stroke="var(--md-sys-color-outline-variant)" strokeOpacity="0.2" strokeDasharray="4" />
+                                    <line x1="30" y1="110" x2="480" y2="110" stroke="var(--md-sys-color-outline-variant)" strokeOpacity="0.2" strokeDasharray="4" />
+                                    <line x1="30" y1="150" x2="480" y2="150" stroke="var(--md-sys-color-outline)" strokeOpacity="0.5" />
+
+                                    <path d="M 30 150 L 30 110 Q 110 70 190 120 T 350 50 Q 420 100 480 40 L 480 150 Z" fill="url(#line-grad)" />
+                                    <path d="M 30 110 Q 110 70 190 120 T 350 50 Q 420 100 480 40" fill="none" stroke="var(--md-sys-color-primary)" strokeWidth="3" />
+
+                                    <circle cx="30" cy="110" r="4" fill="var(--md-sys-color-primary)" stroke="var(--md-sys-color-surface)" strokeWidth="2" />
+                                    <circle cx="142" cy="95" r="4" fill="var(--md-sys-color-primary)" stroke="var(--md-sys-color-surface)" strokeWidth="2" />
+                                    <circle cx="255" cy="80" r="4" fill="var(--md-sys-color-primary)" stroke="var(--md-sys-color-surface)" strokeWidth="2" />
+                                    <circle cx="368" cy="72" r="4" fill="var(--md-sys-color-primary)" stroke="var(--md-sys-color-surface)" strokeWidth="2" />
+                                    <circle cx="480" cy="40" r="4" fill="var(--md-sys-color-primary)" stroke="var(--md-sys-color-surface)" strokeWidth="2" />
+
+                                    <text x="30" y="170" fill="var(--md-sys-color-on-surface-variant)" fontSize="10" textAnchor="middle" fontWeight="bold">Tháng 2</text>
+                                    <text x="142" y="170" fill="var(--md-sys-color-on-surface-variant)" fontSize="10" textAnchor="middle" fontWeight="bold">Tháng 3</text>
+                                    <text x="255" y="170" fill="var(--md-sys-color-on-surface-variant)" fontSize="10" textAnchor="middle" fontWeight="bold">Tháng 4</text>
+                                    <text x="368" y="170" fill="var(--md-sys-color-on-surface-variant)" fontSize="10" textAnchor="middle" fontWeight="bold">Tháng 5</text>
+                                    <text x="480" y="170" fill="var(--md-sys-color-on-surface-variant)" fontSize="10" textAnchor="middle" fontWeight="bold">Tháng 6</text>
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* Bar Chart: Capacity Utilisation by Hub */}
+                        <div className="bg-surface-container-lowest rounded-xl p-card-padding card-shadow border border-outline-variant/20 flex flex-col h-[350px]">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-headline-md font-headline-md text-on-surface flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary">bar_chart</span> Hiệu Suất Sử Dụng Xe Theo Kho (Hub Utilisation)
+                                </h3>
+                                <span className="text-xs text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-full font-bold">Thời gian thực</span>
+                            </div>
+                            <div className="flex-1 flex flex-col justify-center space-y-5 px-2">
+                                {hubsData.map((hub) => (
+                                    <div key={hub.name} className="space-y-1.5">
+                                        <div className="flex justify-between items-center text-body-md font-bold">
+                                            <span className="text-slate-700">{hub.name}</span>
+                                            <span className="text-primary">{hub.value}%</span>
+                                        </div>
+                                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                                            <div 
+                                                className={`${hub.color} h-3 rounded-full transition-all duration-500`} 
+                                                style={{ width: `${hub.value}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Middle Row: Donut Chart & Driver Fleet */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter mb-gutter">
+                        {/* Donut Chart: Trip Status */}
+                        <div className="lg:col-span-5 bg-surface-container-lowest rounded-xl p-card-padding card-shadow border border-outline-variant/20 flex flex-col h-[350px]">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-headline-md font-headline-md text-on-surface flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary">pie_chart</span> Trạng Thái Chuyến Đi
+                                </h3>
+                            </div>
+                            <div className="flex-1 flex flex-col sm:flex-row items-center gap-6 justify-center">
+                                <div className="relative w-[130px] h-[130px]">
+                                    <svg width="100%" height="100%" viewBox="0 0 36 36" className="transform -rotate-90">
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--md-sys-color-surface-container-high)" strokeWidth="3.5" />
+                                        
+                                        {/* Completed (65%) */}
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--md-sys-color-primary)" strokeWidth="3.5" 
+                                            strokeDasharray="65 35" strokeDashoffset="0" />
+                                            
+                                        {/* Active (25%) */}
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--md-sys-color-secondary)" strokeWidth="3.5" 
+                                            strokeDasharray="25 75" strokeDashoffset="-65" />
+                                            
+                                        {/* Breakdown (10%) */}
+                                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--md-sys-color-error)" strokeWidth="3.5" 
+                                            strokeDasharray="10 90" strokeDashoffset="-90" />
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span className="text-headline-md font-bold text-slate-800">12</span>
+                                        <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Tổng trips</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-2.5 text-body-md">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full bg-primary" />
+                                        <span className="font-bold text-slate-700">Đã hoàn thành: 65%</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full bg-secondary" />
+                                        <span className="font-bold text-slate-700">Đang chạy: 25%</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full bg-error" />
+                                        <span className="font-bold text-slate-700">Sự cố: 10%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Active Fleet Logger */}
+                        <div className="lg:col-span-7 bg-surface-container-lowest rounded-xl p-card-padding card-shadow border border-outline-variant/20 flex flex-col h-[350px]">
+                            <div className="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant/30">
+                                <h3 className="text-headline-md font-headline-md text-on-surface flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary">local_shipping</span> Trạng Thái Đội Xe (Active Fleet Overview)
+                                </h3>
+                                <span className="text-label-md font-label-md text-on-surface-variant font-bold">4 hoạt động</span>
+                            </div>
+                            <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                                <table className="w-full text-left text-body-md">
+                                    <thead>
+                                        <tr className="border-b border-outline-variant/30 text-on-surface-variant font-bold text-label-md">
+                                            <th className="py-2.5">Tài xế & Xe</th>
+                                            <th className="py-2.5">Tuyến đường</th>
+                                            <th className="py-2.5 text-right">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {activeDrivers.map((driver) => (
+                                            <tr key={driver.vehicle} className="border-b border-outline-variant/10 last:border-0 hover:bg-slate-50">
+                                                <td className="py-3">
+                                                    <div className="font-bold text-slate-800">{driver.name}</div>
+                                                    <div className="text-xs text-slate-500 font-semibold">{driver.vehicle}</div>
+                                                </td>
+                                                <td className="py-3 text-slate-600 font-semibold text-body-sm">{driver.route}</td>
+                                                <td className="py-3 text-right">
+                                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${driver.color}`}>
+                                                        {driver.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -142,7 +310,7 @@ export default function DashboardPage({ sidebar }: DashboardPageProps) {
                         <div className="lg:col-span-12 bg-surface-container-lowest rounded-xl p-card-padding card-shadow border border-outline-variant/20 flex flex-col h-[350px]">
                             <div className="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant/30">
                                 <h3 className="text-headline-md font-headline-md text-on-surface flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-error">campaign</span> Operational Alerts
+                                    <span className="material-symbols-outlined text-error">campaign</span> Operational Alerts (Cảnh Báo Vận Hành)
                                 </h3>
                             </div>
                             <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">

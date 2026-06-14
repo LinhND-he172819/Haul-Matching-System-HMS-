@@ -13,6 +13,7 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
         phone: '', 
         role: 'User' 
     });
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -23,6 +24,10 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (formData.password !== confirmPassword) {
+            setError('Mật khẩu nhập lại không khớp!');
+            return;
+        }
         setError('');
         setSuccess('');
         setIsLoading(true);
@@ -142,6 +147,23 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
                                 minLength={6}
                                 className="bg-transparent border-none outline-none w-full text-on-surface"
                                 placeholder="Tối thiểu 6 ký tự"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-label-md font-label-md text-on-surface-variant mb-1">Nhập lại mật khẩu</label>
+                        <div className="flex items-center bg-surface-container-low rounded-lg px-3 py-2 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary transition-all">
+                            <span className="material-symbols-outlined text-on-surface-variant text-[20px] mr-2">lock_reset</span>
+                            <input
+                                type="password"
+                                name="confirmPassword"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                                minLength={6}
+                                className="bg-transparent border-none outline-none w-full text-on-surface"
+                                placeholder="Xác nhận lại mật khẩu"
                             />
                         </div>
                     </div>

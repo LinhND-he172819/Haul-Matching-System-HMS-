@@ -72,3 +72,43 @@ export async function fetchUsers(): Promise<UserDto[]> {
     }
     return await res.json();
 }
+
+export async function updateUser(id: string, payload: CreateUserPayload): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/identity/users/${id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+        let errorData;
+        try {
+            errorData = await res.json();
+        } catch {
+            throw new Error(`Cập nhật tài khoản thất bại với mã lỗi: ${res.status}`);
+        }
+        throw new Error(errorData.Message || errorData.message || JSON.stringify(errorData));
+    }
+    return await res.json();
+}
+
+export async function deleteUser(id: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/identity/users/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+    });
+
+    if (!res.ok) {
+        let errorData;
+        try {
+            errorData = await res.json();
+        } catch {
+            throw new Error(`Xóa tài khoản thất bại với mã lỗi: ${res.status}`);
+        }
+        throw new Error(errorData.Message || errorData.message || JSON.stringify(errorData));
+    }
+    return await res.json();
+}
