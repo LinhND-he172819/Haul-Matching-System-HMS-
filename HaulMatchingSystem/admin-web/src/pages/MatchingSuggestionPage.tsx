@@ -16,9 +16,10 @@ import {
 
 interface MatchingSuggestionPageProps {
     onBackToAdmin?: () => void;
+    onLogout?: () => void;
 }
 
-export default function MatchingSuggestionPage({ onBackToAdmin }: MatchingSuggestionPageProps) {
+export default function MatchingSuggestionPage({ onBackToAdmin, onLogout }: MatchingSuggestionPageProps) {
     const [data, setData] = useState<MatchingSuggestionsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -171,9 +172,12 @@ export default function MatchingSuggestionPage({ onBackToAdmin }: MatchingSugges
                     </nav>
                 </div>
 
-                <button className="btn-ghost flex items-center gap-2 justify-center">
+                <button 
+                    onClick={onLogout}
+                    className="btn-ghost flex items-center gap-2 justify-center w-full"
+                >
                     <span className="material-symbols-outlined text-base">power_settings_new</span>
-                    Go Offline
+                    Go Offline (Đăng xuất)
                 </button>
             </aside>
 

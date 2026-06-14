@@ -5,7 +5,7 @@ services:
     container_name: hms_postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: lytruongtho123
+      POSTGRES_PASSWORD: hms_password_123
       POSTGRES_DB: hms_db
     ports:
       - "5432:5432"

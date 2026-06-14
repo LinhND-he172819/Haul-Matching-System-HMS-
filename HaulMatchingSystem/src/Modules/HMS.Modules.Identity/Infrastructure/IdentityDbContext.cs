@@ -1,9 +1,10 @@
 using HMS.Modules.Identity.Core.Entities;
+using HMS.Modules.Identity.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace HMS.Modules.Identity.Infrastructure
 {
-    public class IdentityDbContext : DbContext
+    public class IdentityDbContext : DbContext, IIdentityDbContext
     {
         public IdentityDbContext(DbContextOptions<IdentityDbContext> options) : base(options)
         {

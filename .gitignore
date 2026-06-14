@@ -427,3 +427,15 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Root-level working copies copied into docs/
+/Report *.docx
+/Report *.xlsx
+/diagrams/
+
+docs/
+PROJECT_CONTEXT.md
+AGENTS.md
+.codex/
+.local-ai/
+tools/

@@ -15,6 +15,8 @@ namespace HMS.Modules.Identity.Core.Entities
         public string? ResetPasswordToken { get; set; }
         public DateTime? ResetTokenExpiresAt { get; set; }
         public string Role { get; set; } = null!; // "Admin", "Warehouse_Staff", "Driver", "Customer"
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool IsDeleted { get; set; } = false;
