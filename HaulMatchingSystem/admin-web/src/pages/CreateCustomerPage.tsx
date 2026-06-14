@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fetchHubs, createUser, fetchUsers } from '../api/identityApi';
 
 interface Hub {
     id: string;
@@ -30,19 +31,8 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
     
     // Search & list states
     const [searchTerm, setSearchTerm] = useState('');
-    const [customers, setCustomers] = useState<Customer[]>([
-        { id: 'CUST-001', fullName: 'Trần Minh Hoàng', phone: '0912345678', email: 'hoang.tran@gmail.com', hubName: 'Kho Gò Vấp - TP.HCM', status: 'Active', createdAt: '10/06/2026' },
-        { id: 'CUST-002', fullName: 'Lê Thị Khánh Vy', phone: '0988776655', email: 'vy.le@yahoo.com', hubName: 'Kho Tân Bình - TP.HCM', status: 'Active', createdAt: '09/06/2026' },
-        { id: 'CUST-003', fullName: 'Nguyễn Tuấn Anh', phone: '0909998887', email: 'anh.nguyen@outlook.com', hubName: 'Kho Hà Nội', status: 'Inactive', createdAt: '08/06/2026' }
-    ]);
-
-    const [hubs] = useState<Hub[]>([
-        { id: 'h1', name: 'Kho Gò Vấp - TP.HCM', address: '12 Nguyễn Oanh, Gò Vấp, HCMC' },
-        { id: 'h2', name: 'Kho Tân Bình - TP.HCM', address: '45 Cộng Hòa, Tân Bình, HCMC' },
-        { id: 'h3', name: 'Kho Hà Nội', address: '102 Giải Phóng, Đống Đa, Hà Nội' },
-        { id: 'h4', name: 'Kho Đà Nẵng', address: '88 Nguyễn Lương Bằng, Liên Chiểu, Đà Nẵng' }
-    ]);
-
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [hubs, setHubs] = useState<Hub[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' }>>([]);
 
@@ -53,6 +43,38 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 3000);
     };
+
+    // Load data from backend API
+    const refreshData = async () => {
+        try {
+            const [hubsData, usersData] = await Promise.all([fetchHubs(), fetchUsers()]);
+            setHubs(hubsData);
+            
+            // Map users to Customers list
+            const customerUsers = usersData
+                .filter(u => u.role === 'Customer')
+                .map((u, index) => {
+                    const hub = hubsData.find(h => h.id === u.hubId);
+                    return {
+                        id: u.id.substring(0, 8).toUpperCase(), // Display shortened ID for beauty
+                        fullName: u.fullName,
+                        phone: u.phone || '--',
+                        email: u.email || '--',
+                        hubName: hub ? hub.name : 'Không liên kết',
+                        status: 'Active' as const,
+                        createdAt: new Date(u.createdAt).toLocaleDateString('vi-VN')
+                    };
+                });
+            setCustomers(customerUsers);
+        } catch (err: any) {
+            console.error("Lỗi đồng bộ dữ liệu từ API:", err);
+            showToast(err.message || 'Lỗi kết nối máy chủ API', 'error');
+        }
+    };
+
+    useEffect(() => {
+        refreshData();
+    }, []);
 
     // Password strength check
     const getPasswordStrength = () => {
@@ -81,7 +103,7 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
         showToast('Đã tạo mật khẩu ngẫu nhiên bảo mật', 'success');
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Validation
@@ -92,19 +114,16 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
 
         setSubmitting(true);
 
-        setTimeout(() => {
-            const selectedHub = hubs.find(h => h.id === selectedHubId);
-            const newCustomer: Customer = {
-                id: `CUST-0${customers.length + 1}`,
+        try {
+            await createUser({
                 fullName,
                 phone,
                 email,
-                hubName: selectedHub ? selectedHub.name : 'Không liên kết',
-                status,
-                createdAt: new Date().toLocaleDateString('vi-VN')
-            };
+                password,
+                hubId: selectedHubId || null,
+                role: 'Customer'
+            });
 
-            setCustomers(prev => [newCustomer, ...prev]);
             showToast(`Tạo tài khoản "${fullName}" thành công!`, 'success');
             
             // Reset fields
@@ -114,8 +133,14 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
             setPassword('');
             setSelectedHubId('');
             setStatus('Active');
+            
+            // Refresh listing from DB
+            await refreshData();
+        } catch (error: any) {
+            showToast(error?.message || 'Có lỗi xảy ra khi tạo tài khoản.', 'error');
+        } finally {
             setSubmitting(false);
-        }, 1000);
+        }
     };
 
     const filteredCustomers = customers.filter(c => 

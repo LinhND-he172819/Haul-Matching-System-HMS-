@@ -1,4 +1,4 @@
-﻿using HMS.Modules.Realtime.Hubs;
+using HMS.Modules.Realtime.Hubs;
 using HMS.Modules.Realtime.Interfaces;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
@@ -11,6 +11,7 @@ using StackExchange.Redis;
 using HMS.API.Middleware;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using HMS.Modules.Identity.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +48,10 @@ builder.Services.AddDbContext<MatchingDbContext>(opt =>
     opt.UseNpgsql(conn)
 );
 
+builder.Services.AddDbContext<IdentityDbContext>(opt =>
+    opt.UseNpgsql(conn)
+);
+
 // Redis
 var redisConn = builder.Configuration.GetValue<string>("Redis:Connection") ?? "localhost:6379";
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisConn));
@@ -55,6 +60,7 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
+builder.Services.AddScoped<HMS.Shared.Core.Interfaces.IDashboardStatsProvider, HMS.Modules.Matching.Infrastructure.DashboardStatsProvider>();
 
 // Exception middleware (registered as transient through pipeline)
 
@@ -116,6 +122,30 @@ app.MapGet("/weatherforecast", () =>
 
 // Map Endpoint tới Hub
 app.MapHub<HmsFleetHub>("/hub/fleet");
+
+// Seed default hubs if database hubs table is empty
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var identityDb = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        if (!identityDb.Hubs.Any())
+        {
+            identityDb.Hubs.AddRange(
+                new HMS.Modules.Identity.Core.Entities.Hub { Id = Guid.Parse("11111111-2222-3333-4444-555555555551"), Name = "Kho Gò Vấp - TP.HCM", Address = "12 Nguyễn Oanh, Gò Vấp, HCMC", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                new HMS.Modules.Identity.Core.Entities.Hub { Id = Guid.Parse("11111111-2222-3333-4444-555555555552"), Name = "Kho Tân Bình - TP.HCM", Address = "45 Cộng Hòa, Tân Bình, HCMC", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                new HMS.Modules.Identity.Core.Entities.Hub { Id = Guid.Parse("11111111-2222-3333-4444-555555555553"), Name = "Kho Hà Nội", Address = "102 Giải Phóng, Đống Đa, Hà Nội", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                new HMS.Modules.Identity.Core.Entities.Hub { Id = Guid.Parse("11111111-2222-3333-4444-555555555554"), Name = "Kho Đà Nẵng", Address = "88 Nguyễn Lương Bằng, Liên Chiểu, Đà Nẵng", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            );
+            identityDb.SaveChanges();
+            Console.WriteLine("Đã seed thành công 4 kho hàng mặc định vào database.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Lỗi seed dữ liệu Hub: " + ex.Message);
+    }
+}
 
 app.Run();
 

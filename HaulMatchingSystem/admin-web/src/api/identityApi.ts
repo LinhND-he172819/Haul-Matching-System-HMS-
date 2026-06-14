@@ -50,3 +50,25 @@ export async function createUser(payload: CreateUserPayload): Promise<any> {
     
     return await res.json();
 }
+
+export interface UserDto {
+    id: string;
+    fullName: string;
+    email?: string;
+    phone?: string;
+    role: string;
+    hubId?: string;
+    createdAt: string;
+    licensePlate?: string;
+    truckType?: string;
+    maxWeightKg?: number;
+    maxVolumeCbm?: number;
+}
+
+export async function fetchUsers(): Promise<UserDto[]> {
+    const res = await fetch(`${API_BASE}/api/identity/users`, { credentials: 'include' });
+    if (!res.ok) {
+        throw new Error(`Tải danh sách tài khoản thất bại: ${res.status}`);
+    }
+    return await res.json();
+}

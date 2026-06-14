@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fetchHubs, fetchUsers, createUser } from '../api/identityApi';
 
 interface Hub {
     id: string;
@@ -36,19 +37,9 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
     const [maxWeight, setMaxWeight] = useState(1500);
     const [maxVolume, setMaxVolume] = useState(8.5);
 
-    // Mock Fleet List
-    const [fleet, setFleet] = useState<DriverFleet[]>([
-        { id: 'DRIV-001', fullName: 'Phạm Minh Chiến', phone: '0987654321', email: 'chien.pham@gmail.com', hubName: 'Kho Gò Vấp - TP.HCM', licensePlate: '51C-998.76', truckType: 'Xe Tải Nhẹ 1.5 Tấn', maxWeight: 1500, maxVolume: 8.5, createdAt: '10/06/2026' },
-        { id: 'DRIV-002', fullName: 'Ngô Quốc Bảo', phone: '0901223344', email: 'bao.ngo@hms.com', hubName: 'Kho Tân Bình - TP.HCM', licensePlate: '51D-123.45', truckType: 'Xe Tải Trung 5 Tấn', maxWeight: 5000, maxVolume: 22.0, createdAt: '09/06/2026' },
-        { id: 'DRIV-003', fullName: 'Hoàng Văn Hải', phone: '0966554433', email: 'hai.hoang@yahoo.com', hubName: 'Kho Hà Nội', licensePlate: '29C-555.22', truckType: 'Xe Tải Nặng 15 Tấn', maxWeight: 15000, maxVolume: 45.0, createdAt: '07/06/2026' }
-    ]);
-
-    const [hubs] = useState<Hub[]>([
-        { id: 'h1', name: 'Kho Gò Vấp - TP.HCM', address: '12 Nguyễn Oanh, Gò Vấp, HCMC' },
-        { id: 'h2', name: 'Kho Tân Bình - TP.HCM', address: '45 Cộng Hòa, Tân Bình, HCMC' },
-        { id: 'h3', name: 'Kho Hà Nội', address: '102 Giải Phóng, Đống Đa, Hà Nội' },
-        { id: 'h4', name: 'Kho Đà Nẵng', address: '88 Nguyễn Lương Bằng, Liên Chiểu, Đà Nẵng' }
-    ]);
+    // Fleet & Hubs state
+    const [fleet, setFleet] = useState<DriverFleet[]>([]);
+    const [hubs, setHubs] = useState<Hub[]>([]);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -61,6 +52,41 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 3000);
     };
+
+    // Synchronize data from Backend API
+    const refreshData = async () => {
+        try {
+            const [hubsData, usersData] = await Promise.all([fetchHubs(), fetchUsers()]);
+            setHubs(hubsData);
+            
+            // Map users to DriverFleet list
+            const driverUsers = usersData
+                .filter(u => u.role === 'Driver')
+                .map((u) => {
+                    const hub = hubsData.find(h => h.id === u.hubId);
+                    return {
+                        id: u.id.substring(0, 8).toUpperCase(), // Shortened ID for aesthetics
+                        fullName: u.fullName,
+                        phone: u.phone || '--',
+                        email: u.email || '--',
+                        hubName: hub ? hub.name : 'Không liên kết',
+                        licensePlate: u.licensePlate || '--',
+                        truckType: u.truckType || 'Xe Tải Nhẹ 1.5 Tấn',
+                        maxWeight: u.maxWeightKg || 1500,
+                        maxVolume: u.maxVolumeCbm || 8.5,
+                        createdAt: new Date(u.createdAt).toLocaleDateString('vi-VN')
+                    };
+                });
+            setFleet(driverUsers);
+        } catch (err: any) {
+            console.error("Lỗi đồng bộ dữ liệu tài xế từ API:", err);
+            showToast(err.message || 'Lỗi kết nối máy chủ API', 'error');
+        }
+    };
+
+    useEffect(() => {
+        refreshData();
+    }, []);
 
     // Auto calculate capacity defaults when truck type changes
     useEffect(() => {
@@ -106,7 +132,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
         showToast('Đã tạo mật khẩu ngẫu nhiên bảo mật', 'success');
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Validation
@@ -117,22 +143,20 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
 
         setSubmitting(true);
 
-        setTimeout(() => {
-            const selectedHub = hubs.find(h => h.id === selectedHubId);
-            const newDriver: DriverFleet = {
-                id: `DRIV-0${fleet.length + 1}`,
+        try {
+            await createUser({
                 fullName,
                 phone,
                 email,
-                hubName: selectedHub ? selectedHub.name : 'Chưa liên kết',
+                password,
+                hubId: selectedHubId || null,
+                role: 'Driver',
                 licensePlate,
                 truckType,
-                maxWeight,
-                maxVolume,
-                createdAt: new Date().toLocaleDateString('vi-VN')
-            };
+                maxWeightKg: maxWeight,
+                maxVolumeCbm: maxVolume
+            });
 
-            setFleet(prev => [newDriver, ...prev]);
             showToast(`Tạo tài xế "${fullName}" thành công!`, 'success');
             
             // Reset form
@@ -143,8 +167,14 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
             setSelectedHubId('');
             setLicensePlate('');
             setTruckType('Xe Tải Nhẹ 1.5 Tấn');
+            
+            // Refresh from DB
+            await refreshData();
+        } catch (error: any) {
+            showToast(error?.message || 'Có lỗi xảy ra khi đăng ký tài xế.', 'error');
+        } finally {
             setSubmitting(false);
-        }, 1200);
+        }
     };
 
     const filteredFleet = fleet.filter(d => 
@@ -201,7 +231,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                         </div>
                         <h2 className="text-headline-lg font-headline-lg text-on-surface">Đăng Ký Tài Xế & Phương Tiện</h2>
                         <p className="text-body-md text-on-surface-variant mt-1">
-                            Đăng ký tài khoản tài xế (Driver) mới kèm theo đăng ký xe tải để phục vụ thuật toán ghép chuyến (Offline Mock).
+                            Đăng ký tài khoản tài xế (Driver) mới kèm theo đăng ký xe tải để phục vụ thuật toán ghép chuyến (Kết nối hệ thống live API).
                         </p>
                     </div>
 
@@ -493,7 +523,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                     <span className="material-symbols-outlined text-primary">airport_shuttle</span>
                                     Danh Sách Tài Xế & Đội Xe Mới
                                 </h3>
-                                <p className="text-xs text-on-surface-variant">Dữ liệu ảo hiển thị offline (sẽ reset khi reload lại trình duyệt).</p>
+                                <p className="text-xs text-on-surface-variant">Dữ liệu tài xế được đồng bộ trực tiếp từ cơ sở dữ liệu PostgreSQL của hệ thống.</p>
                             </div>
                             <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-1.5 border border-outline-variant/50 w-64">
                                 <span className="material-symbols-outlined text-on-surface-variant mr-2 text-[18px]">search</span>
