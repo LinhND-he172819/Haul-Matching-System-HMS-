@@ -11,7 +11,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
     const [formData, setFormData] = useState<LoginRequest>({ email: '', password: '' });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [role, setRole] = useState<'customer' | 'driver' | 'admin'>('customer');
+    const [role, setRole] = useState<'user' | 'driver' | 'admin'>('user');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
