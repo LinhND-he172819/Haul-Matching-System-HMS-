@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { login } from '../api/authApi';
+import { decodeJWT } from '../utils/jwt';
 import type { LoginRequest } from '../api/authApi';
 
 interface LoginPageProps {
@@ -10,6 +11,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
     const [formData, setFormData] = useState<LoginRequest>({ email: '', password: '' });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [role, setRole] = useState<'customer' | 'driver' | 'admin'>('customer');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -20,10 +22,10 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
         setError('');
         setIsLoading(true);
         try {
-            const res = await login(formData);
+            const res = await login({ ...formData, role });
+
             localStorage.setItem('accessToken', res.accessToken);
             localStorage.setItem('refreshToken', res.refreshToken);
-            localStorage.setItem('fullName', res.fullName);
             onNavigate('home');
         } catch (err) {
             if (err instanceof Error) {
@@ -45,6 +47,30 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
                     </div>
                     <h1 className="text-headline-md font-headline-md text-on-surface">Đăng nhập</h1>
                     <p className="text-body-md text-on-surface-variant mt-2">Hệ thống quản lý ghép chuyến</p>
+                </div>
+
+                <div className="flex bg-surface-container-low rounded-lg p-1 mb-6">
+                    <button
+                        type="button"
+                        onClick={() => setRole('customer')}
+                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'customer' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
+                    >
+                        Khách hàng
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setRole('driver')}
+                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'driver' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
+                    >
+                        Tài xế
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setRole('admin')}
+                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'admin' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
+                    >
+                        Admin
+                    </button>
                 </div>
 
                 {error && (

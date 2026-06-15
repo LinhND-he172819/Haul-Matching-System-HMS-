@@ -3,6 +3,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? 'https://localhost:7059';
 export interface LoginRequest {
     email: string;
     password: string;
+    role?: string;
 }
 
 export interface RegisterRequest {

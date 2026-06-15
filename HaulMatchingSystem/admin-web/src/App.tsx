@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import DriverTripsPage from './pages/DriverTripsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';

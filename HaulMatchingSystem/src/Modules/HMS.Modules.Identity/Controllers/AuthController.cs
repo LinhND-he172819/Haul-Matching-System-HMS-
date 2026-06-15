@@ -1,4 +1,4 @@
-﻿using HMS.Modules.Identity.Application.DTOs;
+using HMS.Modules.Identity.Application.DTOs;
 using HMS.Modules.Identity.Application.Services;
 using HMS.Modules.Identity.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -32,12 +32,23 @@ namespace HMS.Modules.Identity.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _authService.LoginAsync(request);
+            try
+            {
+                var result = await _authService.LoginAsync(request);
 
-            if (result == null)
-                return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác!" });
+                if (result == null)
+                    return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác!" });
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>

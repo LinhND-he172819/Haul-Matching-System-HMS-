@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -35,6 +35,11 @@ namespace HMS.Modules.Identity.Application.Services
             
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
             if (!isPasswordValid) return null;
+
+            if (!string.IsNullOrEmpty(request.Role) && !string.Equals(user.Role, request.Role, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException("Tài khoản của bạn không có quyền đăng nhập vào mục này.");
+            }
 
             // Tạo cặp Token mới
             var accessToken = GenerateAccessToken(user);
