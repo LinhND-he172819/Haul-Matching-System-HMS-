@@ -1,16 +1,17 @@
-﻿using HMS.Modules.Realtime.Hubs;
+﻿using FluentValidation;
+using FluentValidation.AspNetCore;
+using HMS.API.Middleware;
+using HMS.Modules.Matching.Application.Services;
+using HMS.Modules.Matching.Core.Interfaces;
+using HMS.Modules.Matching.Infrastructure;
+using HMS.Modules.Matching.Infrastructure.Redis;
+using HMS.Modules.Realtime.Hubs;
 using HMS.Modules.Realtime.Interfaces;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
-using HMS.Modules.Matching.Infrastructure;
-using HMS.Modules.Matching.Core.Interfaces;
-using HMS.Modules.Matching.Application.Services;
-using HMS.Modules.Matching.Infrastructure.Redis;
+using HMS.Modules.Transport.Data;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
-using HMS.API.Middleware;
-using FluentValidation;
-using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +46,10 @@ if (string.IsNullOrEmpty(conn))
 
 builder.Services.AddDbContext<MatchingDbContext>(opt =>
     opt.UseNpgsql(conn)
+);
+
+builder.Services.AddDbContext<TransportDbContext>(options =>
+    options.UseNpgsql(conn)
 );
 
 // Redis
