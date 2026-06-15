@@ -9,6 +9,7 @@ using HMS.Modules.Realtime.Hubs;
 using HMS.Modules.Realtime.Interfaces;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
+using HMS.Modules.Transport;
 using HMS.Modules.Transport.Data;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -48,9 +49,7 @@ builder.Services.AddDbContext<MatchingDbContext>(opt =>
     opt.UseNpgsql(conn)
 );
 
-builder.Services.AddDbContext<TransportDbContext>(options =>
-    options.UseNpgsql(conn)
-);
+builder.Services.AddTransportModule(builder.Configuration);
 
 // Redis
 var redisConn = builder.Configuration.GetValue<string>("Redis:Connection") ?? "localhost:6379";
