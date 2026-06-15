@@ -26,9 +26,10 @@ export default {
       borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
       spacing: { "stack-gap-md": "16px", "gutter": "16px", "container-margin": "24px", "unit": "8px", "stack-gap-sm": "8px", "card-padding": "20px" },
       fontFamily: {
-        "headline-lg": ["Inter", "sans-serif"], "label-lg": ["Inter", "sans-serif"], "display-lg": ["Inter", "sans-serif"],
-        "headline-md": ["Inter", "sans-serif"], "label-md": ["Inter", "sans-serif"], "body-lg": ["Inter", "sans-serif"],
-        "headline-lg-mobile": ["Inter", "sans-serif"], "body-md": ["Inter", "sans-serif"]
+        "headline-lg": ["Space Grotesk", "sans-serif"], "label-lg": ["Plus Jakarta Sans", "sans-serif"], "display-lg": ["Space Grotesk", "sans-serif"],
+        "headline-md": ["Space Grotesk", "sans-serif"], "label-md": ["Plus Jakarta Sans", "sans-serif"], "body-lg": ["Plus Jakarta Sans", "sans-serif"],
+        "headline-lg-mobile": ["Space Grotesk", "sans-serif"], "body-md": ["Plus Jakarta Sans", "sans-serif"],
+        "sans": ["Plus Jakarta Sans", "sans-serif"], "display": ["Space Grotesk", "sans-serif"]
       }
     },
   },

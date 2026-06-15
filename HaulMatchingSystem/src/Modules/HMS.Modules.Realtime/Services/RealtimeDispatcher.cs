@@ -49,6 +49,16 @@ namespace HMS.Modules.Realtime.Services
             await _hubContext.Clients.All.SendAsync("ReceiveTripUpdate", payload);
         }
 
+        public async Task BroadcastMatchingAcceptedAsync(object payload)
+        {
+            await _hubContext.Clients.Group("AdminGroup").SendAsync("MatchingAccepted", payload);
+        }
+
+        public async Task BroadcastMatchingRejectedAsync(object payload)
+        {
+            await _hubContext.Clients.Group("AdminGroup").SendAsync("MatchingRejected", payload);
+        }
+
         public async Task BroadcastAdminStatsAsync(AdminStatsPayload stats)
         {
             await _hubContext.Clients.Group("AdminGroup").SendAsync("ReceiveAdminStats", stats);
