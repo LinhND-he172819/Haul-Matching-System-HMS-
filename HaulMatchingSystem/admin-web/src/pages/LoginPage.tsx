@@ -82,17 +82,17 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-label-md font-label-md text-on-surface-variant mb-1">Email</label>
+                        <label className="block text-label-md font-label-md text-on-surface-variant mb-1">Email / Số điện thoại</label>
                         <div className="flex items-center bg-surface-container-low rounded-lg px-3 py-2 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
                             <span className="material-symbols-outlined text-on-surface-variant text-[20px] mr-2">mail</span>
                             <input
-                                type="email"
+                                type="text"
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
                                 required
                                 className="bg-transparent border-none outline-none text-body-md w-full placeholder-on-surface-variant/70 focus:ring-0 p-0 text-on-surface"
-                                placeholder="Nhập email của bạn"
+                                placeholder="Nhập email hoặc số điện thoại của bạn"
                             />
                         </div>
                     </div>

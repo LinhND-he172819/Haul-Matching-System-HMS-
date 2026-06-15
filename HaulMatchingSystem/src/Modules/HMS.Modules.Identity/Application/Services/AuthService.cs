@@ -28,8 +28,8 @@ namespace HMS.Modules.Identity.Application.Services
         // 1. Xử lý ĐĂNG NHẬP
         public async Task<AuthResponse?> LoginAsync(LoginRequest request)
         {
-            // Tìm user theo Email
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email && !u.IsDeleted);
+            // Tìm user theo Email hoặc số điện thoại
+            var user = await _context.Users.FirstOrDefaultAsync(u => (u.Email == request.Email || u.Phone == request.Email) && !u.IsDeleted);
             if (user == null) return null;
 
             

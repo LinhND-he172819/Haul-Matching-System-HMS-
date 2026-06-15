@@ -37,7 +37,7 @@ namespace HMS.Modules.Identity.Controllers
                 var result = await _authService.LoginAsync(request);
 
                 if (result == null)
-                    return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác!" });
+                    return Unauthorized(new { message = "Email, số điện thoại hoặc mật khẩu không chính xác!" });
 
                 return Ok(result);
             }
