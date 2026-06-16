@@ -5,6 +5,6 @@ public sealed record CreateTripRequest(
     Guid VehicleId,
     Guid OriginHubId,
     Guid DestHubId,
-    string RouteLineString,
+    string? RouteLineString,
     decimal CurrentLoadWeightKg = 0,
     decimal CurrentLoadVolumeCbm = 0);

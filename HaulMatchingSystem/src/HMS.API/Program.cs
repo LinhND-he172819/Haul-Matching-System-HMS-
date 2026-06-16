@@ -82,6 +82,8 @@ builder.Services.AddTransportModule();
 
 var app = builder.Build();
 
+await app.InitializeTransportModuleAsync();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

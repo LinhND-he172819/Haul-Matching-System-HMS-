@@ -23,6 +23,10 @@ public static class TripEndpoints
 
                 return Results.Created($"/api/trips/{trip.Id}", trip);
             }
+            catch (RoutePlanningException exception)
+            {
+                return RoutePlanningResult(exception);
+            }
             catch (ArgumentException exception)
             {
                 return ValidationResult(exception);
@@ -58,6 +62,10 @@ public static class TripEndpoints
                 var trip = await service.UpdateAsync(id, request, cancellationToken);
 
                 return trip is null ? Results.NotFound() : Results.Ok(trip);
+            }
+            catch (RoutePlanningException exception)
+            {
+                return RoutePlanningResult(exception);
             }
             catch (ArgumentException exception)
             {
@@ -109,5 +117,13 @@ public static class TripEndpoints
         {
             [key] = [exception.Message]
         });
+    }
+
+    private static IResult RoutePlanningResult(RoutePlanningException exception)
+    {
+        return Results.Problem(
+            title: "Route planning failed",
+            detail: exception.Message,
+            statusCode: StatusCodes.Status502BadGateway);
     }
 }
