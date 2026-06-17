@@ -92,6 +92,10 @@ builder.Services.AddSwaggerGen(c =>
     if (System.IO.File.Exists(xmlFile))
         c.IncludeXmlComments(xmlFile);
 });
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 // Đăng ký Dispatcher
 builder.Services.AddScoped<IRealtimeDispatcher, RealtimeDispatcher>();

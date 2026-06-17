@@ -52,8 +52,8 @@ The preferred implementation style is a modular monolith split by business domai
 - Trip & GPS
 - Matching Engine
 - Realtime & Notification
-Haul-Matching-System-HMS-
-===
+
+Avoid a single large shared domain/infrastructure layer for all modules.
 
 ## Database - Matching Module
 
@@ -78,5 +78,3 @@ Haul-Matching-System-HMS-
 	--context MatchingDbContext \
 	--output "c:\Do_An\Haul-Matching-System-HMS-\Database\02_Matching_Module.sql"
 ```
-
-Avoid a single large shared domain/infrastructure layer for all modules.
