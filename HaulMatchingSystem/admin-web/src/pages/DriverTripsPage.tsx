@@ -190,7 +190,7 @@ function toRadians(value: number) {
     return value * (Math.PI / 180);
 }
 
-export default function DriverTripsPage() {
+export default function DriverTripsPage({ onLogout, onBackToAdmin }: { onLogout?: () => void; onBackToAdmin?: () => void }) {
     const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('Trips');
     const [trips, setTrips] = useState<DriverTrip[]>([]);
     const [apiStatus, setApiStatus] = useState('Loading trips...');
@@ -351,6 +351,16 @@ export default function DriverTripsPage() {
                     </div>
                 </div>
 
+                {onBackToAdmin && (
+                    <button
+                        onClick={onBackToAdmin}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-primary text-primary hover:bg-surface-container-low transition-all mb-4 text-left"
+                    >
+                        <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
+                        <span className="text-label-lg font-bold">Admin Console</span>
+                    </button>
+                )}
+
                 <button className="w-full bg-primary hover:bg-primary-container text-on-primary text-label-lg font-label-lg py-3 rounded-lg mb-6 transition-colors flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined">near_me</span>
                     Start GPS Ping
@@ -388,6 +398,15 @@ export default function DriverTripsPage() {
                             <span className={`w-2 h-2 rounded-full ${apiStatus === 'Connected' ? 'bg-secondary live-pulse' : 'bg-error'}`}></span>
                             {apiStatus}
                         </div>
+                        {onLogout && (
+                            <button 
+                                onClick={onLogout}
+                                className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container text-error transition-colors"
+                                title="Đăng xuất"
+                            >
+                                <span className="material-symbols-outlined">logout</span>
+                            </button>
+                        )}
                         <div className="w-8 h-8 rounded-full bg-primary-fixed text-primary overflow-hidden border border-outline-variant/50 flex items-center justify-center">
                             <span className="material-symbols-outlined text-[20px]">person</span>
                         </div>
