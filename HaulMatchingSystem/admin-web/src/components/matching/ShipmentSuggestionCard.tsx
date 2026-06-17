@@ -28,10 +28,10 @@ export default function ShipmentSuggestionCard({ shipment, selected, matchPercen
                         <div className="text-xs text-slate-500">Cách vị trí hiện tại: {distanceKm}km</div>
                     </div>
                 </div>
-                <span className="pill">
+                {/* <span className="pill">
                     <span className="material-symbols-outlined text-sm">bolt</span>
                     {matchPercent}% Match
-                </span>
+                </span> */}
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -57,7 +57,7 @@ export default function ShipmentSuggestionCard({ shipment, selected, matchPercen
             <div className="mt-4 flex gap-2">
                 <button className="btn-primary flex-1" onClick={() => onAccept(shipment.shipmentId)}>Chọn Ghép</button>
                 <button className="btn-outline" onClick={() => onDetails?.(shipment.shipmentId)}>Chi Tiết</button>
-                <button className="btn-ghost" onClick={() => onReject(shipment.shipmentId)}>Từ chối</button>
+                {/* <button className="btn-ghost" onClick={() => onReject(shipment.shipmentId)}>Từ chối</button> */}
             </div>
         </div>
     );
