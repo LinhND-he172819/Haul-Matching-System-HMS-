@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchHubs, createUser, fetchUsers } from '../api/identityApi';
+import { fetchHubs, createUser, fetchUsers, updateUser, deleteUser } from '../api/identityApi';
 
 interface Hub {
     id: string;
@@ -12,6 +12,7 @@ interface Customer {
     fullName: string;
     phone: string;
     email: string;
+    hubId: string;
     hubName: string;
     status: 'Active' | 'Inactive';
     createdAt: string;
@@ -29,6 +30,7 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
     const [confirmPassword, setConfirmPassword] = useState('');
     const [selectedHubId, setSelectedHubId] = useState('');
     const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
+    const [editingId, setEditingId] = useState<string | null>(null);
     
     // Search & list states
     const [searchTerm, setSearchTerm] = useState('');
@@ -57,10 +59,11 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
                 .map((u) => {
                     const hub = hubsData.find(h => h.id === u.hubId);
                     return {
-                        id: u.id.substring(0, 8).toUpperCase(), // Display shortened ID for beauty
+                        id: u.id,
                         fullName: u.fullName,
                         phone: u.phone || '--',
                         email: u.email || '--',
+                        hubId: u.hubId || '',
                         hubName: hub ? hub.name : 'Không liên kết',
                         status: 'Active' as const,
                         createdAt: new Date(u.createdAt).toLocaleDateString('vi-VN')
@@ -105,16 +108,40 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
         showToast('Đã tạo mật khẩu ngẫu nhiên bảo mật', 'success');
     };
 
+    const handleStartEdit = (cust: Customer) => {
+        setEditingId(cust.id);
+        setFullName(cust.fullName);
+        setPhone(cust.phone === '--' ? '' : cust.phone);
+        setEmail(cust.email === '--' ? '' : cust.email);
+        setPassword('');
+        setConfirmPassword('');
+        setSelectedHubId(cust.hubId || '');
+        showToast(`Đang sửa thông tin tài khoản: ${cust.fullName}`);
+    };
+
+    const handleDelete = async (id: string, name: string) => {
+        if (!window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${name}" không?`)) {
+            return;
+        }
+        try {
+            await deleteUser(id);
+            showToast(`Xóa tài khoản "${name}" thành công!`, 'success');
+            await refreshData();
+        } catch (err: any) {
+            showToast(err.message || 'Xóa tài khoản thất bại.', 'error');
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Validation
-        if (!fullName || !phone || !email || !password || !confirmPassword) {
+        if (!fullName || !phone || !email || (!editingId && (!password || !confirmPassword))) {
             showToast('Vui lòng điền đầy đủ thông tin bắt buộc!', 'error');
             return;
         }
 
-        if (password !== confirmPassword) {
+        if (password && password !== confirmPassword) {
             showToast('Mật khẩu nhập lại không khớp!', 'error');
             return;
         }
@@ -122,16 +149,27 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
         setSubmitting(true);
 
         try {
-            await createUser({
-                fullName,
-                phone,
-                email,
-                password,
-                hubId: selectedHubId || null,
-                role: 'Customer'
-            });
-
-            showToast(`Tạo tài khoản "${fullName}" thành công!`, 'success');
+            if (editingId) {
+                await updateUser(editingId, {
+                    fullName,
+                    phone,
+                    email,
+                    password: password || undefined,
+                    hubId: selectedHubId || null,
+                    role: 'Customer'
+                });
+                showToast(`Cập nhật tài khoản "${fullName}" thành công!`, 'success');
+            } else {
+                await createUser({
+                    fullName,
+                    phone,
+                    email,
+                    password,
+                    hubId: selectedHubId || null,
+                    role: 'Customer'
+                });
+                showToast(`Tạo tài khoản "${fullName}" thành công!`, 'success');
+            }
             
             // Reset fields
             setFullName('');
@@ -141,11 +179,12 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
             setConfirmPassword('');
             setSelectedHubId('');
             setStatus('Active');
+            setEditingId(null);
             
             // Refresh listing from DB
             await refreshData();
         } catch (error: any) {
-            showToast(error?.message || 'Có lỗi xảy ra khi tạo tài khoản.', 'error');
+            showToast(error?.message || 'Có lỗi xảy ra.', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -377,7 +416,25 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
                                 </div>
 
                                 {/* Submit Button */}
-                                <div className="flex justify-end pt-4 border-t border-outline-variant/20">
+                                <div className="flex justify-end gap-3 pt-4 border-t border-outline-variant/20">
+                                    {editingId && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditingId(null);
+                                                setFullName('');
+                                                setPhone('');
+                                                setEmail('');
+                                                setPassword('');
+                                                setConfirmPassword('');
+                                                setSelectedHubId('');
+                                                setStatus('Active');
+                                            }}
+                                            className="border border-outline hover:bg-surface-container-low text-on-surface text-label-lg font-bold py-3 px-6 rounded-xl transition-all"
+                                        >
+                                            Hủy sửa
+                                        </button>
+                                    )}
                                     <button
                                         type="submit"
                                         disabled={submitting}
@@ -390,8 +447,8 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
                                             </>
                                         ) : (
                                             <>
-                                                <span className="material-symbols-outlined">person_add</span>
-                                                Đăng Ký Khách Hàng
+                                                <span className="material-symbols-outlined">{editingId ? 'edit' : 'person_add'}</span>
+                                                {editingId ? 'Cập nhật Khách Hàng' : 'Đăng Ký Khách Hàng'}
                                             </>
                                         )}
                                     </button>
@@ -461,19 +518,20 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
                                         <th className="py-3 px-4 font-bold">Kho hàng (Hub)</th>
                                         <th className="py-3 px-4 font-bold">Trạng thái</th>
                                         <th className="py-3 px-4 font-bold">Ngày tạo</th>
+                                        <th className="py-3 px-4 font-bold text-center">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredCustomers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="py-8 text-center text-on-surface-variant/70 font-semibold">
+                                            <td colSpan={8} className="py-8 text-center text-on-surface-variant/70 font-semibold">
                                                 Không tìm thấy kết quả nào phù hợp.
                                             </td>
                                         </tr>
                                     ) : (
                                         filteredCustomers.map(cust => (
                                             <tr key={cust.id} className="border-b border-outline-variant/10 hover:bg-surface-container-low/30 transition-colors">
-                                                <td className="py-3.5 px-4 font-bold text-primary">{cust.id}</td>
+                                                <td className="py-3.5 px-4 font-bold text-primary">{cust.id.substring(0, 8).toUpperCase()}</td>
                                                 <td className="py-3.5 px-4 font-bold flex items-center gap-2">
                                                     <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
                                                         {cust.fullName.charAt(0)}
@@ -493,6 +551,26 @@ export default function CreateCustomerPage({ sidebar }: CreateCustomerPageProps)
                                                     </span>
                                                 </td>
                                                 <td className="py-3.5 px-4 text-slate-500">{cust.createdAt}</td>
+                                                <td className="py-3.5 px-4 text-center">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => handleStartEdit(cust)}
+                                                            className="text-primary hover:text-primary/80 transition-colors"
+                                                            title="Sửa"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                                                        </button>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => handleDelete(cust.id, cust.fullName)}
+                                                            className="text-error hover:text-error/80 transition-colors"
+                                                            title="Xóa"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))
                                     )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchHubs, fetchUsers, createUser } from '../api/identityApi';
+import { fetchHubs, fetchUsers, createUser, updateUser, deleteUser } from '../api/identityApi';
 
 interface Hub {
     id: string;
@@ -12,6 +12,7 @@ interface DriverFleet {
     fullName: string;
     phone: string;
     email: string;
+    hubId: string;
     hubName: string;
     licensePlate: string;
     truckType: string;
@@ -31,6 +32,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [selectedHubId, setSelectedHubId] = useState('');
+    const [editingId, setEditingId] = useState<string | null>(null);
     
     // Vehicle fields
     const [licensePlate, setLicensePlate] = useState('');
@@ -66,10 +68,11 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                 .map((u) => {
                     const hub = hubsData.find(h => h.id === u.hubId);
                     return {
-                        id: u.id.substring(0, 8).toUpperCase(), // Shortened ID for aesthetics
+                        id: u.id,
                         fullName: u.fullName,
                         phone: u.phone || '--',
                         email: u.email || '--',
+                        hubId: u.hubId || '',
                         hubName: hub ? hub.name : 'Không liên kết',
                         licensePlate: u.licensePlate || '--',
                         truckType: u.truckType || 'Xe Tải Nhẹ 1.5 Tấn',
@@ -134,16 +137,44 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
         showToast('Đã tạo mật khẩu ngẫu nhiên bảo mật', 'success');
     };
 
+    const handleStartEdit = (driv: DriverFleet) => {
+        setEditingId(driv.id);
+        setFullName(driv.fullName);
+        setPhone(driv.phone === '--' ? '' : driv.phone);
+        setEmail(driv.email === '--' ? '' : driv.email);
+        setPassword('');
+        setConfirmPassword('');
+        setSelectedHubId(driv.hubId || '');
+        setLicensePlate(driv.licensePlate === '--' ? '' : driv.licensePlate);
+        setTruckType(driv.truckType);
+        setMaxWeight(driv.maxWeight);
+        setMaxVolume(driv.maxVolume);
+        showToast(`Đang sửa thông tin tài xế: ${driv.fullName}`);
+    };
+
+    const handleDelete = async (id: string, name: string) => {
+        if (!window.confirm(`Bạn có chắc chắn muốn xóa tài xế "${name}" không?`)) {
+            return;
+        }
+        try {
+            await deleteUser(id);
+            showToast(`Xóa tài xế "${name}" thành công!`, 'success');
+            await refreshData();
+        } catch (err: any) {
+            showToast(err.message || 'Xóa tài xế thất bại.', 'error');
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Validation
-        if (!fullName || !phone || !email || !password || !confirmPassword || !selectedHubId || !licensePlate) {
+        if (!fullName || !phone || !email || (!editingId && (!password || !confirmPassword)) || !selectedHubId || !licensePlate) {
             showToast('Vui lòng điền đầy đủ các thông tin bắt buộc!', 'error');
             return;
         }
 
-        if (password !== confirmPassword) {
+        if (password && password !== confirmPassword) {
             showToast('Mật khẩu nhập lại không khớp!', 'error');
             return;
         }
@@ -151,21 +182,36 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
         setSubmitting(true);
 
         try {
-            await createUser({
-                fullName,
-                phone,
-                email,
-                password,
-                hubId: selectedHubId || null,
-                role: 'Driver',
-                licensePlate,
-                truckType,
-                maxWeightKg: maxWeight,
-                maxVolumeCbm: maxVolume
-            });
+            if (editingId) {
+                await updateUser(editingId, {
+                    fullName,
+                    phone,
+                    email,
+                    password: password || undefined,
+                    hubId: selectedHubId || null,
+                    role: 'Driver',
+                    licensePlate,
+                    truckType,
+                    maxWeightKg: maxWeight,
+                    maxVolumeCbm: maxVolume
+                });
+                showToast(`Cập nhật tài xế "${fullName}" thành công!`, 'success');
+            } else {
+                await createUser({
+                    fullName,
+                    phone,
+                    email,
+                    password,
+                    hubId: selectedHubId || null,
+                    role: 'Driver',
+                    licensePlate,
+                    truckType,
+                    maxWeightKg: maxWeight,
+                    maxVolumeCbm: maxVolume
+                });
+                showToast(`Tạo tài xế "${fullName}" thành công!`, 'success');
+            }
 
-            showToast(`Tạo tài xế "${fullName}" thành công!`, 'success');
-            
             // Reset form
             setFullName('');
             setPhone('');
@@ -175,11 +221,12 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
             setSelectedHubId('');
             setLicensePlate('');
             setTruckType('Xe Tải Nhẹ 1.5 Tấn');
+            setEditingId(null);
             
             // Refresh from DB
             await refreshData();
         } catch (error: any) {
-            showToast(error?.message || 'Có lỗi xảy ra khi đăng ký tài xế.', 'error');
+            showToast(error?.message || 'Có lỗi xảy ra.', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -334,7 +381,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                                         className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
                                                         value={password}
                                                         onChange={(e) => setPassword(e.target.value)}
-                                                        required 
+                                                        required={!editingId} 
                                                     />
                                                 </div>
                                                 {password && (
@@ -349,10 +396,35 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                                 )}
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        {/* Hub Selection */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
+                                                Kho hàng trực thuộc (Hub) quản lý <span className="text-error">*</span>
+                                            </label>
+                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
+                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">warehouse</span>
+                                                <select 
+                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
+                                                    value={selectedHubId}
+                                                    onChange={(e) => setSelectedHubId(e.target.value)}
+                                                    required
+                                                >
+                                                    <option value="" className="bg-surface">-- Chọn kho hàng trực thuộc --</option>
+                                                    {hubs.map((hub) => (
+                                                        <option key={hub.id} value={hub.id} className="bg-surface">
+                                                            {hub.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
 
                                         {/* Confirm Password */}
                                         <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant">
+                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
                                                 Nhập lại mật khẩu <span className="text-error">*</span>
                                             </label>
                                             <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
@@ -363,32 +435,9 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                                     className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
                                                     value={confirmPassword}
                                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                                    required 
+                                                    required={!editingId} 
                                                 />
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Hub Selection */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
-                                            Kho hàng trực thuộc (Hub) quản lý <span className="text-error">*</span>
-                                        </label>
-                                        <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                            <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">warehouse</span>
-                                            <select 
-                                                className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                value={selectedHubId}
-                                                onChange={(e) => setSelectedHubId(e.target.value)}
-                                                required
-                                            >
-                                                <option value="" className="bg-surface">-- Chọn kho hàng trực thuộc --</option>
-                                                {hubs.map((hub) => (
-                                                    <option key={hub.id} value={hub.id} className="bg-surface">
-                                                        {hub.name}
-                                                    </option>
-                                                ))}
-                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -480,7 +529,26 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                 </div>
 
                                 {/* Submit Button */}
-                                <div className="flex justify-end pt-4 border-t border-outline-variant/20">
+                                <div className="flex justify-end gap-3 pt-4 border-t border-outline-variant/20">
+                                    {editingId && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditingId(null);
+                                                setFullName('');
+                                                setPhone('');
+                                                setEmail('');
+                                                setPassword('');
+                                                setConfirmPassword('');
+                                                setSelectedHubId('');
+                                                setLicensePlate('');
+                                                setTruckType('Xe Tải Nhẹ 1.5 Tấn');
+                                            }}
+                                            className="border border-outline hover:bg-surface-container-low text-on-surface text-label-lg font-bold py-3 px-6 rounded-xl transition-all"
+                                        >
+                                            Hủy sửa
+                                        </button>
+                                    )}
                                     <button
                                         type="submit"
                                         disabled={submitting}
@@ -493,8 +561,8 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                             </>
                                         ) : (
                                             <>
-                                                <span className="material-symbols-outlined">local_shipping</span>
-                                                Đăng Ký Tài Xế & Xe
+                                                <span className="material-symbols-outlined">{editingId ? 'edit' : 'local_shipping'}</span>
+                                                {editingId ? 'Cập nhật Tài Xế & Xe' : 'Đăng Ký Tài Xế & Xe'}
                                             </>
                                         )}
                                     </button>
@@ -576,19 +644,20 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                         <th className="py-3 px-4 font-bold">Thể tích (CBM)</th>
                                         <th className="py-3 px-4 font-bold">Kho hàng (Hub)</th>
                                         <th className="py-3 px-4 font-bold">Ngày tạo</th>
+                                        <th className="py-3 px-4 font-bold text-center">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredFleet.length === 0 ? (
                                         <tr>
-                                            <td colSpan={9} className="py-8 text-center text-on-surface-variant/70 font-semibold">
+                                            <td colSpan={10} className="py-8 text-center text-on-surface-variant/70 font-semibold">
                                                 Không có tài xế nào khớp với từ khóa tìm kiếm.
                                             </td>
                                         </tr>
                                     ) : (
                                         filteredFleet.map(driv => (
                                             <tr key={driv.id} className="border-b border-outline-variant/10 hover:bg-surface-container-low/30 transition-colors">
-                                                <td className="py-3.5 px-4 font-bold text-primary">{driv.id}</td>
+                                                <td className="py-3.5 px-4 font-bold text-primary">{driv.id.substring(0, 8).toUpperCase()}</td>
                                                 <td className="py-3.5 px-4 font-bold flex items-center gap-2">
                                                     <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
                                                         {driv.fullName.charAt(0)}
@@ -606,6 +675,26 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                                 <td className="py-3.5 px-4 text-slate-700 font-semibold">{driv.maxVolume}</td>
                                                 <td className="py-3.5 px-4 font-medium text-slate-800">{driv.hubName}</td>
                                                 <td className="py-3.5 px-4 text-slate-500">{driv.createdAt}</td>
+                                                <td className="py-3.5 px-4 text-center">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => handleStartEdit(driv)}
+                                                            className="text-primary hover:text-primary/80 transition-colors"
+                                                            title="Sửa"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                                                        </button>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => handleDelete(driv.id, driv.fullName)}
+                                                            className="text-error hover:text-error/80 transition-colors"
+                                                            title="Xóa"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))
                                     )}
