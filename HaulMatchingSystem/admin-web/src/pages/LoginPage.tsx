@@ -7,7 +7,6 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onNavigate }: LoginPageProps) {
-    const [loginMode, setLoginMode] = useState<'password' | 'otp'>('password');
     const [formData, setFormData] = useState<LoginRequest>({ email: '', password: '' });
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState('');
@@ -16,7 +15,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [role, setRole] = useState<'Customer' | 'Driver' | 'Admin' | 'Warehouse_Staff'>('Customer');
+    const [role, setRole] = useState<'Customer' | 'Driver' | 'Admin'>('Customer');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -91,6 +90,8 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
         }
     };
 
+    const isOtpMode = role === 'Customer';
+
     return (
         <div className="bg-surface text-on-surface font-body-md min-h-screen flex items-center justify-center p-4">
             <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 card-shadow w-full max-w-md">
@@ -105,48 +106,24 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
                 <div className="flex bg-surface-container-low rounded-lg p-1 mb-6">
                     <button
                         type="button"
-                        onClick={() => setRole('Customer')}
+                        onClick={() => { setRole('Customer'); setError(''); setSuccess(''); setOtpSent(false); }}
                         className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Customer' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
                     >
                         Khách hàng
                     </button>
                     <button
                         type="button"
-                        onClick={() => setRole('Driver')}
+                        onClick={() => { setRole('Driver'); setError(''); setSuccess(''); }}
                         className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Driver' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
                     >
                         Tài xế
                     </button>
                     <button
                         type="button"
-                        onClick={() => setRole('Warehouse_Staff')}
-                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Warehouse_Staff' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
-                    >
-                        Kho
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setRole('Admin')}
+                        onClick={() => { setRole('Admin'); setError(''); setSuccess(''); }}
                         className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Admin' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
                     >
                         Admin
-                    </button>
-                </div>
-
-                <div className="flex border-b border-outline-variant mb-6">
-                    <button
-                        type="button"
-                        onClick={() => { setLoginMode('password'); setError(''); setSuccess(''); }}
-                        className={`flex-1 pb-2 text-label-md font-label-md transition-colors border-b-2 ${loginMode === 'password' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
-                    >
-                        Mật khẩu
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => { setLoginMode('otp'); setError(''); setSuccess(''); }}
-                        className={`flex-1 pb-2 text-label-md font-label-md transition-colors border-b-2 ${loginMode === 'otp' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
-                    >
-                        OTP
                     </button>
                 </div>
 
@@ -164,7 +141,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
                     </div>
                 )}
 
-                {loginMode === 'password' ? (
+                {!isOtpMode ? (
                     <form onSubmit={handlePasswordLogin} className="space-y-4">
                         <div>
                             <label className="block text-label-md font-label-md text-on-surface-variant mb-1">Email / Số điện thoại</label>

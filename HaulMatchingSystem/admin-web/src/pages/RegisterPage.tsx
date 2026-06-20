@@ -7,20 +7,19 @@ interface RegisterPageProps {
 }
 
 export default function RegisterPage({ onNavigate }: RegisterPageProps) {
-    const [registerMode, setRegisterMode] = useState<'password' | 'otp'>('password');
-    const [formData, setFormData] = useState<RegisterRequest>({ 
+    const [role, setRole] = useState<'Customer' | 'Driver' | 'Admin'>('Customer');
+
+    const [formData, setFormData] = useState<Omit<RegisterRequest, 'role'>>({ 
         fullName: '', 
         email: '', 
         password: '', 
-        phone: '', 
-        role: 'Customer' 
+        phone: ''
     });
     const [confirmPassword, setConfirmPassword] = useState('');
     
     // OTP states
     const [phone, setPhone] = useState('');
     const [fullName, setFullName] = useState('');
-    const [role, setRole] = useState('Customer');
     const [otp, setOtp] = useState('');
     const [otpSent, setOtpSent] = useState(false);
 
@@ -28,7 +27,7 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -42,7 +41,7 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
         setSuccess('');
         setIsLoading(true);
         try {
-            const res = await register(formData);
+            const res = await register({ ...formData, role });
             setSuccess(res.message || 'Đăng ký thành công!');
             setTimeout(() => {
                 onNavigate('login');
@@ -109,6 +108,8 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
         }
     };
 
+    const isOtpMode = role === 'Customer';
+
     return (
         <div className="bg-surface text-on-surface font-body-md min-h-screen flex items-center justify-center p-4">
             <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 card-shadow w-full max-w-md">
@@ -119,20 +120,27 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
                     <h1 className="text-headline-md font-headline-md text-on-surface">Đăng ký tài khoản</h1>
                 </div>
 
-                <div className="flex border-b border-outline-variant mb-6">
+                <div className="flex bg-surface-container-low rounded-lg p-1 mb-6">
                     <button
                         type="button"
-                        onClick={() => { setRegisterMode('password'); setError(''); setSuccess(''); }}
-                        className={`flex-1 pb-2 text-label-md font-label-md transition-colors border-b-2 ${registerMode === 'password' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+                        onClick={() => { setRole('Customer'); setError(''); setSuccess(''); setOtpSent(false); }}
+                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Customer' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
                     >
-                        Mật khẩu
+                        Khách hàng
                     </button>
                     <button
                         type="button"
-                        onClick={() => { setRegisterMode('otp'); setError(''); setSuccess(''); }}
-                        className={`flex-1 pb-2 text-label-md font-label-md transition-colors border-b-2 ${registerMode === 'otp' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+                        onClick={() => { setRole('Driver'); setError(''); setSuccess(''); }}
+                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Driver' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
                     >
-                        OTP
+                        Tài xế
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { setRole('Admin'); setError(''); setSuccess(''); }}
+                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Admin' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
+                    >
+                        Admin
                     </button>
                 </div>
 
@@ -150,7 +158,7 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
                     </div>
                 )}
 
-                {registerMode === 'password' ? (
+                {!isOtpMode ? (
                     <form onSubmit={handlePasswordSubmit} className="space-y-4">
                         <div>
                             <label className="block text-label-md font-label-md text-on-surface-variant mb-1">Họ và tên</label>
@@ -196,24 +204,6 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
                                     className="bg-transparent border-none outline-none w-full text-on-surface"
                                     placeholder="Nhập số điện thoại (tùy chọn)"
                                 />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-label-md font-label-md text-on-surface-variant mb-1">Vai trò</label>
-                            <div className="flex items-center bg-surface-container-low rounded-lg px-3 py-2 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary transition-all">
-                                <span className="material-symbols-outlined text-on-surface-variant text-[20px] mr-2">group</span>
-                                <select
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleChange}
-                                    className="bg-transparent border-none outline-none w-full text-on-surface cursor-pointer"
-                                >
-                                    <option value="Customer">Khách hàng</option>
-                                    <option value="Driver">Tài xế</option>
-                                    <option value="Warehouse_Staff">Nhân viên kho</option>
-                                    <option value="Admin">Admin</option>
-                                </select>
                             </div>
                         </div>
 
@@ -295,24 +285,6 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
                                     className="bg-transparent border-none outline-none w-full text-on-surface disabled:opacity-50"
                                     placeholder="VD: Nguyễn Văn A"
                                 />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-label-md font-label-md text-on-surface-variant mb-1">Vai trò</label>
-                            <div className="flex items-center bg-surface-container-low rounded-lg px-3 py-2 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary transition-all">
-                                <span className="material-symbols-outlined text-on-surface-variant text-[20px] mr-2">group</span>
-                                <select
-                                    value={role}
-                                    onChange={(e) => setRole(e.target.value)}
-                                    disabled={otpSent}
-                                    className="bg-transparent border-none outline-none w-full text-on-surface cursor-pointer disabled:opacity-50"
-                                >
-                                    <option value="Customer">Khách hàng</option>
-                                    <option value="Driver">Tài xế</option>
-                                    <option value="Warehouse_Staff">Nhân viên kho</option>
-                                    <option value="Admin">Admin</option>
-                                </select>
                             </div>
                         </div>
 
