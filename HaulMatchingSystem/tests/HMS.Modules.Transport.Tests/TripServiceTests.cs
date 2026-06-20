@@ -38,6 +38,21 @@ public sealed class TripServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_UsesGeneratedRouteLineStringWhenRequestOmitsRoute()
+    {
+        const string generatedRoute = "LINESTRING (106.7 10.8, 107.2 13.4, 108.22 16.07)";
+        var service = CreateService(new StubTripRoutePlanner(generatedRoute));
+        var request = ValidCreateRequest() with
+        {
+            RouteLineString = null
+        };
+
+        var trip = await service.CreateAsync(request);
+
+        Assert.Equal(generatedRoute, trip.RouteLineString);
+    }
+
+    [Fact]
     public async Task ListAsync_FiltersByDriverAndStatus()
     {
         var service = CreateService();
@@ -149,9 +164,9 @@ public sealed class TripServiceTests
         Assert.Null(loaded);
     }
 
-    private static TripService CreateService()
+    private static TripService CreateService(ITripRoutePlanner? routePlanner = null)
     {
-        return new TripService(new InMemoryTripRepository());
+        return new TripService(new InMemoryTripRepository(), routePlanner ?? new StubTripRoutePlanner());
     }
 
     private static CreateTripRequest ValidCreateRequest()
@@ -174,5 +189,27 @@ public sealed class TripServiceTests
             "LINESTRING (106.7 10.8, 105.8 21.0)",
             0,
             0);
+    }
+
+    private sealed class StubTripRoutePlanner(string? generatedRouteLineString = null) : ITripRoutePlanner
+    {
+        public Task<string> ResolveRouteLineStringAsync(
+            Guid originHubId,
+            Guid destHubId,
+            string? requestedRouteLineString,
+            CancellationToken cancellationToken = default)
+        {
+            if (!string.IsNullOrWhiteSpace(requestedRouteLineString))
+            {
+                return Task.FromResult(requestedRouteLineString.Trim());
+            }
+
+            if (!string.IsNullOrWhiteSpace(generatedRouteLineString))
+            {
+                return Task.FromResult(generatedRouteLineString);
+            }
+
+            throw new ArgumentException("RouteLineString is required.", "routeLineString");
+        }
     }
 }

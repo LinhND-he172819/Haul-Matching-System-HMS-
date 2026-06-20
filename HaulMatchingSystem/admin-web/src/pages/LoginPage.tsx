@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { login } from '../api/authApi';
-import { decodeJWT } from '../utils/jwt';
 import type { LoginRequest } from '../api/authApi';
 
 interface LoginPageProps {
@@ -11,7 +10,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
     const [formData, setFormData] = useState<LoginRequest>({ email: '', password: '' });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [role, setRole] = useState<'user' | 'driver' | 'admin'>('user');
+    const [role, setRole] = useState<'customer' | 'driver' | 'admin'>('customer');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,6 +25,8 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
 
             localStorage.setItem('accessToken', res.accessToken);
             localStorage.setItem('refreshToken', res.refreshToken);
+            localStorage.setItem('fullName', res.fullName);
+            localStorage.setItem('role', res.role);
             onNavigate('home');
         } catch (err) {
             if (err instanceof Error) {

@@ -178,7 +178,7 @@ public sealed class PostgresTripRepository : ITripRepository
         command.Parameters.AddWithValue("vehicle_id", trip.VehicleId);
         command.Parameters.AddWithValue("origin_hub_id", trip.OriginHubId);
         command.Parameters.AddWithValue("dest_hub_id", trip.DestHubId);
-        command.Parameters.AddWithValue("route_linestring", trip.RouteLineString);
+        command.Parameters.Add("route_linestring", NpgsqlDbType.Text).Value = trip.RouteLineString;
         command.Parameters.AddWithValue("current_load_weight", trip.CurrentLoadWeightKg);
         command.Parameters.AddWithValue("current_load_volume", trip.CurrentLoadVolumeCbm);
         AddTimestampParameter(command, "started_at", trip.StartedAt);

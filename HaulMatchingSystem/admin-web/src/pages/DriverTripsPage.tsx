@@ -65,6 +65,8 @@ const driverOptions = [
     { id: '20000000-0000-0000-0000-000000000002', name: 'Driver Tran Lan' }
 ];
 
+const currentDriver = driverOptions[0];
+
 const vehicleOptions = [
     { id: '30000000-0000-0000-0000-000000000001', name: 'HMS-TRK-01', weight: 7000, volume: 42 },
     { id: '30000000-0000-0000-0000-000000000002', name: 'HMS-TRK-02', weight: 5000, volume: 30 },
@@ -78,7 +80,7 @@ const vehicleCapacity: Record<string, { weight: number; volume: number }> = Obje
 );
 
 const defaultTripForm: TripFormState = {
-    driverId: driverOptions[0].id,
+    driverId: currentDriver.id,
     vehicleId: vehicleOptions[0].id,
     originHubId: hubOptions[0].id,
     destHubId: hubOptions[1].id,
@@ -188,17 +190,17 @@ function toRadians(value: number) {
     return value * (Math.PI / 180);
 }
 
-export default function DriverTripsPage() {
+export default function DriverTripsPage({ onLogout, onBackToAdmin }: { onLogout?: () => void; onBackToAdmin?: () => void }) {
     const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('Trips');
     const [trips, setTrips] = useState<DriverTrip[]>([]);
     const [apiStatus, setApiStatus] = useState('Loading trips...');
-    const [apiMessage, setApiMessage] = useState(`Fetching ${apiBaseUrl}/api/trips`);
+    const [apiMessage, setApiMessage] = useState(`Fetching ${apiBaseUrl}/api/trips?driverId=${currentDriver.id}`);
     const [editingTripId, setEditingTripId] = useState<string | null>(null);
     const [tripForm, setTripForm] = useState<TripFormState>(defaultTripForm);
 
     const loadTrips = async () => {
         try {
-            const response = await fetch(`${apiBaseUrl}/api/trips`);
+            const response = await fetch(`${apiBaseUrl}/api/trips?driverId=${currentDriver.id}`);
             if (!response.ok) {
                 throw new Error(`API returned ${response.status}`);
             }
@@ -211,7 +213,7 @@ export default function DriverTripsPage() {
             console.error(error);
             setTrips([]);
             setApiStatus('API offline');
-            setApiMessage(`Cannot reach ${apiBaseUrl}/api/trips. Start the API with: dotnet run --project src/HMS.API/HMS.API.csproj --launch-profile http`);
+            setApiMessage(`Cannot reach ${apiBaseUrl}/api/trips?driverId=${currentDriver.id}. Start the API with: dotnet run --project src/HMS.API/HMS.API.csproj --launch-profile http`);
         }
     };
 
@@ -254,7 +256,7 @@ export default function DriverTripsPage() {
     const editTrip = (trip: DriverTrip) => {
         setEditingTripId(trip.id);
         setTripForm({
-            driverId: trip.driverId,
+            driverId: currentDriver.id,
             vehicleId: trip.vehicleId,
             originHubId: trip.originHubId,
             destHubId: trip.destHubId,
@@ -349,6 +351,16 @@ export default function DriverTripsPage() {
                     </div>
                 </div>
 
+                {onBackToAdmin && (
+                    <button
+                        onClick={onBackToAdmin}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-primary text-primary hover:bg-surface-container-low transition-all mb-4 text-left"
+                    >
+                        <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
+                        <span className="text-label-lg font-bold">Admin Console</span>
+                    </button>
+                )}
+
                 <button className="w-full bg-primary hover:bg-primary-container text-on-primary text-label-lg font-label-lg py-3 rounded-lg mb-6 transition-colors flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined">near_me</span>
                     Start GPS Ping
@@ -386,6 +398,15 @@ export default function DriverTripsPage() {
                             <span className={`w-2 h-2 rounded-full ${apiStatus === 'Connected' ? 'bg-secondary live-pulse' : 'bg-error'}`}></span>
                             {apiStatus}
                         </div>
+                        {onLogout && (
+                            <button 
+                                onClick={onLogout}
+                                className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container text-error transition-colors"
+                                title="Đăng xuất"
+                            >
+                                <span className="material-symbols-outlined">logout</span>
+                            </button>
+                        )}
                         <div className="w-8 h-8 rounded-full bg-primary-fixed text-primary overflow-hidden border border-outline-variant/50 flex items-center justify-center">
                             <span className="material-symbols-outlined text-[20px]">person</span>
                         </div>
@@ -515,18 +536,13 @@ export default function DriverTripsPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                            <label className="flex flex-col gap-2">
-                                <span className="text-label-md font-label-md text-on-surface-variant">Driver</span>
-                                <select
-                                    className="bg-surface-container-low border border-outline-variant/50 rounded-lg px-3 py-2 text-body-md font-body-md text-on-surface outline-none focus:ring-2 focus:ring-primary"
-                                    onChange={(event) => updateTripForm('driverId', event.target.value)}
-                                    value={tripForm.driverId}
-                                >
-                                    {driverOptions.map((driver) => (
-                                        <option key={driver.id} value={driver.id}>{driver.name}</option>
-                                    ))}
-                                </select>
-                            </label>
+                            <div className="flex flex-col gap-2">
+                                <span className="text-label-md font-label-md text-on-surface-variant">Signed-in Driver</span>
+                                <div className="bg-surface-container-low border border-outline-variant/50 rounded-lg px-3 py-2 min-h-[42px] flex items-center justify-between gap-3">
+                                    <span className="text-body-md font-body-md text-on-surface">{currentDriver.name}</span>
+                                    <span className="material-symbols-outlined text-primary text-[20px]">verified_user</span>
+                                </div>
+                            </div>
 
                             <label className="flex flex-col gap-2">
                                 <span className="text-label-md font-label-md text-on-surface-variant">Vehicle</span>

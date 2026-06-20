@@ -5,16 +5,22 @@ using HMS.Shared.Core.Enums;
 
 namespace HMS.Modules.Transport.Application.Services;
 
-public sealed class TripService(ITripRepository repository) : ITripService
+public sealed class TripService(ITripRepository repository, ITripRoutePlanner routePlanner) : ITripService
 {
     public async Task<TripResponse> CreateAsync(CreateTripRequest request, CancellationToken cancellationToken = default)
     {
+        var routeLineString = await routePlanner.ResolveRouteLineStringAsync(
+            request.OriginHubId,
+            request.DestHubId,
+            request.RouteLineString,
+            cancellationToken);
+
         var trip = Trip.Create(
             request.DriverId,
             request.VehicleId,
             request.OriginHubId,
             request.DestHubId,
-            request.RouteLineString,
+            routeLineString,
             request.CurrentLoadWeightKg,
             request.CurrentLoadVolumeCbm);
 
@@ -54,12 +60,18 @@ public sealed class TripService(ITripRepository repository) : ITripService
             return null;
         }
 
+        var routeLineString = await routePlanner.ResolveRouteLineStringAsync(
+            request.OriginHubId,
+            request.DestHubId,
+            request.RouteLineString,
+            cancellationToken);
+
         trip.UpdateDetails(
             request.DriverId,
             request.VehicleId,
             request.OriginHubId,
             request.DestHubId,
-            request.RouteLineString,
+            routeLineString,
             request.CurrentLoadWeightKg,
             request.CurrentLoadVolumeCbm);
 

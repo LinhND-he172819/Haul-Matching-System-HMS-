@@ -5,6 +5,6 @@ public sealed record UpdateTripRequest(
     Guid VehicleId,
     Guid OriginHubId,
     Guid DestHubId,
-    string RouteLineString,
+    string? RouteLineString,
     decimal CurrentLoadWeightKg,
     decimal CurrentLoadVolumeCbm);

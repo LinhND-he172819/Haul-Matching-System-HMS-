@@ -3,9 +3,10 @@ import { decodeJWT } from '../utils/jwt';
 
 interface HomePageProps {
     onNavigate: (page: 'login' | 'register' | 'home') => void;
+    onLogout?: () => void;
 }
 
-export default function HomePage({ onNavigate }: HomePageProps) {
+export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePageProps) {
     const [pickup, setPickup] = useState('');
     const [dropoff, setDropoff] = useState('');
     const [date, setDate] = useState('06/06/2026');
@@ -46,6 +47,15 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                     <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors">
                         <span className="material-symbols-outlined text-[24px]">notifications</span>
                     </button>
+                    {onLogout && (
+                        <button 
+                            onClick={onLogout}
+                            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-50 text-red-600 hover:text-red-800 transition-colors"
+                            title="Đăng xuất"
+                        >
+                            <span className="material-symbols-outlined text-[24px]">logout</span>
+                        </button>
+                    )}
                     <div className="flex items-center gap-2 bg-gray-50 pl-2 pr-4 py-1.5 rounded-full border border-gray-200 cursor-pointer">
                         <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm">
                             {fullName.charAt(0).toUpperCase()}

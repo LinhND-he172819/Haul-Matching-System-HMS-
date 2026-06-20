@@ -14,7 +14,12 @@ import {
     type MatchingSuggestionsResponse
 } from '../api/matchingApi';
 
-export default function MatchingSuggestionPage() {
+interface MatchingSuggestionPageProps {
+    onBackToAdmin?: () => void;
+    onLogout?: () => void;
+}
+
+export default function MatchingSuggestionPage({ onBackToAdmin, onLogout }: MatchingSuggestionPageProps) {
     const [data, setData] = useState<MatchingSuggestionsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -140,6 +145,15 @@ export default function MatchingSuggestionPage() {
                     </div>
 
                     <nav className="space-y-3 text-sm font-semibold">
+                        {onBackToAdmin && (
+                            <button
+                                onClick={onBackToAdmin}
+                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-[#1b39b7] text-[#1b39b7] hover:bg-white transition-all mb-4"
+                            >
+                                <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
+                                Admin Console
+                            </button>
+                        )}
                         {[
                             { label: 'Route Map', icon: 'map' },
                             { label: 'Packages', icon: 'inventory_2' },
@@ -158,9 +172,12 @@ export default function MatchingSuggestionPage() {
                     </nav>
                 </div>
 
-                <button className="btn-ghost flex items-center gap-2 justify-center">
+                <button 
+                    onClick={onLogout}
+                    className="btn-ghost flex items-center gap-2 justify-center w-full"
+                >
                     <span className="material-symbols-outlined text-base">power_settings_new</span>
-                    Go Offline
+                    Go Offline (Đăng xuất)
                 </button>
             </aside>
 
@@ -193,20 +210,32 @@ export default function MatchingSuggestionPage() {
                     </div>
 
                     <div className="map-panel h-[560px]">
-                        <div className="map-overlay" />
-                        <svg className="absolute inset-0" viewBox="0 0 800 500" preserveAspectRatio="none">
-                            <path d="M120 320 L260 240 L520 260 L680 200" stroke="#4c9ef7" strokeWidth="4" fill="none" opacity="0.7" />
-                            <path d="M160 380 L300 330 L520 320 L700 360" stroke="#2f80ed" strokeWidth="4" fill="none" opacity="0.7" />
+                        {/* Interactive Google Map */}
+                        <iframe 
+                            src="https://maps.google.com/maps?q=Go%20Vap,%20Ho%20Chi%20Minh,%20Vietnam&t=&z=13&ie=UTF8&iwloc=&output=embed" 
+                            className="w-full h-full border-0 absolute inset-0 z-0" 
+                            allowFullScreen 
+                            loading="lazy"
+                            title="Google Maps Route"
+                        ></iframe>
+
+                        {/* Translucent overlay matching dashboard color scheme */}
+                        <div className="map-overlay pointer-events-none z-10 opacity-30" />
+
+                        {/* Routing overlay */}
+                        <svg className="absolute inset-0 z-20 pointer-events-none" viewBox="0 0 800 500" preserveAspectRatio="none">
+                            <path d="M120 320 L260 240 L520 260 L680 200" stroke="#1b39b7" strokeWidth="6" fill="none" opacity="0.8" strokeLinecap="round" />
+                            <path d="M160 380 L300 330 L520 320 L700 360" stroke="#4c9ef7" strokeWidth="4" fill="none" opacity="0.6" strokeLinecap="round" strokeDasharray="5,5" />
                             <circle cx="260" cy="240" r="10" fill="#1b39b7" stroke="#ffffff" strokeWidth="4" />
                             <circle cx="120" cy="320" r="6" fill="#1b39b7" stroke="#ffffff" strokeWidth="3" />
                             <circle cx="680" cy="200" r="6" fill="#1b39b7" stroke="#ffffff" strokeWidth="3" />
                         </svg>
-                        <div className="absolute right-6 bottom-6 flex flex-col gap-2">
-                            <button className="bg-white rounded-xl p-2 shadow-md">
-                                <span className="material-symbols-outlined text-[#1b39b7]">my_location</span>
-                            </button>
-                            <button className="bg-white rounded-xl p-2 shadow-md">+</button>
-                            <button className="bg-white rounded-xl p-2 shadow-md">-</button>
+
+                        {/* Navigation controls helper */}
+                        <div className="absolute right-6 bottom-6 flex flex-col gap-2 z-30 pointer-events-none">
+                            <div className="bg-white rounded-xl px-3 py-1.5 shadow-md text-[10px] font-bold text-primary flex items-center gap-1 border border-outline-variant/30">
+                                <span className="material-symbols-outlined text-xs">navigation</span> Interactive Google Map
+                            </div>
                         </div>
                     </div>
                 </section>
