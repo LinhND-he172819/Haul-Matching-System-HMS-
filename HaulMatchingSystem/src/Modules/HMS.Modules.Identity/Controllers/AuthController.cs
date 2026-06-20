@@ -90,5 +90,86 @@ namespace HMS.Modules.Identity.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        /// <summary>
+        /// API Yêu cầu OTP Đăng nhập
+        /// </summary>
+        [HttpPost("login-otp/request")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RequestLoginOtp([FromBody] LoginOtpRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                await _authService.RequestLoginOtpAsync(request);
+                return Ok(new { message = "Mã OTP đã được gửi." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// API Xác thực OTP Đăng nhập
+        /// </summary>
+        [HttpPost("login-otp/verify")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyLoginOtp([FromBody] VerifyLoginOtpRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var result = await _authService.VerifyLoginOtpAsync(request);
+                if (result == null) return Unauthorized(new { message = "Xác thực thất bại." });
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// API Yêu cầu OTP Đăng ký
+        /// </summary>
+        [HttpPost("register-otp/request")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RequestRegisterOtp([FromBody] RegisterOtpRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                await _authService.RequestRegisterOtpAsync(request);
+                return Ok(new { message = "Mã OTP đã được gửi." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// API Xác thực OTP Đăng ký
+        /// </summary>
+        [HttpPost("register-otp/verify")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyRegisterOtp([FromBody] VerifyRegisterOtpRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var result = await _authService.VerifyRegisterOtpAsync(request);
+                if (result == null) return BadRequest(new { message = "Xác thực thất bại." });
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-import { useState } from 'react';
-=======
 import { useState, useEffect } from 'react';
 import DashboardPage from './pages/DashboardPage';
 import MatchingSuggestionPage from './pages/MatchingSuggestionPage';
@@ -8,7 +5,6 @@ import CreateCustomerPage from './pages/CreateCustomerPage';
 import CreateDriverPage from './pages/CreateDriverPage';
 import CreateShipmentPage from './pages/CreateShipmentPage';
 import DriverTripsPage from './pages/DriverTripsPage';
->>>>>>> origin/Dev
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
