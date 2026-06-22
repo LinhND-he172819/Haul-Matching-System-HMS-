@@ -133,7 +133,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
                         {error}
                     </div>
                 )}
-                
+
                 {success && (
                     <div className="bg-secondary/20 border border-secondary/50 text-secondary p-3 rounded-lg mb-6 text-body-sm flex items-center gap-2">
                         <span className="material-symbols-outlined text-[20px]">check_circle</span>
