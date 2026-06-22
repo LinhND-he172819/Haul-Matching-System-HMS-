@@ -254,15 +254,17 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
                     </form>
                 )}
 
-                <div className="mt-6 text-center text-body-sm text-on-surface-variant">
-                    Chưa có tài khoản?{' '}
-                    <button
-                        onClick={() => onNavigate('register')}
-                        className="text-primary hover:underline font-bold"
-                    >
-                        Đăng ký ngay
-                    </button>
-                </div>
+                {role === 'Customer' && (
+                    <div className="mt-6 text-center text-body-sm text-on-surface-variant">
+                        Chưa có tài khoản?{' '}
+                        <button
+                            onClick={() => onNavigate('register')}
+                            className="text-primary hover:underline font-bold"
+                        >
+                            Đăng ký ngay
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
