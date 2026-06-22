@@ -1,13 +1,8 @@
 ﻿using FluentValidation;
 using FluentValidation.AspNetCore;
 using HMS.API.Middleware;
-using System.Text.Json.Serialization;
-using FluentValidation;
-using FluentValidation.AspNetCore;
-using HMS.API.Middleware;
 using HMS.Modules.Identity;
 using HMS.Modules.Identity.Application.DTOs;
-using HMS.Modules.Identity.Application.Services;
 using HMS.Modules.Identity.Core.Interfaces;
 using HMS.Modules.Identity.Infrastructure;
 using HMS.Modules.Matching.Application.Services;
@@ -19,9 +14,9 @@ using HMS.Modules.Realtime.Interfaces;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
 using HMS.Modules.Transport;
-using HMS.Modules.Transport.Data;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -109,8 +104,6 @@ builder.Services.AddScoped<IRealtimeDispatcher, RealtimeDispatcher>();
 // Đăng ký Background Worker để gửi số liệu Admin Dashboard
 builder.Services.AddHostedService<DashboardStatsWorker>();
 
-builder.Services.AddTransportModule();
-
 var app = builder.Build();
 
 await app.InitializeTransportModuleAsync();
@@ -134,37 +127,6 @@ app.MapControllers();
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing",
-    "Bracing",
-    "Chilly",
-    "Cool",
-    "Mild",
-    "Warm",
-    "Balmy",
-    "Hot",
-    "Sweltering",
-    "Scorching",
-};
-
-app.MapGet(
-        "/weatherforecast",
-        () =>
-        {
-            var forecast = Enumerable
-                .Range(1, 5)
-                .Select(index => new WeatherForecast(
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-                .ToArray();
-            return forecast;
-        }
-    )
-    .WithName("GetWeatherForecast");
-
 // Map Endpoint tới Hub
 app.MapHub<HmsFleetHub>("/hub/fleet");
 app.MapTransportModule();
@@ -185,7 +147,3 @@ using (var scope = app.Services.CreateScope())
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

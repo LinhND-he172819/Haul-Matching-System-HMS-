@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace HMS.Modules.Transport.Entities
+namespace HMS.Modules.Transport.Core.Entities
 {
     [Table("gps_logs", Schema = "transport")]
     public class GpsLog

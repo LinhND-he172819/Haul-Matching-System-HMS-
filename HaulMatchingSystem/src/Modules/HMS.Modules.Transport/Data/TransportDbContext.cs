@@ -1,4 +1,4 @@
-﻿using HMS.Modules.Transport.Entities;
+﻿using HMS.Modules.Transport.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace HMS.Modules.Transport.Data

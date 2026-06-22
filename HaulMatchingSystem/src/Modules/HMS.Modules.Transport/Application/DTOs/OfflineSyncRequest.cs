@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace HMS.Modules.Transport.DTOs
+namespace HMS.Modules.Transport.Application.DTOs
 {
     public class OfflineSyncRequest
     {

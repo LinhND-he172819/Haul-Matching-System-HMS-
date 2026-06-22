@@ -1,6 +1,6 @@
-﻿using HMS.Modules.Transport.Data;
-using HMS.Modules.Transport.DTOs;
-using HMS.Modules.Transport.Entities;
+﻿using HMS.Modules.Transport.Application.DTOs;
+using HMS.Modules.Transport.Core.Entities;
+using HMS.Modules.Transport.Data;
 using HMS.Modules.Transport.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
