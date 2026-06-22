@@ -3,6 +3,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? 'https://localhost:7059';
 export interface LoginRequest {
     email: string;
     password: string;
+    role?: string;
 }
 
 export interface RegisterRequest {
@@ -61,5 +62,65 @@ export async function register(request: RegisterRequest): Promise<{ message: str
         throw new Error(errorMessage);
     }
 
+    return await res.json();
+}
+
+export interface RequestOtpResponse {
+    message: string;
+}
+
+export async function requestLoginOtp(phone: string, role?: string): Promise<RequestOtpResponse> {
+    const res = await fetch(`${API_BASE}/api/auth/login-otp/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, role })
+    });
+    if (!res.ok) {
+        let errorMessage = `Yêu cầu OTP thất bại (${res.status})`;
+        try { const err = await res.json(); if (err.message) errorMessage = err.message; } catch (e) {}
+        throw new Error(errorMessage);
+    }
+    return await res.json();
+}
+
+export async function verifyLoginOtp(phone: string, otp: string, role?: string): Promise<AuthResponse> {
+    const res = await fetch(`${API_BASE}/api/auth/login-otp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, otp, role })
+    });
+    if (!res.ok) {
+        let errorMessage = `Xác thực OTP thất bại (${res.status})`;
+        try { const err = await res.json(); if (err.message) errorMessage = err.message; } catch (e) {}
+        throw new Error(errorMessage);
+    }
+    return await res.json();
+}
+
+export async function requestRegisterOtp(phone: string): Promise<RequestOtpResponse> {
+    const res = await fetch(`${API_BASE}/api/auth/register-otp/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+    });
+    if (!res.ok) {
+        let errorMessage = `Yêu cầu OTP thất bại (${res.status})`;
+        try { const err = await res.json(); if (err.message) errorMessage = err.message; } catch (e) {}
+        throw new Error(errorMessage);
+    }
+    return await res.json();
+}
+
+export async function verifyRegisterOtp(phone: string, fullName: string, otp: string, role: string): Promise<AuthResponse> {
+    const res = await fetch(`${API_BASE}/api/auth/register-otp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, fullName, otp, role })
+    });
+    if (!res.ok) {
+        let errorMessage = `Xác thực OTP thất bại (${res.status})`;
+        try { const err = await res.json(); if (err.message) errorMessage = err.message; } catch (e) {}
+        throw new Error(errorMessage);
+    }
     return await res.json();
 }

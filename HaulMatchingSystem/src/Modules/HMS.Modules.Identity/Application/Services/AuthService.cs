@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -9,6 +9,7 @@ using HMS.Modules.Identity.Application.DTOs;
 using HMS.Modules.Identity.Core.Entities;
 using HMS.Modules.Identity.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -18,23 +19,30 @@ namespace HMS.Modules.Identity.Application.Services
     {
         private readonly IIdentityDbContext _context; // Đổi tên DbContext của bạn cho đúng
         private readonly JwtConfigs _jwtConfigs;
+        private readonly IMemoryCache _cache;
 
-        public AuthService(IIdentityDbContext context, IOptions<JwtConfigs> jwtConfigs)
+        public AuthService(IIdentityDbContext context, IOptions<JwtConfigs> jwtConfigs, IMemoryCache cache)
         {
             _context = context;
             _jwtConfigs = jwtConfigs.Value;
+            _cache = cache;
         }
 
         // 1. Xử lý ĐĂNG NHẬP
         public async Task<AuthResponse?> LoginAsync(LoginRequest request)
         {
-            // Tìm user theo Email
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email && !u.IsDeleted);
+            // Tìm user theo Email hoặc số điện thoại
+            var user = await _context.Users.FirstOrDefaultAsync(u => (u.Email == request.Email || u.Phone == request.Email) && !u.IsDeleted);
             if (user == null) return null;
 
             
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
             if (!isPasswordValid) return null;
+
+            if (!string.IsNullOrEmpty(request.Role) && !string.Equals(user.Role, request.Role, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException("Tài khoản của bạn không có quyền đăng nhập vào mục này.");
+            }
 
             // Tạo cặp Token mới
             var accessToken = GenerateAccessToken(user);
@@ -100,7 +108,123 @@ namespace HMS.Modules.Identity.Application.Services
             };
         }
 
+        // 3. Xử lý OTP
+        public async Task RequestLoginOtpAsync(LoginOtpRequest request)
+        {
+            var test = await _context.Users.ToListAsync();
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Phone == request.Phone && !u.IsDeleted);
+            if (user == null) throw new UnauthorizedAccessException("Số điện thoại chưa đăng ký.");
+
+            if (!string.IsNullOrEmpty(request.Role) && !string.Equals(user.Role, request.Role, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException("Tài khoản của bạn không có quyền đăng nhập vào mục này.");
+            }
+
+            var otp = GenerateOtp();
+            _cache.Set("OTP_LOGIN_" + request.Phone, otp, TimeSpan.FromMinutes(3));
+            Console.WriteLine($"[OTP LOGIN] Gửi OTP {otp} đến số điện thoại {request.Phone}");
+        }
+
+        public async Task<AuthResponse?> VerifyLoginOtpAsync(VerifyLoginOtpRequest request)
+        {
+            if (!_cache.TryGetValue("OTP_LOGIN_" + request.Phone, out string? cachedOtp) || cachedOtp != request.Otp)
+            {
+                throw new UnauthorizedAccessException("Mã OTP không hợp lệ hoặc đã hết hạn.");
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Phone == request.Phone && !u.IsDeleted);
+            if (user == null) throw new UnauthorizedAccessException("Số điện thoại chưa đăng ký.");
+
+            if (!string.IsNullOrEmpty(request.Role) && !string.Equals(user.Role, request.Role, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException("Tài khoản của bạn không có quyền đăng nhập vào mục này.");
+            }
+
+            _cache.Remove("OTP_LOGIN_" + request.Phone);
+
+            var accessToken = GenerateAccessToken(user);
+            var refreshToken = GenerateRefreshToken();
+
+            int expiredDays = _jwtConfigs.ExpiredDate;
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(expiredDays);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            return new AuthResponse
+            {
+                UserId = user.Id,
+                FullName = user.FullName,
+                Role = user.Role,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
+        }
+
+        public async Task RequestRegisterOtpAsync(RegisterOtpRequest request)
+        {
+            var userExists = await _context.Users.AnyAsync(u => u.Phone == request.Phone && !u.IsDeleted);
+            if (userExists) throw new UnauthorizedAccessException("SĐT đã có tài khoản, vui lòng đăng nhập.");
+
+            var otp = GenerateOtp();
+            _cache.Set("OTP_REG_" + request.Phone, otp, TimeSpan.FromMinutes(3));
+            Console.WriteLine($"[OTP REG] Gửi OTP {otp} đến số điện thoại {request.Phone}");
+        }
+
+        public async Task<AuthResponse?> VerifyRegisterOtpAsync(VerifyRegisterOtpRequest request)
+        {
+            if (!_cache.TryGetValue("OTP_REG_" + request.Phone, out string? cachedOtp) || cachedOtp != request.Otp)
+            {
+                throw new UnauthorizedAccessException("Mã OTP không hợp lệ hoặc đã hết hạn.");
+            }
+
+            var userExists = await _context.Users.AnyAsync(u => u.Phone == request.Phone && !u.IsDeleted);
+            if (userExists) throw new UnauthorizedAccessException("SĐT đã có tài khoản, vui lòng đăng nhập.");
+
+            // Create new user
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Phone = request.Phone,
+                FullName = request.FullName,
+                Role = request.Role,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+
+            await _context.Users.AddAsync(user);
+
+            _cache.Remove("OTP_REG_" + request.Phone);
+
+            var accessToken = GenerateAccessToken(user);
+            var refreshToken = GenerateRefreshToken();
+
+            int expiredDays = _jwtConfigs.ExpiredDate;
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(expiredDays);
+
+            await _context.SaveChangesAsync();
+
+            return new AuthResponse
+            {
+                UserId = user.Id,
+                FullName = user.FullName,
+                Role = user.Role,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
+        }
+
         #region Helper Methods (Hàm bổ trợ tự động tạo Token)
+
+        private string GenerateOtp()
+        {
+            var random = new Random();
+            return random.Next(100000, 999999).ToString();
+        }
 
         private string GenerateAccessToken(User user)
         {

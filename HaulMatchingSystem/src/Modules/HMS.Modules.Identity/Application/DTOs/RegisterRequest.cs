@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -22,8 +22,8 @@ namespace HMS.Modules.Identity.Application.DTOs
 
         public string? Phone { get; set; }
 
-        // Mặc định nếu không truyền Role sẽ là "User", hoặc truyền "Driver", "Admin" tùy nhu cầu
-        public string Role { get; set; } = "User";
+        // Mặc định nếu không truyền Role sẽ là "Customer", hoặc truyền "Driver", "Admin", "Warehouse_Staff" tùy nhu cầu
+        public string Role { get; set; } = "Customer";
 
         public Guid? HubId { get; set; }
     }

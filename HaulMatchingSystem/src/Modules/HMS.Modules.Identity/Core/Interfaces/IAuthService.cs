@@ -1,4 +1,4 @@
-﻿using HMS.Modules.Identity.Application.DTOs;
+using HMS.Modules.Identity.Application.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,5 +11,9 @@ namespace HMS.Modules.Identity.Core.Interfaces
     {
         Task<AuthResponse?> LoginAsync(LoginRequest request);
         Task<AuthResponse?> RefreshTokenAsync(string accessToken, string refreshToken);
+        Task RequestLoginOtpAsync(LoginOtpRequest request);
+        Task<AuthResponse?> VerifyLoginOtpAsync(VerifyLoginOtpRequest request);
+        Task RequestRegisterOtpAsync(RegisterOtpRequest request);
+        Task<AuthResponse?> VerifyRegisterOtpAsync(VerifyRegisterOtpRequest request);
     }
 }
