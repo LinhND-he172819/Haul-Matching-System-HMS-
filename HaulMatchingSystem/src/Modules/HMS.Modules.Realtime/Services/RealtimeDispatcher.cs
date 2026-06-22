@@ -63,5 +63,12 @@ namespace HMS.Modules.Realtime.Services
         {
             await _hubContext.Clients.Group("AdminGroup").SendAsync("ReceiveAdminStats", stats);
         }
+
+        public async Task SendDriverMatchingNotificationAsync(MatchingNotificationPayload payload)
+        {
+            // Bắn event tên là "ReceiveMatchingNotification" tới đúng 1 tài xế
+            string targetGroup = $"Driver_{payload.DriverId}";
+            await _hubContext.Clients.Group(targetGroup).SendAsync("ReceiveMatchingNotification", payload);
+        }
     }
 }
