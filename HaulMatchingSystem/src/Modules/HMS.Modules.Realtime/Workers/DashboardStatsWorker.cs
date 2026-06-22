@@ -1,6 +1,5 @@
-using HMS.Modules.Realtime.Interfaces;
-using HMS.Modules.Realtime.Models;
 using HMS.Shared.Core.Interfaces;
+using HMS.Shared.Core.Models.Realtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

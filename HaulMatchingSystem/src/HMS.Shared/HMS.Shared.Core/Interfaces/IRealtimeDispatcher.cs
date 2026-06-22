@@ -1,6 +1,6 @@
-﻿using HMS.Modules.Realtime.Models;
+﻿using HMS.Shared.Core.Models.Realtime;
 
-namespace HMS.Modules.Realtime.Interfaces
+namespace HMS.Shared.Core.Interfaces
 {
     public interface IRealtimeDispatcher
     {

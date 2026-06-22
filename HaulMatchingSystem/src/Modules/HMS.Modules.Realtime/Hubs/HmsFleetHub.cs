@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace HMS.Modules.Realtime.Hubs
 {
@@ -17,19 +18,33 @@ namespace HMS.Modules.Realtime.Hubs
         // khi client (app/web) kết nối thành công
         public override async Task OnConnectedAsync()
         {
+            var userRole = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
+            if (userRole == "Admin")
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, "AdminGroup");
+            }
+            else if (userRole == "Driver")
+            {
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"Driver_{userId}");
+                }
+            }
+
             _logger.LogInformation($"[SignalR] Client kết nối: {Context.ConnectionId}");
-            // test
-            //await Clients.Caller.SendAsync("ReceiveSystemMessage", "Welcome to HMS Realtime Hub!");
-            //giả lập Admin
-            await Groups.AddToGroupAsync(Context.ConnectionId, "AdminGroup");
             await base.OnConnectedAsync();
         }
 
         // khi client ngắt kết nối
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
+            var userRole = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
+            if (userRole == "Admin")
+            {
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, "AdminGroup");
+            }
             _logger.LogInformation($"[SignalR] Client ngắt kết nối: {Context.ConnectionId}. Lý do: {exception?.Message}");
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, "AdminGroup");
             await base.OnDisconnectedAsync(exception);
         }
 

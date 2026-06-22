@@ -1,6 +1,6 @@
 ﻿using HMS.Modules.Realtime.Hubs;
-using HMS.Modules.Realtime.Interfaces;
-using HMS.Modules.Realtime.Models;
+using HMS.Shared.Core.Interfaces;
+using HMS.Shared.Core.Models.Realtime;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
@@ -32,7 +32,7 @@ namespace HMS.Modules.Realtime.Services
         public async Task SendAnomalyAlertAsync(AnomalyAlertPayload payload)
         {
             _logger.LogWarning($"[SignalR] CẢNH BÁO: {payload.AlertType} trên Chuyến {payload.TripId}");
-            await _hubContext.Clients.All.SendAsync("ReceiveAnomalyAlert", payload);
+            await _hubContext.Clients.Group("AdminGroup").SendAsync("ReceiveVehicleAlert", payload);
         }
 
         public async Task BroadcastShipmentStatusAsync(ShipmentStatusEventPayload payload)

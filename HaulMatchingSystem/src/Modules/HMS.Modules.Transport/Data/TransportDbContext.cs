@@ -10,6 +10,8 @@ namespace HMS.Modules.Transport.Data
         }
 
         public DbSet<GpsLog> GpsLogs { get; set; }
+        public DbSet<Trip> Trips { get; set; }
+        public DbSet<TripException> TripExceptions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
