@@ -1,10 +1,6 @@
 ﻿using HMS.Modules.Transport.Application.DTOs;
-using HMS.Modules.Transport.Core.Entities;
-using HMS.Modules.Transport.Data;
-using HMS.Modules.Transport.Enums;
+using HMS.Modules.Transport.Channels;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace HMS.Modules.Transport.Controllers
 {
@@ -12,73 +8,24 @@ namespace HMS.Modules.Transport.Controllers
     [Route("api/transport")]
     public class TransportController : ControllerBase
     {
-        private readonly TransportDbContext _context;
-        private readonly ILogger<TransportController> _logger;
-
-        public TransportController(TransportDbContext context, ILogger<TransportController> logger)
+        private readonly GpsSyncChannel _gpsChannel;
+        public TransportController(GpsSyncChannel gpsChannel)
         {
-            _context = context;
-            _logger = logger;
+            _gpsChannel = gpsChannel;
         }
 
         [HttpPost("sync-offline")]
         public async Task<IActionResult> SyncOfflineData([FromBody] List<OfflineSyncRequest> requests)
         {
             if (requests == null || !requests.Any())
-                return BadRequest("No data to sync.");
+                return BadRequest("Không có data để đồng bộ");
 
-            int successCount = 0;
-            int ignoredCount = 0;
-
-            // sánh nhanh idem key trong db với incoming request để loại bỏ những request đã tồn tại
-            var incomingKeys = requests.Select(r => r.IdempotencyKey).ToList();
-            var existingKeys = await _context.GpsLogs
-                .Where(g => incomingKeys.Contains(g.IdempotencyKey))
-                .Select(g => g.IdempotencyKey)
-                .ToListAsync();
-
-            foreach (var req in requests)
-            {
-                if(existingKeys.Contains(req.IdempotencyKey))
-                {
-                    _logger.LogInformation($"[Sync] Ignored duplicate action: {req.IdempotencyKey}");
-                    ignoredCount++;
-                    continue; // bỏ qua request đã tồn tại
-                }
-                
-                switch(req.ActionType)
-                {
-                    case OfflineActionType.GpsPing:
-                        var tripId = req.Payload.GetProperty("tripId").GetGuid();
-                        var lat = req.Payload.GetProperty("lat").GetDecimal();
-                        var lng = req.Payload.GetProperty("lng").GetDecimal();
-
-                        var newLog = new GpsLog
-                        {
-                            Id = Guid.NewGuid(),
-                            TripId = tripId,
-                            Lat = lat,
-                            Lng = lng,
-                            DeviceTimestamp = req.DeviceTimestamp,
-                            ServerReceivedAt = DateTime.UtcNow,
-                            IdempotencyKey = req.IdempotencyKey
-                        };
-
-                        _context.GpsLogs.Add(newLog);
-                        successCount++;
-                        break;
-                    case OfflineActionType.DeliveryConfirm:
-                        // xử lý giao hàng
-                        break;
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(new
-            {
-                Message = "Offline sync completed.",
-                Processed = successCount,
-                IgnoredDuplicates = ignoredCount
+            // Đẩy vào hàng đợi bộ nhớ RAM
+            await _gpsChannel.AddSyncBatchAsync(requests);
+            // Trả về 202 Accepted (Đã tiếp nhận nhưng chưa xử lý xong)
+            return Accepted(new 
+            { Message = "Dữ liệu đồng bộ đã được chấp nhận và xếp vào hàng chờ xử lý",
+              ReceivedCount = requests.Count
             });
         }
     }

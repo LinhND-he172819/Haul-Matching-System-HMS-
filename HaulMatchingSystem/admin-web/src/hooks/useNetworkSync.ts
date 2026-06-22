@@ -17,11 +17,19 @@ export function useNetworkSync() {
       if (pendingActions.length > 0) {
         try {
           // 2. Gửi cục batch này lên API của Backend
-          // await axios.post('/api/transport/sync-offline', pendingActions);
-          console.log(`Đã đồng bộ thành công ${pendingActions.length} bản ghi lên Server.`);
-          
-          // 3. Xóa dữ liệu local sau khi server báo 200 OK
-          await db.offlineQueue.clear();
+          const response = await fetch('https://localhost:7059/api/transport/sync-offline', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem("jwt_token") || ""}`
+            },
+            body: JSON.stringify(pendingActions)
+          });
+          if (response.ok) {
+            console.log(`✅ Đồng bộ thành công ${pendingActions.length} hành động.`);
+            // 3. Xóa dữ liệu cục bộ sau khi Server xác nhận (HTTP 200/202)
+            await db.offlineQueue.clear();
+          }
         } catch (error) {
           console.error("Lỗi đồng bộ, sẽ thử lại sau:", error);
         }
