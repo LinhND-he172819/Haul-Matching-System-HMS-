@@ -12,6 +12,16 @@ namespace HMS.Modules.Matching.Core.Interfaces
 
         Task<List<Shipment>> GetShipmentsByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct);
 
+        Task<List<SpatialShipmentCandidate>> GetSpatialShipmentCandidatesAsync(
+            Guid tripId,
+            decimal remainingWeightCapacity,
+            decimal remainingVolumeCapacity,
+            double routeBufferMeters,
+            int limit,
+            CancellationToken ct);
+
+        Task AddTripShipmentSuggestionsAsync(IEnumerable<TripShipment> suggestions, CancellationToken ct);
+
         Task SaveChangesAsync(CancellationToken ct);
 
         Task BeginTransactionAsync(CancellationToken ct);

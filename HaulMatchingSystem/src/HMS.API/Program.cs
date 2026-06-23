@@ -6,6 +6,7 @@ using HMS.Modules.Matching.Infrastructure;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Infrastructure.Redis;
+using HMS.Modules.Matching.Infrastructure.Schema;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using HMS.API.Middleware;
@@ -57,6 +58,7 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
+builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
 
 // Exception middleware (registered as transient through pipeline)
 
@@ -83,6 +85,12 @@ builder.Services.AddTransportModule();
 var app = builder.Build();
 
 await app.InitializeTransportModuleAsync();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var initializer = scope.ServiceProvider.GetRequiredService<IMatchingSpatialSchemaInitializer>();
+    await initializer.InitializeAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
