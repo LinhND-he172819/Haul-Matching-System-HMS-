@@ -6,11 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HMS.Modules.Transport.Workers
 {
@@ -29,7 +24,7 @@ namespace HMS.Modules.Transport.Workers
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("🛠️ Write-Behind GPS Worker khởi động.");
+            _logger.LogInformation("Write-Behind GPS Worker khởi động.");
 
             // Vòng lặp chờ dữ liệu từ Channel
             await foreach (var batch in _gpsChannel.ReadAllAsync(stoppingToken))
@@ -39,14 +34,22 @@ namespace HMS.Modules.Transport.Workers
                     using var scope = _serviceProvider.CreateScope();
                     var dbContext = scope.ServiceProvider.GetRequiredService<TransportDbContext>();
 
-                    var incomingKeys = batch.Select(b => b.IdempotencyKey).ToList();
+                    // Lọc các yêu cầu trùng lặp ngay trong batch, chống crash khi có nhiều yêu cầu cùng IdempotencyKey
+                    var uniqueIncomingRequests = batch
+                        .GroupBy(b => b.IdempotencyKey)
+                        .Select(g => g.First())
+                        .ToList();
 
-                    // Lọc trùng lặp bằng IdempotencyKey
-                    var existingKeys = await dbContext.GpsLogs
+                    var incomingKeys = uniqueIncomingRequests.Select(b => b.IdempotencyKey).ToList();
+
+                    // Giải phóng RAM bằng sử dụng AsNoTracking và sử dụng ToHashSet để tra cứu nhanh các IdempotencyKey đã tồn tại
+                    var existingKeysList = await dbContext.GpsLogs
+                        .AsNoTracking()
                         .Where(g => incomingKeys.Contains(g.IdempotencyKey))
                         .Select(g => g.IdempotencyKey)
                         .ToListAsync(stoppingToken);
 
+                    var existingKeys = existingKeysList.ToHashSet();
                     var logsToInsert = new List<GpsLog>();
 
                     foreach (var req in batch)
@@ -77,7 +80,7 @@ namespace HMS.Modules.Transport.Workers
                     {
                         await dbContext.GpsLogs.AddRangeAsync(logsToInsert, stoppingToken);
                         await dbContext.SaveChangesAsync(stoppingToken);
-                        _logger.LogInformation($"✅ Backfilled {logsToInsert.Count} offline GPS records.");
+                        _logger.LogInformation($"Đã điền lại {logsToInsert.Count} bản ghi GPS ngoại tuyến");
                     }
                 }
                 catch (Exception ex)

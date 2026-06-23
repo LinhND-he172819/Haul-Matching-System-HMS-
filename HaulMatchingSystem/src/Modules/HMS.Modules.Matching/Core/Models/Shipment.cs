@@ -24,5 +24,6 @@ namespace HMS.Modules.Matching.Core.Models
         public string? SpecialHandlingNote { get; set; }
         [Column("status")]
         public string? Status { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

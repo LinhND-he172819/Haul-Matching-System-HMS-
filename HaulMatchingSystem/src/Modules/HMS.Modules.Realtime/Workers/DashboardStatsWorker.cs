@@ -56,10 +56,10 @@ namespace HMS.Modules.Realtime.Workers
                     }
                     else
                     {
-                        payload.ActiveTripCount = 12 + new Random().Next(-2, 3);
-                        payload.InTransitShipments = 340 + new Random().Next(-10, 15);
-                        payload.AvgVehicleUtilisation = Math.Round(75.0 + new Random().NextDouble() * 8.0, 1);
-                        payload.HubItemsWaitingOver3Days = 4 + (new Random().Next(0, 10) > 7 ? new Random().Next(-1, 2) : 0);
+                        payload.ActiveTripCount = 12 + Random.Shared.Next(-2, 3);
+                        payload.InTransitShipments = 340 + Random.Shared.Next(-10, 15);
+                        payload.AvgVehicleUtilisation = Math.Round(75.0 + Random.Shared.NextDouble() * 8.0, 1);
+                        payload.HubItemsWaitingOver3Days = 4 + (Random.Shared.Next(0, 10) > 7 ? Random.Shared.Next(-1, 2) : 0);
                     }
                     payload.LastUpdated = DateTime.UtcNow;
 

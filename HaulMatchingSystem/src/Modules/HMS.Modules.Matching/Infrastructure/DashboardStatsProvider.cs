@@ -1,7 +1,3 @@
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using HMS.Shared.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,25 +16,38 @@ namespace HMS.Modules.Matching.Infrastructure
         {
             try
             {
-                int activeTrips = await _db.Trips.CountAsync(t => t.Status == "Active", ct);
-                int inTransitShipments = await _db.Shipments.CountAsync(s => s.Status == "In_Transit" || s.Status == "Matched", ct);
-                int agingHubItems = await _db.Shipments.CountAsync(s => s.Status == "In_Warehouse", ct);
+                int activeTrips = await _db.Trips.AsNoTracking().CountAsync(t => t.Status == "Active", ct);
+                int inTransitShipments = await _db.Shipments.AsNoTracking()
+                    .CountAsync(s => s.Status == "In_Transit" || s.Status == "Matched", ct);
+                var threeDaysAgo = DateTime.UtcNow.AddDays(-3);
+                int agingHubItems = await _db.Shipments.AsNoTracking()
+                    .CountAsync(s => s.Status == "In_Warehouse" && s.CreatedAt < threeDaysAgo, ct);
 
                 double avgUtilisation = 0;
                 if (activeTrips > 0)
                 {
-                    var activeTripsList = await _db.Trips.Where(t => t.Status == "Active").ToListAsync(ct);
-                    var vehicleIds = activeTripsList.Select(t => t.VehicleId).Distinct().ToList();
-                    var vehicles = await _db.Vehicles.Where(v => vehicleIds.Contains(v.Id)).ToDictionaryAsync(v => v.Id, ct);
+                    var tripUtils = await _db.Trips.AsNoTracking()
+                        .Where(t => t.Status == "Active")
+                        .Join(_db.Vehicles.AsNoTracking(),
+                            t => t.VehicleId,
+                            v => v.Id,
+                            (t, v) => new
+                            {
+                                t.CurrentLoadWeight,
+                                t.CurrentLoadVolume,
+                                v.MaxWeightKg,
+                                v.MaxVolumeCbm
+                            })
+                        .ToListAsync(ct);                    
 
                     double sum = 0;
                     int count = 0;
-                    foreach (var t in activeTripsList)
+                    foreach (var item in tripUtils)
                     {
-                        if (vehicles.TryGetValue(t.VehicleId, out var v) && v.MaxWeightKg > 0)
+                        if (item.MaxWeightKg > 0)
                         {
-                            var weightUtil = (double)(t.CurrentLoadWeight / v.MaxWeightKg) * 100;
-                            var volUtil = v.MaxVolumeCbm > 0 ? (double)(t.CurrentLoadVolume / v.MaxVolumeCbm) * 100 : 0;
+                            var weightUtil = (double)(item.CurrentLoadWeight / item.MaxWeightKg) * 100;
+                            var volUtil = item.MaxVolumeCbm > 0 ? (double)(item.CurrentLoadVolume / item.MaxVolumeCbm) * 100 : 0;
                             var util = (weightUtil + volUtil) / 2;
                             sum += Math.Min(100.0, util);
                             count++;
