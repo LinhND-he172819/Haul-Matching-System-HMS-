@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace HMS.Shared.Core.Models.Realtime
+﻿namespace HMS.Shared.Core.Models.Realtime
 {
     public class MatchingNotificationPayload
     {

@@ -10,10 +10,12 @@ using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Infrastructure;
 using HMS.Modules.Matching.Infrastructure.Redis;
 using HMS.Modules.Realtime.Hubs;
-using HMS.Modules.Realtime.Interfaces;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
 using HMS.Modules.Transport;
+using HMS.Modules.Transport.Channels;
+using HMS.Modules.Transport.Workers;
+using HMS.Shared.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using System.Text.Json.Serialization;
@@ -41,7 +43,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddSignalR();
 
 // Add controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
@@ -75,10 +80,7 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
-builder.Services.AddScoped<
-    HMS.Shared.Core.Interfaces.IDashboardStatsProvider,
-    HMS.Modules.Matching.Infrastructure.DashboardStatsProvider
->();
+builder.Services.AddScoped<IDashboardStatsProvider, DashboardStatsProvider>();
 
 // Exception middleware (registered as transient through pipeline)
 
@@ -86,24 +88,32 @@ builder.Services.AddScoped<
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    var xmlFile = System.IO.Path.ChangeExtension(
+    var xmlFile = Path.ChangeExtension(
         System.Reflection.Assembly.GetEntryAssembly()?.Location ?? "",
         ".xml"
     );
-    if (System.IO.File.Exists(xmlFile))
+    if (File.Exists(xmlFile))
         c.IncludeXmlComments(xmlFile);
 });
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-});
+
+//builder.Services.ConfigureHttpJsonOptions(options =>
+//{
+//    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+//});
 
 // Đăng ký Dispatcher
 builder.Services.AddScoped<IRealtimeDispatcher, RealtimeDispatcher>();
 
 // Đăng ký Background Worker để gửi số liệu Admin Dashboard
 builder.Services.AddHostedService<DashboardStatsWorker>();
+builder.Services.AddSingleton<GpsSyncChannel>();
+builder.Services.AddHostedService<WriteBehindGpsWorker>();
+builder.Services.AddHostedService<FleetMonitorWorker>();
 
+// Đăng ký NullSmsSender để mock SMS trong môi trường phát triển
+builder.Services.AddScoped<ISmsSender, NullSmsSender>();
+
+//----------------------------------------------------------------------------
 var app = builder.Build();
 
 await app.InitializeTransportModuleAsync();
@@ -118,14 +128,16 @@ if (app.Environment.IsDevelopment())
 // Use exception middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+// Thứ tự chuẩn: 1. Https -> 2. Cors -> 3. Auth -> 4. Map Endpoints
+app.UseHttpsRedirection();
+
 // Kích hoạt CORS
 app.UseCors("SignalRPolicy");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-app.UseHttpsRedirection();
 
 // Map Endpoint tới Hub
 app.MapHub<HmsFleetHub>("/hub/fleet");

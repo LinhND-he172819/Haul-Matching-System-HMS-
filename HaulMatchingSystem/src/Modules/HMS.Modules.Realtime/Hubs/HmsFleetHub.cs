@@ -5,7 +5,7 @@ using System.Security.Claims;
 
 namespace HMS.Modules.Realtime.Hubs
 {
-    // [Authorize] // sẽ bật sau khi xong auth, hiện tại để open cho dev test
+    [Authorize]
     public class HmsFleetHub : Hub
     {
         private readonly ILogger<HmsFleetHub> _logger;
