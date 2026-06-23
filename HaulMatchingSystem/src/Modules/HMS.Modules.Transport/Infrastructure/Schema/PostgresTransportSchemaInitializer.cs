@@ -26,7 +26,35 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
         await using var command = connection.CreateCommand();
         command.CommandText = """
             CREATE EXTENSION IF NOT EXISTS postgis;
+            CREATE SCHEMA IF NOT EXISTS identity;
             CREATE SCHEMA IF NOT EXISTS transport;
+
+            CREATE TABLE IF NOT EXISTS identity.hubs (
+                id uuid PRIMARY KEY,
+                name text NOT NULL,
+                address text NOT NULL,
+                geo_location geography(Point, 4326) NOT NULL,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                is_deleted boolean NOT NULL DEFAULT FALSE
+            );
+
+            ALTER TABLE identity.hubs
+                ADD COLUMN IF NOT EXISTS name text,
+                ADD COLUMN IF NOT EXISTS address text,
+                ADD COLUMN IF NOT EXISTS geo_location geography(Point, 4326),
+                ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+                ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
+                ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT FALSE;
+
+            CREATE INDEX IF NOT EXISTS ix_identity_hubs_name
+                ON identity.hubs (name)
+                WHERE is_deleted = FALSE;
+
+            CREATE INDEX IF NOT EXISTS ix_identity_hubs_geo_location_gist
+                ON identity.hubs
+                USING GIST (geo_location)
+                WHERE is_deleted = FALSE;
 
             CREATE TABLE IF NOT EXISTS transport.trips (
                 id uuid PRIMARY KEY,
@@ -88,15 +116,6 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
                 USING GIST ((route_linestring::geography))
                 WHERE is_deleted = FALSE;
 
-            DO $$
-            BEGIN
-                IF to_regclass('identity.hubs') IS NOT NULL THEN
-                    CREATE INDEX IF NOT EXISTS ix_identity_hubs_geo_location_gist
-                        ON identity.hubs
-                        USING GIST (geo_location)
-                        WHERE is_deleted = FALSE;
-                END IF;
-            END $$;
             """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);

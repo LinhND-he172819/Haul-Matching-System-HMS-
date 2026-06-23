@@ -1,8 +1,8 @@
-import DriverTripsPage from './pages/DriverTripsPage';
+import AdminHubsPage from './pages/AdminHubsPage';
 
 function App() {
   return (
-    <DriverTripsPage />
+    <AdminHubsPage />
   )
 }
 
