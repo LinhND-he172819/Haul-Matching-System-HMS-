@@ -1,8 +1,8 @@
-import AdminHubsPage from './pages/AdminHubsPage';
+import AdminVehiclesPage from './pages/AdminVehiclesPage';
 
 function App() {
   return (
-    <AdminHubsPage />
+    <AdminVehiclesPage />
   )
 }
 

@@ -28,62 +28,79 @@ public sealed class PostgresMatchingSpatialSchemaInitializer : IMatchingSpatialS
             CREATE EXTENSION IF NOT EXISTS postgis;
 
             DO $$
+            DECLARE
+                shipments_table regclass;
+                trip_shipments_table regclass;
             BEGIN
-                IF to_regclass('shipments') IS NOT NULL THEN
-                    ALTER TABLE shipments
-                    ADD COLUMN IF NOT EXISTS delivery_location geometry(Point, 4326);
+                shipments_table := COALESCE(to_regclass('public.shipments'), to_regclass('warehouse.shipments'));
 
-                    CREATE INDEX IF NOT EXISTS ix_shipments_delivery_location_gist
-                        ON shipments
-                        USING GIST (delivery_location)
-                        WHERE delivery_location IS NOT NULL;
+                IF shipments_table IS NOT NULL THEN
+                    EXECUTE format(
+                        'ALTER TABLE %s ADD COLUMN IF NOT EXISTS delivery_location geometry(Point, 4326)',
+                        shipments_table);
+
+                    EXECUTE format(
+                        'CREATE INDEX IF NOT EXISTS ix_shipments_delivery_location_gist ON %s USING GIST (delivery_location) WHERE delivery_location IS NOT NULL',
+                        shipments_table);
 
                     IF EXISTS (
                         SELECT 1
-                        FROM information_schema.columns
-                        WHERE table_name = 'shipments'
-                            AND column_name = 'Status'
+                        FROM pg_attribute
+                        WHERE attrelid = shipments_table
+                            AND attname = 'Status'
+                            AND NOT attisdropped
                     ) THEN
-                        CREATE INDEX IF NOT EXISTS ix_shipments_status
-                            ON shipments ("Status");
+                        EXECUTE format(
+                            'CREATE INDEX IF NOT EXISTS ix_shipments_status ON %s ("Status")',
+                            shipments_table);
                     ELSIF EXISTS (
                         SELECT 1
-                        FROM information_schema.columns
-                        WHERE table_name = 'shipments'
-                            AND column_name = 'status'
+                        FROM pg_attribute
+                        WHERE attrelid = shipments_table
+                            AND attname = 'status'
+                            AND NOT attisdropped
                     ) THEN
-                        CREATE INDEX IF NOT EXISTS ix_shipments_status
-                            ON shipments (status);
+                        EXECUTE format(
+                            'CREATE INDEX IF NOT EXISTS ix_shipments_status ON %s (status)',
+                            shipments_table);
                     END IF;
                 END IF;
 
-                IF to_regclass('trip_shipments') IS NOT NULL THEN
+                trip_shipments_table := to_regclass('public.trip_shipments');
+
+                IF trip_shipments_table IS NOT NULL THEN
                     IF EXISTS (
                         SELECT 1
-                        FROM information_schema.columns
-                        WHERE table_name = 'trip_shipments'
-                            AND column_name = 'ShipmentId'
+                        FROM pg_attribute
+                        WHERE attrelid = trip_shipments_table
+                            AND attname = 'ShipmentId'
+                            AND NOT attisdropped
                     ) AND EXISTS (
                         SELECT 1
-                        FROM information_schema.columns
-                        WHERE table_name = 'trip_shipments'
-                            AND column_name = 'Status'
+                        FROM pg_attribute
+                        WHERE attrelid = trip_shipments_table
+                            AND attname = 'Status'
+                            AND NOT attisdropped
                     ) THEN
-                        CREATE INDEX IF NOT EXISTS ix_trip_shipments_shipment_status
-                            ON trip_shipments ("ShipmentId", "Status");
+                        EXECUTE format(
+                            'CREATE INDEX IF NOT EXISTS ix_trip_shipments_shipment_status ON %s ("ShipmentId", "Status")',
+                            trip_shipments_table);
                     ELSIF EXISTS (
                         SELECT 1
-                        FROM information_schema.columns
-                        WHERE table_name = 'trip_shipments'
-                            AND column_name = 'shipment_id'
+                        FROM pg_attribute
+                        WHERE attrelid = trip_shipments_table
+                            AND attname = 'shipment_id'
+                            AND NOT attisdropped
                     ) AND EXISTS (
                         SELECT 1
-                        FROM information_schema.columns
-                        WHERE table_name = 'trip_shipments'
-                            AND column_name = 'status'
+                        FROM pg_attribute
+                        WHERE attrelid = trip_shipments_table
+                            AND attname = 'status'
+                            AND NOT attisdropped
                     ) THEN
-                        CREATE INDEX IF NOT EXISTS ix_trip_shipments_shipment_status
-                            ON trip_shipments (shipment_id, status);
+                        EXECUTE format(
+                            'CREATE INDEX IF NOT EXISTS ix_trip_shipments_shipment_status ON %s (shipment_id, status)',
+                            trip_shipments_table);
                     END IF;
                 END IF;
             END $$;
