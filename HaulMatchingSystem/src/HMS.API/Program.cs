@@ -111,7 +111,10 @@ builder.Services.AddHostedService<WriteBehindGpsWorker>();
 builder.Services.AddHostedService<FleetMonitorWorker>();
 
 // Đăng ký NullSmsSender để mock SMS trong môi trường phát triển
-builder.Services.AddScoped<ISmsSender, NullSmsSender>();
+//builder.Services.AddScoped<ISmsSender, NullSmsSender>();
+
+// Đăng ký dịch vụ SMS qua cổng API nội địa (Sẽ tự fallback về Mock nếu thiếu Key)
+builder.Services.AddHttpClient<ISmsSender, VietNamSmsSender>();
 
 //----------------------------------------------------------------------------
 var app = builder.Build();
