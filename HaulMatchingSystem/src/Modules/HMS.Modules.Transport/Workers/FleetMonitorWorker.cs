@@ -1,4 +1,5 @@
-﻿using HMS.Modules.Transport.Core.Entities;
+﻿using HMS.Modules.Transport.Application.DTOs;
+using HMS.Modules.Transport.Core.Entities;
 using HMS.Modules.Transport.Data;
 using HMS.Shared.Core.Enums;
 using HMS.Shared.Core.Interfaces;
@@ -29,78 +30,93 @@ namespace HMS.Modules.Transport.Workers
             {
                 try
                 {
-                    // Tạo scope vì BackgroundService là Singleton, còn DbContext là Scoped
                     using var scope = _serviceProvider.CreateScope();
                     var dbContext = scope.ServiceProvider.GetRequiredService<TransportDbContext>();
                     var dispatcher = scope.ServiceProvider.GetRequiredService<IRealtimeDispatcher>();
 
-                    // Ngưỡng thời gian: mất tín hiệu nếu không có ping trong 3 phút qua
                     var thresholdTime = DateTime.UtcNow.AddMinutes(-3);
 
-                    // 1. Tìm các chuyến xe đang chạy và lấy thông tin GPS cuối cùng
-                    var staleTrips = await dbContext.Trips
-                        .Where(t => t.Status == TripStatus.Active)
-                        .Select(t => new
-                        {
-                            TripId = t.Id,
-                            LastGps = dbContext.GpsLogs
-                                        .Where(g => g.TripId == t.Id)
-                                        .OrderByDescending(g => g.ServerReceivedAt)
-                                        .Select(g => new { g.Lat, g.Lng, g.ServerReceivedAt })
-                                        .FirstOrDefault()
-                        })
-                        .Where(x => x.LastGps == null || x.LastGps.ServerReceivedAt < thresholdTime)
+                    // 🔥 OPTIMIZED QUERY (NO N+1)
+                    var staleTrips = await dbContext.Set<StaleTripQueryResult>()
+                        .FromSqlInterpolated($@"
+                    SELECT 
+                        t.id AS ""TripId"",
+                        g.lat AS ""Lat"",
+                        g.lng AS ""Lng"",
+                        g.server_received_at AS ""ServerReceivedAt""
+                    FROM transport.trips t
+                    LEFT JOIN LATERAL (
+                        SELECT 
+                            lat,
+                            lng,
+                            server_received_at
+                        FROM transport.gps_logs g
+                        WHERE g.trip_id = t.id
+                        ORDER BY g.device_timestamp DESC
+                        LIMIT 1
+                    ) g ON true
+                    WHERE t.status = 'Active'
+                      AND (
+                            g.server_received_at IS NULL
+                            OR g.server_received_at < {thresholdTime}
+                      )
+                ")
                         .ToListAsync(stoppingToken);
+
+                    // load existing exceptions in ONE query (avoid N+1)
+                    var tripIds = staleTrips.Select(x => x.TripId).ToList();
+
+                    var existingList = await dbContext.TripExceptions
+                        .Where(e => tripIds.Contains(e.TripId) &&
+                                    e.ExceptionType == ExceptionType.Signal_Loss.ToString())
+                        .Select(e => e.TripId)
+                        .ToListAsync(stoppingToken);
+                    var existing = existingList.ToHashSet();
+
+                    var newExceptions = new List<TripException>();
 
                     foreach (var trip in staleTrips)
                     {
-                        string signalLossStr = ExceptionType.Signal_Loss.ToString();
-                        // Kiểm tra xem đã ghi nhận lỗi này cho chuyến này chưa (tránh spam DB)
-                        var alreadyAlerted = await dbContext.TripExceptions
-                            .AnyAsync(e => e.TripId == trip.TripId && e.ExceptionType == signalLossStr, stoppingToken);
+                        if (existing.Contains(trip.TripId))
+                            continue;
 
-                        if (!alreadyAlerted)
+                        _logger.LogWarning($"⚠️ Mất tín hiệu GPS: Trip {trip.TripId}");
+
+                        newExceptions.Add(new TripException
                         {
-                            _logger.LogWarning($"⚠️ Phát hiện mất tín hiệu: Trip {trip.TripId}");
+                            Id = Guid.NewGuid(),
+                            TripId = trip.TripId,
+                            ExceptionType = ExceptionType.Signal_Loss.ToString(),
+                            Reason = "No GPS ping received for over 3 minutes.",
+                            CreatedAt = DateTime.UtcNow,
+                            Lat = trip.Lat,
+                            Lng = trip.Lng
+                        });
 
-                            // 2. Ghi nhận nghiệp vụ vào bảng transport.trip_exceptions
-                            var newException = new TripException
-                            {
-                                Id = Guid.NewGuid(),
-                                TripId = trip.TripId,
-                                ExceptionType = ExceptionType.Signal_Loss.ToString(), // Lưu dạng chuỗi vào DB
-                                Reason = "No GPS ping received for over 3 minutes.",
-                                CreatedAt = DateTime.UtcNow,
-                                Lat = trip.LastGps != null ? trip.LastGps.Lat : null,
-                                Lng = trip.LastGps != null ? trip.LastGps.Lng : null
-                            };
-                            dbContext.TripExceptions.Add(newException);
+                        var alertPayload = new AnomalyAlertPayload
+                        {
+                            TripId = trip.TripId,
+                            AlertType = ExceptionType.Signal_Loss,
+                            Message = "Mất tín hiệu GPS quá 3 phút. Đang chờ đồng bộ thiết bị.",
+                            Lat = trip.Lat ?? 0,
+                            Lng = trip.Lng ?? 0,
+                            DetectedAt = DateTime.UtcNow
+                        };
 
-                            // 3. Khởi tạo Payload theo đúng chuẩn Model đã định nghĩa
-                            var alertPayload = new AnomalyAlertPayload
-                            {
-                                TripId = trip.TripId,
-                                AlertType = ExceptionType.Signal_Loss,
-                                Message = "Mất tín hiệu GPS quá 3 phút. Đang chờ đồng bộ thiết bị.",
-                                Lat = trip.LastGps != null ? (double)trip.LastGps.Lat : 0,
-                                Lng = trip.LastGps != null ? (double)trip.LastGps.Lng : 0,
-                                DetectedAt = DateTime.UtcNow
-                            };
-
-                            // 4. Nhờ Dispatcher của module Realtime phát sóng lên UI
-                            await dispatcher.SendAnomalyAlertAsync(alertPayload);
-                        }
+                        await dispatcher.SendAnomalyAlertAsync(alertPayload);
                     }
 
-                    // Lưu tất cả record ngoại lệ xuống Database trong 1 transaction duy nhất
-                    await dbContext.SaveChangesAsync(stoppingToken);
+                    if (newExceptions.Count > 0)
+                    {
+                        dbContext.TripExceptions.AddRange(newExceptions);
+                        await dbContext.SaveChangesAsync(stoppingToken);
+                    }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Lỗi xảy ra trong quá trình quét tín hiệu GPS định kỳ.");
                 }
 
-                // Chờ 30 giây rồi thực hiện vòng quét tiếp theo
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
             }
         }

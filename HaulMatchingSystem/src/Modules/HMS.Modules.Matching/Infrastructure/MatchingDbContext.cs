@@ -24,7 +24,7 @@ namespace HMS.Modules.Matching.Infrastructure
 
             modelBuilder.Entity<Trip>(b =>
             {
-                b.ToTable("trips");
+                b.ToTable("trips", "transport");
                 b.Property(p => p.Version).IsRowVersion();
                 b.HasIndex(p => p.DriverId);
                 b.HasIndex(p => p.VehicleId);
@@ -34,12 +34,12 @@ namespace HMS.Modules.Matching.Infrastructure
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            modelBuilder.Entity<Vehicle>(b => b.ToTable("vehicles"));
-            modelBuilder.Entity<Shipment>(b => b.ToTable("shipments"));
+            modelBuilder.Entity<Vehicle>(b => b.ToTable("vehicles", "identity"));
+            modelBuilder.Entity<Shipment>(b => b.ToTable("shipments", "warehouse"));
 
             modelBuilder.Entity<TripShipment>(b =>
             {
-                b.ToTable("trip_shipments");
+                b.ToTable("trip_shipments", "transport");
                 b.HasIndex(p => p.TripId);
                 b.HasIndex(p => p.ShipmentId);
                 b.HasOne<Trip>()

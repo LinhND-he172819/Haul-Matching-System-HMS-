@@ -13,8 +13,10 @@
     "@microsoft/signalr": "^10.0.0",
     "dexie": "^4.4.3",
     "dexie-react-hooks": "^4.4.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-router-dom": "^7.18.0",
     "uuid": "^14.0.0"
   },
   "devDependencies": {

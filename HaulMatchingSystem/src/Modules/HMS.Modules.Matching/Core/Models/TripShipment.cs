@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HMS.Modules.Matching.Core.Models
 {
+    [Table("trip_shipment", Schema = "transport")]
     public class TripShipment
     {
         [Key]

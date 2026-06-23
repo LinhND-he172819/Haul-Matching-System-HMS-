@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HMS.Modules.Matching.Core.Models
 {
+    [Table("shipments", Schema = "warehouse")]
     public class Shipment
     {
         [Key]
@@ -20,7 +22,7 @@ namespace HMS.Modules.Matching.Core.Models
         public string? CargoType { get; set; }
 
         public string? SpecialHandlingNote { get; set; }
-
+        [Column("status")]
         public string? Status { get; set; }
     }
 }
