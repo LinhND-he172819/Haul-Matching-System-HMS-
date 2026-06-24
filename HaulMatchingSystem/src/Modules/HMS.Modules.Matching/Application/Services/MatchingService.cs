@@ -1,6 +1,7 @@
 using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Application.Requests;
 using HMS.Modules.Matching.Core.Interfaces;
+using HMS.Modules.Matching.Core.Models;
 using HMS.Modules.Matching.Infrastructure.Redis;
 using HMS.Shared.Core.Interfaces;
 using Microsoft.Extensions.Logging;
