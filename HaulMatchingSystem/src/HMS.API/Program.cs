@@ -105,6 +105,8 @@ builder.Services.AddHostedService<DashboardStatsWorker>();
 
 builder.Services.AddTransportModule();
 
+builder.Services.AddHttpClient();
+
 var app = builder.Build();
 
 await app.InitializeTransportModuleAsync();
