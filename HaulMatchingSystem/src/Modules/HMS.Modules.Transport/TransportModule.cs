@@ -23,7 +23,7 @@ public static class TransportModule
         services.AddScoped<ITripService, TripService>();
         services.AddScoped<ITripRoutePlanner, OsrmTripRoutePlanner>();
         services.AddScoped<IHubLocationRepository, PostgresHubLocationRepository>();
-        services.AddSingleton<ITransportSchemaInitializer, PostgresTransportSchemaInitializer>();
+        //services.AddSingleton<ITransportSchemaInitializer, PostgresTransportSchemaInitializer>();
         services.AddHttpClient<IOsrmRouteClient, OsrmRouteClient>((serviceProvider, client) =>
         {
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
@@ -41,10 +41,10 @@ public static class TransportModule
         this WebApplication app,
         CancellationToken cancellationToken = default)
     {
-        await using var scope = app.Services.CreateAsyncScope();
-        var initializer = scope.ServiceProvider.GetRequiredService<ITransportSchemaInitializer>();
+        //await using var scope = app.Services.CreateAsyncScope();
+        //var initializer = scope.ServiceProvider.GetRequiredService<ITransportSchemaInitializer>();
 
-        await initializer.InitializeAsync(cancellationToken);
+        //await initializer.InitializeAsync(cancellationToken);
 
         return app;
     }
