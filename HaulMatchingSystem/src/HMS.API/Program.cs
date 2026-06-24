@@ -15,16 +15,16 @@ using HMS.Modules.Realtime.Hubs;
 using HMS.Modules.Realtime.Interfaces;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
-using HMS.Modules.Matching.Infrastructure;
-using HMS.Modules.Matching.Core.Interfaces;
-using HMS.Modules.Matching.Application.Services;
-using HMS.Modules.Matching.Infrastructure.Redis;
 using HMS.Modules.Matching.Infrastructure.Schema;
 using HMS.Modules.Transport;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 // Đăng ký cấu hình CORS cho SignalR
 builder.Services.AddCors(options =>

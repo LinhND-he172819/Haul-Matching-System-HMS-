@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import { createDraftShipment, type DraftShipmentResponse } from "../api/shipmentsApi";
 
 export default function CreateShipmentPage() {

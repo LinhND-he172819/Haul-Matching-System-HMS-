@@ -8,11 +8,10 @@ import DriverTripsPage from './pages/DriverTripsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
+import AdminVehiclesPage from './pages/AdminVehiclesPage';
 
 type Page = 'login' | 'register' | 'home' | 'admin' | 'driver-portal' | 'driver-trips';
-type AdminTab = 'dashboard' | 'create-customer' | 'create-driver' | 'create-shipment' | 'driver-portal' | 'driver-trips';
-
-import AdminVehiclesPage from './pages/AdminVehiclesPage';
+type AdminTab = 'dashboard' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -127,6 +126,18 @@ function App() {
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">local_shipping</span>
           <span className="text-label-lg font-bold">Tạo Tài Xế & Xe</span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('vehicles')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+            adminTab === 'vehicles'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">garage</span>
+          <span className="text-label-lg font-bold">Quáº£n lÃ½ Xe</span>
         </button>
 
         <button 
@@ -253,6 +264,15 @@ function App() {
           return <CreateCustomerPage sidebar={renderSidebar()} />;
         case 'create-driver':
           return <CreateDriverPage sidebar={renderSidebar()} />;
+        case 'vehicles':
+          return (
+            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+              {renderSidebar()}
+              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+                <AdminVehiclesPage />
+              </div>
+            </div>
+          );
         case 'create-shipment':
           return (
             <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">

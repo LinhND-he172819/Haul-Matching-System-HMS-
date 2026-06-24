@@ -14,6 +14,11 @@ import {
     type MatchingSuggestionsResponse
 } from '../api/matchingApi';
 
+const apiBaseUrl =
+    import.meta.env.VITE_API_BASE_URL ??
+    import.meta.env.VITE_API_URL ??
+    'http://localhost:5104';
+
 interface MatchingSuggestionPageProps {
     onBackToAdmin?: () => void;
     onLogout?: () => void;
@@ -40,7 +45,7 @@ export default function MatchingSuggestionPage({ onBackToAdmin, onLogout }: Matc
         load();
 
         const conn = new signalR.HubConnectionBuilder()
-            .withUrl((import.meta.env.VITE_API_URL ?? 'https://localhost:7059') + '/hub/fleet')
+            .withUrl(apiBaseUrl + '/hub/fleet')
             .withAutomaticReconnect()
             .configureLogging(signalR.LogLevel.Warning)
             .build();
