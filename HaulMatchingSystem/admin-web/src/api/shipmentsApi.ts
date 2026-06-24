@@ -18,7 +18,10 @@ export type DraftShipmentResponse = {
   createdAt: string;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://localhost:7059";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ??
+  import.meta.env.VITE_API_URL ??
+  "http://localhost:5104";
 
 export async function createDraftShipment(
   payload: CreateDraftShipmentRequest
@@ -34,6 +37,27 @@ export async function createDraftShipment(
   if (!res.ok) {
     const message = await res.text();
     throw new Error(message || "Không thể tạo đơn hàng.");
+  }
+
+  return res.json();
+}
+export type GeocodeResponse = {
+  lat: number;
+  lng: number;
+  displayName: string;
+};
+
+export async function geocodeAddress(address: string): Promise<GeocodeResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/geocoding/search`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ address }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Không tìm thấy địa chỉ.");
   }
 
   return res.json();

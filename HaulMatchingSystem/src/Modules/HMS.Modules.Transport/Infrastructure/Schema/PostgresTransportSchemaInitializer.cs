@@ -26,7 +26,200 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
         await using var command = connection.CreateCommand();
         command.CommandText = """
             CREATE EXTENSION IF NOT EXISTS postgis;
+            CREATE SCHEMA IF NOT EXISTS identity;
             CREATE SCHEMA IF NOT EXISTS transport;
+
+            CREATE TABLE IF NOT EXISTS identity.hubs (
+                id uuid PRIMARY KEY,
+                name text NOT NULL,
+                address text NOT NULL,
+                geo_location geography(Point, 4326) NOT NULL,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                is_deleted boolean NOT NULL DEFAULT FALSE
+            );
+
+            CREATE TABLE IF NOT EXISTS public.hubs (
+                id uuid PRIMARY KEY,
+                name text NOT NULL,
+                address text NOT NULL,
+                geo_location geography(Point, 4326) NOT NULL,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                is_deleted boolean NOT NULL DEFAULT FALSE
+            );
+
+            ALTER TABLE identity.hubs
+                ADD COLUMN IF NOT EXISTS name text,
+                ADD COLUMN IF NOT EXISTS address text,
+                ADD COLUMN IF NOT EXISTS geo_location geography(Point, 4326),
+                ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+                ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
+                ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT FALSE;
+
+            ALTER TABLE public.hubs
+                ADD COLUMN IF NOT EXISTS name text,
+                ADD COLUMN IF NOT EXISTS address text,
+                ADD COLUMN IF NOT EXISTS geo_location geography(Point, 4326),
+                ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+                ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
+                ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT FALSE;
+
+            CREATE INDEX IF NOT EXISTS ix_identity_hubs_name
+                ON identity.hubs (name)
+                WHERE is_deleted = FALSE;
+
+            CREATE INDEX IF NOT EXISTS ix_identity_hubs_geo_location_gist
+                ON identity.hubs
+                USING GIST (geo_location)
+                WHERE is_deleted = FALSE;
+
+            CREATE INDEX IF NOT EXISTS ix_public_hubs_name
+                ON public.hubs (name)
+                WHERE is_deleted = FALSE;
+
+            CREATE INDEX IF NOT EXISTS ix_public_hubs_geo_location_gist
+                ON public.hubs
+                USING GIST (geo_location)
+                WHERE is_deleted = FALSE;
+
+            CREATE TABLE IF NOT EXISTS vehicles (
+                "Id" uuid PRIMARY KEY,
+                "MaxWeightKg" numeric(12, 2) NOT NULL,
+                "MaxVolumeCbm" numeric(12, 2) NOT NULL,
+                code text NOT NULL DEFAULT '',
+                license_plate text NOT NULL DEFAULT '',
+                hub_id uuid NULL,
+                vehicle_type text NOT NULL DEFAULT 'Truck',
+                status text NOT NULL DEFAULT 'Available',
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                is_deleted boolean NOT NULL DEFAULT FALSE
+            );
+
+            ALTER TABLE vehicles
+                ADD COLUMN IF NOT EXISTS code text NOT NULL DEFAULT '',
+                ADD COLUMN IF NOT EXISTS license_plate text NOT NULL DEFAULT '',
+                ADD COLUMN IF NOT EXISTS hub_id uuid NULL,
+                ADD COLUMN IF NOT EXISTS vehicle_type text NOT NULL DEFAULT 'Truck',
+                ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'Available',
+                ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+                ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
+                ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT FALSE;
+
+            DO $$
+            BEGIN
+                IF to_regclass('public.vehicles') IS NOT NULL THEN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM pg_attribute
+                        WHERE attrelid = 'public.vehicles'::regclass
+                            AND attname = 'id'
+                            AND NOT attisdropped
+                    ) AND NOT EXISTS (
+                        SELECT 1
+                        FROM pg_attribute
+                        WHERE attrelid = 'public.vehicles'::regclass
+                            AND attname = 'Id'
+                            AND NOT attisdropped
+                    ) THEN
+                        ALTER TABLE vehicles RENAME COLUMN id TO "Id";
+                    END IF;
+
+                    IF EXISTS (
+                        SELECT 1
+                        FROM pg_attribute
+                        WHERE attrelid = 'public.vehicles'::regclass
+                            AND attname = 'max_weight_kg'
+                            AND NOT attisdropped
+                    ) AND NOT EXISTS (
+                        SELECT 1
+                        FROM pg_attribute
+                        WHERE attrelid = 'public.vehicles'::regclass
+                            AND attname = 'MaxWeightKg'
+                            AND NOT attisdropped
+                    ) THEN
+                        ALTER TABLE vehicles RENAME COLUMN max_weight_kg TO "MaxWeightKg";
+                    ELSIF EXISTS (
+                        SELECT 1
+                        FROM pg_attribute
+                        WHERE attrelid = 'public.vehicles'::regclass
+                            AND attname = 'maxweightkg'
+                            AND NOT attisdropped
+                    ) AND NOT EXISTS (
+                        SELECT 1
+                        FROM pg_attribute
+                        WHERE attrelid = 'public.vehicles'::regclass
+                            AND attname = 'MaxWeightKg'
+                            AND NOT attisdropped
+                    ) THEN
+                        ALTER TABLE vehicles RENAME COLUMN maxweightkg TO "MaxWeightKg";
+                    END IF;
+
+                    IF EXISTS (
+                        SELECT 1
+                        FROM pg_attribute
+                        WHERE attrelid = 'public.vehicles'::regclass
+                            AND attname = 'max_volume_cbm'
+                            AND NOT attisdropped
+                    ) AND NOT EXISTS (
+                        SELECT 1
+                        FROM pg_attribute
+                        WHERE attrelid = 'public.vehicles'::regclass
+                            AND attname = 'MaxVolumeCbm'
+                            AND NOT attisdropped
+                    ) THEN
+                        ALTER TABLE vehicles RENAME COLUMN max_volume_cbm TO "MaxVolumeCbm";
+                    ELSIF EXISTS (
+                        SELECT 1
+                        FROM pg_attribute
+                        WHERE attrelid = 'public.vehicles'::regclass
+                            AND attname = 'maxvolumecbm'
+                            AND NOT attisdropped
+                    ) AND NOT EXISTS (
+                        SELECT 1
+                        FROM pg_attribute
+                        WHERE attrelid = 'public.vehicles'::regclass
+                            AND attname = 'MaxVolumeCbm'
+                            AND NOT attisdropped
+                    ) THEN
+                        ALTER TABLE vehicles RENAME COLUMN maxvolumecbm TO "MaxVolumeCbm";
+                    END IF;
+                END IF;
+            END $$;
+
+            ALTER TABLE vehicles
+                ADD COLUMN IF NOT EXISTS "MaxWeightKg" numeric(12, 2) NOT NULL DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS "MaxVolumeCbm" numeric(12, 2) NOT NULL DEFAULT 0;
+
+            UPDATE vehicles
+            SET
+                code = CASE WHEN code IS NULL OR code = '' THEN 'VEH-' || left("Id"::text, 8) ELSE code END,
+                license_plate = CASE WHEN license_plate IS NULL OR license_plate = '' THEN 'UNKNOWN-' || left("Id"::text, 4) ELSE license_plate END,
+                vehicle_type = CASE WHEN vehicle_type IS NULL OR vehicle_type = '' THEN 'Truck' ELSE vehicle_type END,
+                status = CASE WHEN status IS NULL OR status = '' THEN 'Available' ELSE status END,
+                is_deleted = COALESCE(is_deleted, FALSE)
+            WHERE code IS NULL
+                OR code = ''
+                OR license_plate IS NULL
+                OR license_plate = ''
+                OR vehicle_type IS NULL
+                OR vehicle_type = ''
+                OR status IS NULL
+                OR status = ''
+                OR is_deleted IS NULL;
+
+            CREATE INDEX IF NOT EXISTS ix_vehicles_status
+                ON vehicles (status)
+                WHERE is_deleted = FALSE;
+
+            CREATE INDEX IF NOT EXISTS ix_vehicles_code
+                ON vehicles (code)
+                WHERE is_deleted = FALSE;
+
+            CREATE INDEX IF NOT EXISTS ix_vehicles_hub_id
+                ON vehicles (hub_id)
+                WHERE is_deleted = FALSE;
 
             CREATE TABLE IF NOT EXISTS transport.trips (
                 id uuid PRIMARY KEY,
@@ -88,15 +281,6 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
                 USING GIST ((route_linestring::geography))
                 WHERE is_deleted = FALSE;
 
-            DO $$
-            BEGIN
-                IF to_regclass('identity.hubs') IS NOT NULL THEN
-                    CREATE INDEX IF NOT EXISTS ix_identity_hubs_geo_location_gist
-                        ON identity.hubs
-                        USING GIST (geo_location)
-                        WHERE is_deleted = FALSE;
-                END IF;
-            END $$;
             """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);

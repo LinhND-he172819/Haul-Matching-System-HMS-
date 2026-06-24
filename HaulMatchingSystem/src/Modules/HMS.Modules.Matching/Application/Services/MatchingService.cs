@@ -9,6 +9,9 @@ namespace HMS.Modules.Matching.Application.Services
 {
     public class MatchingService : IMatchingService
     {
+        private const double DefaultRouteBufferMeters = 5000;
+        private const int MaxSpatialSuggestions = 20;
+
         private readonly IMatchingRepository _repo;
         private readonly IRedisLockService _redis;
         private readonly IRealtimeDispatcher _dispatcher;
@@ -30,7 +33,45 @@ namespace HMS.Modules.Matching.Application.Services
             var vehicle = await _repo.GetVehicleAsync(trip.VehicleId, ct);
             if (vehicle == null) return null;
 
+            var remainingWeightCapacity = vehicle.MaxWeightKg - trip.CurrentLoadWeight;
+            var remainingVolumeCapacity = vehicle.MaxVolumeCbm - trip.CurrentLoadVolume;
             var tripShipments = await _repo.GetSuggestedTripShipmentsAsync(trip.Id, ct);
+            var spatialCandidatesByShipmentId = new Dictionary<Guid, SpatialShipmentCandidate>();
+
+            if (!tripShipments.Any())
+            {
+                var spatialCandidates = await _repo.GetSpatialShipmentCandidatesAsync(
+                    trip.Id,
+                    remainingWeightCapacity,
+                    remainingVolumeCapacity,
+                    DefaultRouteBufferMeters,
+                    MaxSpatialSuggestions,
+                    ct);
+
+                var selectedCandidates = SelectWithinRemainingCapacity(
+                    spatialCandidates,
+                    remainingWeightCapacity,
+                    remainingVolumeCapacity);
+
+                tripShipments = selectedCandidates
+                    .Select((candidate, index) => new TripShipment
+                    {
+                        Id = Guid.NewGuid(),
+                        TripId = trip.Id,
+                        ShipmentId = candidate.Shipment.Id,
+                        DeliverySequence = index + 1,
+                        Status = "Suggested",
+                        SuggestedAt = DateTime.UtcNow
+                    })
+                    .ToList();
+
+                if (tripShipments.Any())
+                {
+                    await _repo.AddTripShipmentSuggestionsAsync(tripShipments, ct);
+                    await _repo.SaveChangesAsync(ct);
+                    spatialCandidatesByShipmentId = selectedCandidates.ToDictionary(candidate => candidate.Shipment.Id);
+                }
+            }
 
             var shipmentIds = tripShipments.Select(ts => ts.ShipmentId);
             var shipments = await _repo.GetShipmentsByIdsAsync(shipmentIds, ct);
@@ -40,14 +81,16 @@ namespace HMS.Modules.Matching.Application.Services
                 TripId = trip.Id,
                 CurrentLoadWeight = trip.CurrentLoadWeight,
                 CurrentLoadVolume = trip.CurrentLoadVolume,
-                RemainingWeightCapacity = vehicle.MaxWeightKg - trip.CurrentLoadWeight,
-                RemainingVolumeCapacity = vehicle.MaxVolumeCbm - trip.CurrentLoadVolume
+                RemainingWeightCapacity = remainingWeightCapacity,
+                RemainingVolumeCapacity = remainingVolumeCapacity
             };
 
             foreach (var ts in tripShipments)
             {
                 var s = shipments.FirstOrDefault(x => x.Id == ts.ShipmentId);
                 if (s == null) continue;
+
+                spatialCandidatesByShipmentId.TryGetValue(s.Id, out var spatialCandidate);
 
                 response.Shipments.Add(new ShipmentSuggestionDto
                 {
@@ -58,11 +101,38 @@ namespace HMS.Modules.Matching.Application.Services
                     WeightKg = s.WeightKg,
                     VolumeCbm = s.VolumeCbm,
                     DeliverySequence = ts.DeliverySequence,
+                    RoutePosition = spatialCandidate?.RoutePosition,
+                    RouteDistanceMeters = spatialCandidate?.DistanceMeters,
                     SpecialHandlingNote = s.SpecialHandlingNote
                 });
             }
 
             return response;
+        }
+
+        private static List<SpatialShipmentCandidate> SelectWithinRemainingCapacity(
+            IEnumerable<SpatialShipmentCandidate> candidates,
+            decimal remainingWeightCapacity,
+            decimal remainingVolumeCapacity)
+        {
+            var selected = new List<SpatialShipmentCandidate>();
+            var remainingWeight = remainingWeightCapacity;
+            var remainingVolume = remainingVolumeCapacity;
+
+            foreach (var candidate in candidates.OrderBy(candidate => candidate.RoutePosition))
+            {
+                if (candidate.Shipment.WeightKg > remainingWeight ||
+                    candidate.Shipment.VolumeCbm > remainingVolume)
+                {
+                    continue;
+                }
+
+                selected.Add(candidate);
+                remainingWeight -= candidate.Shipment.WeightKg;
+                remainingVolume -= candidate.Shipment.VolumeCbm;
+            }
+
+            return selected;
         }
 
         public async Task AcceptAllAsync(Guid driverId, CancellationToken ct)

@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import * as signalR from '@microsoft/signalr';
 
+const apiBaseUrl =
+    import.meta.env.VITE_API_BASE_URL ??
+    import.meta.env.VITE_API_URL ??
+    'http://localhost:5104';
+
 interface AdminStats {
     activeTripCount: number;
     inTransitShipments: number;

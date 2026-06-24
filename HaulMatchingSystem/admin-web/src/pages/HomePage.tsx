@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { decodeJWT } from '../utils/jwt';
 
 interface HomePageProps {
     onNavigate: (page: 'login' | 'register' | 'home') => void;
@@ -12,9 +13,15 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
     const [fullName, setFullName] = useState('Khách');
 
     useEffect(() => {
-        const storedName = localStorage.getItem('fullName');
-        if (storedName) {
-            setFullName(storedName);
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+            const payload = decodeJWT(token);
+            if (payload) {
+                const name = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
+                if (name) {
+                    setFullName(name);
+                }
+            }
         }
     }, []);
 
@@ -23,17 +30,17 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
             {/* Full Web Header */}
             <header className="bg-white shadow-sm border-b border-gray-100 px-6 xl:px-12 py-4 flex justify-between items-center z-50">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#326946] rounded-lg flex items-center justify-center p-1 text-white shadow-sm">
-                        <span className="material-symbols-outlined text-[20px]">landscape</span>
+                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center p-1 text-white shadow-sm">
+                        <span className="material-symbols-outlined text-[20px]">local_shipping</span>
                     </div>
-                    <span className="text-gray-800 font-bold text-lg hidden sm:block">Xe khách Bảo Yến</span>
+                    <span className="text-gray-800 font-bold text-lg hidden sm:block">Hệ thống ghép chuyến</span>
                 </div>
 
                 <nav className="hidden md:flex items-center gap-8 text-gray-500 font-medium text-sm">
-                    <a href="#" className="text-[#326946] border-b-2 border-[#326946] pb-1">Trang chủ</a>
-                    <a href="#" className="hover:text-[#326946] transition-colors pb-1">Vé của tôi</a>
-                    <a href="#" className="hover:text-[#326946] transition-colors pb-1">Tin tức</a>
-                    <a href="#" className="hover:text-[#326946] transition-colors pb-1">Liên hệ</a>
+                    <a href="#" className="text-primary border-b-2 border-primary pb-1">Trang chủ</a>
+                    <a href="#" className="hover:text-primary transition-colors pb-1">Vé của tôi</a>
+                    <a href="#" className="hover:text-primary transition-colors pb-1">Tin tức</a>
+                    <a href="#" className="hover:text-primary transition-colors pb-1">Liên hệ</a>
                 </nav>
 
                 <div className="flex items-center gap-4">
@@ -50,7 +57,7 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
                         </button>
                     )}
                     <div className="flex items-center gap-2 bg-gray-50 pl-2 pr-4 py-1.5 rounded-full border border-gray-200 cursor-pointer">
-                        <div className="w-8 h-8 bg-[#326946] text-white rounded-full flex items-center justify-center font-bold text-sm">
+                        <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm">
                             {fullName.charAt(0).toUpperCase()}
                         </div>
                         <span className="text-gray-700 font-medium text-sm hidden sm:block">{fullName}</span>
@@ -59,7 +66,7 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
             </header>
 
             {/* Hero Section */}
-            <div className="bg-[#326946] h-[350px] relative w-full flex flex-col items-center pt-16">
+            <div className="bg-primary h-[350px] relative w-full flex flex-col items-center pt-16">
                 <div className="absolute inset-0 opacity-10" 
                      style={{ backgroundImage: 'radial-gradient(circle, #fff 2px, transparent 2px)', backgroundSize: '24px 24px' }}>
                 </div>
@@ -75,7 +82,7 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
                     
                     {/* Trip Type Selector */}
                     <div className="flex mb-6">
-                        <button className="bg-[#eef2fc] text-[#326946] px-6 py-2.5 rounded-xl text-sm font-bold border border-transparent">
+                        <button className="bg-primary/10 text-primary px-6 py-2.5 rounded-xl text-sm font-bold border border-transparent">
                             Một chiều
                         </button>
                         <button className="text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-xl text-sm font-medium transition-colors ml-2">
@@ -88,7 +95,7 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
                         
                         {/* Pickup */}
                         <div className="flex-1 flex items-center gap-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-xl px-4 py-3 border border-gray-200 cursor-pointer">
-                            <span className="material-symbols-outlined text-[#326946] text-[24px]">location_on</span>
+                            <span className="material-symbols-outlined text-primary text-[24px]">location_on</span>
                             <div className="flex flex-col w-full">
                                 <label className="text-xs text-gray-500 font-medium">Điểm đón</label>
                                 <input type="text" 
@@ -102,14 +109,14 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
 
                         {/* Switch Icon (Visible on web) */}
                         <div className="hidden md:flex items-center justify-center -mx-2 z-10">
-                            <div className="w-10 h-10 bg-white border border-gray-200 shadow-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-50 text-[#326946]">
+                            <div className="w-10 h-10 bg-white border border-gray-200 shadow-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-50 text-primary">
                                 <span className="material-symbols-outlined">sync_alt</span>
                             </div>
                         </div>
 
                         {/* Dropoff */}
                         <div className="flex-1 flex items-center gap-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-xl px-4 py-3 border border-gray-200 cursor-pointer">
-                            <span className="material-symbols-outlined text-[#326946] text-[24px]" style={{ transform: 'rotate(-45deg)' }}>send</span>
+                            <span className="material-symbols-outlined text-primary text-[24px]" style={{ transform: 'rotate(-45deg)' }}>send</span>
                             <div className="flex flex-col w-full">
                                 <label className="text-xs text-gray-500 font-medium">Điểm trả</label>
                                 <input type="text" 
@@ -123,7 +130,7 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
 
                         {/* Date */}
                         <div className="flex-[0.8] flex items-center gap-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-xl px-4 py-3 border border-gray-200 cursor-pointer">
-                            <span className="material-symbols-outlined text-[#326946] text-[24px]">calendar_month</span>
+                            <span className="material-symbols-outlined text-primary text-[24px]">calendar_month</span>
                             <div className="flex flex-col w-full">
                                 <label className="text-xs text-gray-500 font-medium">Ngày đi</label>
                                 <input type="text" 
@@ -135,7 +142,7 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
                         </div>
 
                         {/* Search Button */}
-                        <button className="md:w-auto w-full px-8 bg-[#326946] text-white font-bold text-lg py-3 md:py-0 rounded-xl hover:bg-[#285538] transition-colors shadow-lg shadow-[#326946]/30 flex items-center justify-center gap-2">
+                        <button className="md:w-auto w-full px-8 bg-primary text-white font-bold text-lg py-3 md:py-0 rounded-xl hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-lg shadow-primary/30 flex items-center justify-center gap-2">
                             <span className="material-symbols-outlined">search</span>
                             <span className="md:hidden lg:inline">Tìm vé</span>
                         </button>

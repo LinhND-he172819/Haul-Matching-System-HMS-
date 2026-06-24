@@ -9,6 +9,8 @@ namespace HMS.Modules.Matching.Application.DTOs
         public decimal WeightKg { get; set; }
         public decimal VolumeCbm { get; set; }
         public int DeliverySequence { get; set; }
+        public double? RoutePosition { get; set; }
+        public double? RouteDistanceMeters { get; set; }
         public string? SpecialHandlingNote { get; set; }
     }
 

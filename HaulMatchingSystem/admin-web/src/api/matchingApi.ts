@@ -18,7 +18,10 @@ export interface MatchingSuggestionsResponse {
     shipments: ShipmentSuggestionDto[];
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'https://localhost:7059';
+const API_BASE =
+    import.meta.env.VITE_API_BASE_URL ??
+    import.meta.env.VITE_API_URL ??
+    'http://localhost:5104';
 
 export async function fetchMatchingSuggestions(): Promise<MatchingSuggestionsResponse> {
     const res = await fetch(`${API_BASE}/api/drivers/me/matching-suggestions`, { credentials: 'include' });

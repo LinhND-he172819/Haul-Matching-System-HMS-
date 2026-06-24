@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 type TripStatus = 'Active' | 'Completed' | 'Breakdown';
 
@@ -84,7 +86,7 @@ const defaultTripForm: TripFormState = {
     vehicleId: vehicleOptions[0].id,
     originHubId: hubOptions[0].id,
     destHubId: hubOptions[1].id,
-    routeLineString: 'LINESTRING (106.700000 10.800000, 108.220000 16.070000)',
+    routeLineString: '',
     currentLoadWeightKg: '0',
     currentLoadVolumeCbm: '0'
 };
@@ -96,6 +98,8 @@ const statusStyle: Record<TripStatus, string> = {
     Completed: 'bg-primary-fixed text-on-primary-fixed border-primary/20',
     Breakdown: 'bg-error-container text-error border-error/20'
 };
+
+type RouteCoordinate = [number, number];
 
 function percentage(used: number, capacity: number) {
     return Math.min(100, Math.round((used / capacity) * 100));
@@ -153,13 +157,17 @@ function shortId(id: string) {
     return id.slice(0, 8);
 }
 
-function estimateDistanceKm(routeLineString: string) {
-    const coordinates = routeLineString
+function parseLineStringCoordinates(routeLineString: string): RouteCoordinate[] {
+    return routeLineString
         .replace(/^LINESTRING\s*\(/i, '')
         .replace(/\)$/, '')
         .split(',')
         .map((point) => point.trim().split(/\s+/).map(Number))
-        .filter((point) => point.length === 2 && point.every(Number.isFinite));
+        .filter((point): point is RouteCoordinate => point.length === 2 && point.every(Number.isFinite));
+}
+
+function estimateDistanceKm(routeLineString: string) {
+    const coordinates = parseLineStringCoordinates(routeLineString);
 
     if (coordinates.length < 2) {
         return 0;
@@ -188,6 +196,113 @@ function haversineKm(from: number[], to: number[]) {
 
 function toRadians(value: number) {
     return value * (Math.PI / 180);
+}
+
+function RouteMap({ trip }: { trip: DriverTrip }) {
+    const coordinates = parseLineStringCoordinates(trip.routeLineString);
+    const mapContainerRef = useRef<HTMLDivElement | null>(null);
+    const mapRef = useRef<L.Map | null>(null);
+
+    useEffect(() => {
+        if (!mapContainerRef.current || coordinates.length < 2) {
+            return;
+        }
+
+        if (mapRef.current) {
+            mapRef.current.remove();
+            mapRef.current = null;
+        }
+
+        const routeLatLngs = coordinates.map(([lng, lat]) => L.latLng(lat, lng));
+        const map = L.map(mapContainerRef.current, {
+            scrollWheelZoom: false,
+            zoomControl: true
+        });
+        mapRef.current = map;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const routeLine = L.polyline(routeLatLngs, {
+            color: '#2563eb',
+            weight: 6,
+            opacity: 0.9,
+            lineCap: 'round',
+            lineJoin: 'round'
+        }).addTo(map);
+
+        L.circleMarker(routeLatLngs[0], {
+            radius: 8,
+            color: '#0f766e',
+            fillColor: '#14b8a6',
+            fillOpacity: 1,
+            weight: 3
+        })
+            .bindTooltip(trip.originHub)
+            .addTo(map);
+
+        L.circleMarker(routeLatLngs[routeLatLngs.length - 1], {
+            radius: 8,
+            color: '#b91c1c',
+            fillColor: '#ef4444',
+            fillOpacity: 1,
+            weight: 3
+        })
+            .bindTooltip(trip.destinationHub)
+            .addTo(map);
+
+        map.fitBounds(routeLine.getBounds(), {
+            padding: [28, 28],
+            maxZoom: 12
+        });
+
+        window.setTimeout(() => map.invalidateSize(), 0);
+
+        return () => {
+            map.remove();
+            mapRef.current = null;
+        };
+    }, [trip.routeLineString, trip.originHub, trip.destinationHub]);
+
+    if (coordinates.length < 2) {
+        return (
+            <div className="min-h-[260px] rounded-lg bg-surface-container-low border border-outline-variant/30 flex items-center justify-center text-center px-6">
+                <div>
+                    <span className="material-symbols-outlined text-[32px] text-on-surface-variant mb-2">route</span>
+                    <p className="text-label-lg font-label-lg text-on-surface">Route unavailable</p>
+                    <p className="text-body-md font-body-md text-on-surface-variant mt-1">LINESTRING has fewer than two points</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="rounded-lg bg-surface-container-low border border-outline-variant/30 overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-outline-variant/30">
+                <div>
+                    <p className="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">Route Map</p>
+                    <p className="text-label-lg font-label-lg text-on-surface mt-0.5">{trip.originHub} to {trip.destinationHub}</p>
+                </div>
+                <div className="text-right">
+                    <p className="text-label-md font-label-md text-on-surface-variant">Distance</p>
+                    <p className="text-label-lg font-label-lg text-primary">{trip.distanceKm} km</p>
+                </div>
+            </div>
+            <div className="relative h-[360px] bg-surface-container-lowest">
+                <div ref={mapContainerRef} className="absolute inset-0 z-0" />
+                <div className="absolute left-4 top-4 rounded bg-surface-container-lowest/90 border border-outline-variant/30 px-3 py-2">
+                    <p className="text-label-md font-label-md text-secondary">Start</p>
+                    <p className="text-body-md font-body-md text-on-surface">{trip.originHub}</p>
+                </div>
+                <div className="absolute bottom-4 right-4 rounded bg-surface-container-lowest/90 border border-outline-variant/30 px-3 py-2 text-right">
+                    <p className="text-label-md font-label-md text-error">Destination</p>
+                    <p className="text-body-md font-body-md text-on-surface">{trip.destinationHub}</p>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default function DriverTripsPage({ onLogout, onBackToAdmin }: { onLogout?: () => void; onBackToAdmin?: () => void }) {
@@ -295,7 +410,7 @@ export default function DriverTripsPage({ onLogout, onBackToAdmin }: { onLogout?
         } catch (error) {
             console.error(error);
             setApiStatus('Action failed');
-            setApiMessage('Create/update failed. Check route LINESTRING, numeric load values, and that only Active trips are editable.');
+            setApiMessage('Create/update failed. Check API connectivity, numeric load values, and that only Active trips are editable.');
         }
     };
 
@@ -584,7 +699,7 @@ export default function DriverTripsPage({ onLogout, onBackToAdmin }: { onLogout?
                             </label>
 
                             <label className="flex flex-col gap-2 md:col-span-2">
-                                <span className="text-label-md font-label-md text-on-surface-variant">Route LINESTRING</span>
+                                <span className="text-label-md font-label-md text-on-surface-variant">Route LINESTRING optional</span>
                                 <input
                                     className="bg-surface-container-low border border-outline-variant/50 rounded-lg px-3 py-2 text-body-md font-body-md text-on-surface outline-none focus:ring-2 focus:ring-primary"
                                     onChange={(event) => updateTripForm('routeLineString', event.target.value)}
@@ -644,6 +759,10 @@ export default function DriverTripsPage({ onLogout, onBackToAdmin }: { onLogout?
                                             <p className="text-label-lg font-label-lg text-on-surface mt-1">{activeTrip.destinationHub}</p>
                                             <p className="text-body-md font-body-md text-primary mt-2">{activeTrip.eta}</p>
                                         </div>
+                                    </div>
+
+                                    <div className="mb-6">
+                                        <RouteMap trip={activeTrip} />
                                     </div>
 
                                     <div className="space-y-4">

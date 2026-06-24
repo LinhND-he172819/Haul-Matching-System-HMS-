@@ -12,6 +12,7 @@ using HMS.Modules.Matching.Infrastructure.Redis;
 using HMS.Modules.Realtime.Hubs;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
+using HMS.Modules.Matching.Infrastructure.Schema;
 using HMS.Modules.Transport;
 using HMS.Modules.Transport.Channels;
 using HMS.Modules.Transport.Workers;
@@ -21,6 +22,10 @@ using StackExchange.Redis;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 // Đăng ký cấu hình CORS cho SignalR
 builder.Services.AddCors(options =>
@@ -80,7 +85,11 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
-builder.Services.AddScoped<IDashboardStatsProvider, DashboardStatsProvider>();
+builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
+builder.Services.AddScoped<
+    HMS.Shared.Core.Interfaces.IDashboardStatsProvider,
+    HMS.Modules.Matching.Infrastructure.DashboardStatsProvider
+>();
 
 // Exception middleware (registered as transient through pipeline)
 
@@ -116,10 +125,19 @@ builder.Services.AddHostedService<FleetMonitorWorker>();
 // Đăng ký dịch vụ SMS qua cổng API nội địa (Sẽ tự fallback về Mock nếu thiếu Key)
 builder.Services.AddHttpClient<ISmsSender, VietNamSmsSender>();
 
+builder.Services.AddHttpClient();
 //----------------------------------------------------------------------------
+
+
 var app = builder.Build();
 
 await app.InitializeTransportModuleAsync();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var initializer = scope.ServiceProvider.GetRequiredService<IMatchingSpatialSchemaInitializer>();
+    await initializer.InitializeAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -1,4 +1,4 @@
-﻿using HMS.Modules.Identity.Application.DTOs;
+using HMS.Modules.Identity.Application.DTOs;
 using HMS.Modules.Identity.Application.Services;
 using HMS.Modules.Identity.Core.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -51,6 +51,7 @@ namespace HMS.Modules.Identity
             });
 
             // 3. Đăng ký các Service xử lý Logic bên trong Identity Module
+            services.AddMemoryCache();
             services.AddScoped<IAuthService, AuthService>();
 
             // Quản lý thông tin User (Đăng ký, sửa thông tin, đổi mật khẩu, xóa user...)
