@@ -8,10 +8,11 @@ import DriverTripsPage from './pages/DriverTripsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
+import AdminLiveMapPage from './pages/AdminLiveMapPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
 
 type Page = 'login' | 'register' | 'home' | 'admin' | 'driver-portal' | 'driver-trips';
-type AdminTab = 'dashboard' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips';
+type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -102,6 +103,18 @@ function App() {
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">dashboard</span>
           <span className="text-label-lg font-bold">Tổng Quan</span>
+        </button>
+
+        <button 
+          onClick={() => setAdminTab('live-map')} 
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+            adminTab === 'live-map' 
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low' 
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">map</span>
+          <span className="text-label-lg font-bold">Bản Đồ Live</span>
         </button>
 
         <button 
@@ -286,6 +299,8 @@ function App() {
           return <DriverTripsPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'driver-portal':
           return <MatchingSuggestionPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
+        case 'live-map':
+          return <AdminLiveMapPage sidebar={renderSidebar()} />;
         default:
           return <DashboardPage sidebar={renderSidebar()} />;
       }

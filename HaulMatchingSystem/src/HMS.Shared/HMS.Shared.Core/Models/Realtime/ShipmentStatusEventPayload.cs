@@ -1,6 +1,6 @@
 ﻿using HMS.Shared.Core.Enums;
 
-namespace HMS.Modules.Realtime.Models
+namespace HMS.Shared.Core.Models.Realtime
 {
     public class ShipmentStatusEventPayload
     {

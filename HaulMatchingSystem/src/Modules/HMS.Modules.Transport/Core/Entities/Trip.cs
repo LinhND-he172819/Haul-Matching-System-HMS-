@@ -5,6 +5,10 @@ namespace HMS.Modules.Transport.Core.Entities;
 
 public sealed class Trip
 {
+    private Trip()
+    {
+    }
+
     private Trip(
         Guid id,
         Guid driverId,
