@@ -15,6 +15,10 @@ public static class TransportModule
 {
     public static IServiceCollection AddTransportModule(this IServiceCollection services)
     {
+        services.AddScoped<IHubRepository, PostgresHubRepository>();
+        services.AddScoped<IHubService, HubService>();
+        services.AddScoped<IVehicleRepository, PostgresVehicleRepository>();
+        services.AddScoped<IVehicleService, VehicleService>();
         services.AddScoped<ITripRepository, PostgresTripRepository>();
         services.AddScoped<ITripService, TripService>();
         services.AddScoped<ITripRoutePlanner, OsrmTripRoutePlanner>();
@@ -47,6 +51,8 @@ public static class TransportModule
 
     public static IEndpointRouteBuilder MapTransportModule(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapHubEndpoints();
+        endpoints.MapVehicleEndpoints();
         endpoints.MapTripEndpoints();
 
         return endpoints;

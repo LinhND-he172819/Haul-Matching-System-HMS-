@@ -1,4 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? 'https://localhost:7059';
+const API_BASE =
+    import.meta.env.VITE_API_BASE_URL ??
+    import.meta.env.VITE_API_URL ??
+    'http://localhost:5104';
 
 export interface LoginRequest {
     email: string;
