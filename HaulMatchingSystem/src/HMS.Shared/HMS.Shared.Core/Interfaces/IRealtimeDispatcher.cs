@@ -1,6 +1,6 @@
-﻿using HMS.Modules.Realtime.Models;
+﻿using HMS.Shared.Core.Models.Realtime;
 
-namespace HMS.Modules.Realtime.Interfaces
+namespace HMS.Shared.Core.Interfaces
 {
     public interface IRealtimeDispatcher
     {
@@ -19,5 +19,12 @@ namespace HMS.Modules.Realtime.Interfaces
 
         // Tầng 4: Admin Dashboard Stats (có thể dùng riêng method hoặc tích hợp vào các event trên)
         Task BroadcastAdminStatsAsync(AdminStatsPayload stats);
+
+        // Tầng 5: User-Specific Notifications (có thể dùng riêng method hoặc tích hợp vào các event trên)
+        Task SendDriverMatchingNotificationAsync(MatchingNotificationPayload payload);
+
+        // Tầng 6: Customer Notifications
+        Task SendCustomerStatusNotificationAsync(CustomerStatusPayload payload);
+
     }
 }

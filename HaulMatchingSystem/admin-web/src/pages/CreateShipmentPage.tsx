@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { createDraftShipment, type DraftShipmentResponse } from "../api/shipmentsApi";
+import { QRCodeCanvas } from "qrcode.react";
+import {
+    createDraftShipment,
+    geocodeAddress,
+    type DraftShipmentResponse,
+} from "../api/shipmentsApi";
 
 export default function CreateShipmentPage() {
     const [step, setStep] = useState(1);
@@ -31,13 +36,19 @@ export default function CreateShipmentPage() {
             return;
         }
 
-        setForm((prev) => ({
-            ...prev,
-            destLat: "21.0278",
-            destLng: "105.8342",
-        }));
+        try {
+            const result = await geocodeAddress(form.destAddress);
 
-        alert("Đã xác định tọa độ từ địa chỉ.");
+            setForm((prev) => ({
+                ...prev,
+                destLat: String(result.lat),
+                destLng: String(result.lng),
+            }));
+
+            alert(`Đã xác định vị trí: ${result.displayName}`);
+        } catch {
+            alert("Không tìm thấy địa chỉ. Vui lòng nhập địa chỉ rõ hơn.");
+        }
     };
 
     const goToStep2 = () => {

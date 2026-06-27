@@ -1,6 +1,6 @@
 ﻿using HMS.Modules.Realtime.Hubs;
-using HMS.Modules.Realtime.Models;
 using HMS.Modules.Realtime.Services;
+using HMS.Shared.Core.Models.Realtime;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Moq;

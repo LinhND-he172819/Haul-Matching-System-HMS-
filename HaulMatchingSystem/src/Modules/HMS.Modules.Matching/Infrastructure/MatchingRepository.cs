@@ -1,7 +1,11 @@
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
+using NpgsqlTypes;
+using System.Data;
 
 namespace HMS.Modules.Matching.Infrastructure
 {
@@ -36,6 +40,109 @@ namespace HMS.Modules.Matching.Infrastructure
         public async Task<List<Shipment>> GetShipmentsByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct)
         {
             return await _db.Shipments.Where(s => ids.Contains(s.Id)).ToListAsync(ct);
+        }
+
+        public async Task<List<SpatialShipmentCandidate>> GetSpatialShipmentCandidatesAsync(
+            Guid tripId,
+            decimal remainingWeightCapacity,
+            decimal remainingVolumeCapacity,
+            double routeBufferMeters,
+            int limit,
+            CancellationToken ct)
+        {
+            var candidates = new List<SpatialShipmentCandidate>();
+            var connection = _db.Database.GetDbConnection();
+            var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+            if (shouldCloseConnection)
+            {
+                await connection.OpenAsync(ct);
+            }
+
+            try
+            {
+                await using var command = connection.CreateCommand();
+                if (_tx is not null)
+                {
+                    command.Transaction = _tx.GetDbTransaction();
+                }
+
+                command.CommandText = """
+                    SELECT
+                        s."Id",
+                        s."ReceiverName",
+                        s."ReceiverPhone",
+                        s."DestAddress",
+                        s."WeightKg",
+                        s."VolumeCbm",
+                        s."CargoType",
+                        s."SpecialHandlingNote",
+                        s."Status",
+                        ST_LineLocatePoint(tt.route_linestring, s.delivery_location) AS route_position,
+                        ST_Distance(tt.route_linestring::geography, s.delivery_location::geography) AS distance_meters
+                    FROM shipments s
+                    JOIN transport.trips tt ON tt.id = @trip_id
+                    WHERE tt.is_deleted = FALSE
+                        AND s.delivery_location IS NOT NULL
+                        AND s."Status" = 'In_Warehouse'
+                        AND s."WeightKg" <= @remaining_weight_capacity
+                        AND s."VolumeCbm" <= @remaining_volume_capacity
+                        AND ST_DWithin(
+                            tt.route_linestring::geography,
+                            s.delivery_location::geography,
+                            @route_buffer_meters)
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM trip_shipments ts
+                            WHERE ts."ShipmentId" = s."Id"
+                                AND ts."Status" IN ('Suggested', 'Matched')
+                        )
+                    ORDER BY route_position ASC, distance_meters ASC
+                    LIMIT @limit;
+                    """;
+
+                command.Parameters.Add(new NpgsqlParameter("trip_id", NpgsqlDbType.Uuid) { Value = tripId });
+                command.Parameters.Add(new NpgsqlParameter("remaining_weight_capacity", NpgsqlDbType.Numeric) { Value = remainingWeightCapacity });
+                command.Parameters.Add(new NpgsqlParameter("remaining_volume_capacity", NpgsqlDbType.Numeric) { Value = remainingVolumeCapacity });
+                command.Parameters.Add(new NpgsqlParameter("route_buffer_meters", NpgsqlDbType.Double) { Value = routeBufferMeters });
+                command.Parameters.Add(new NpgsqlParameter("limit", NpgsqlDbType.Integer) { Value = limit });
+
+                await using var reader = await command.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                {
+                    candidates.Add(new SpatialShipmentCandidate
+                    {
+                        Shipment = new Shipment
+                        {
+                            Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                            ReceiverName = ReadNullableString(reader, "ReceiverName"),
+                            ReceiverPhone = ReadNullableString(reader, "ReceiverPhone"),
+                            DestAddress = ReadNullableString(reader, "DestAddress"),
+                            WeightKg = reader.GetDecimal(reader.GetOrdinal("WeightKg")),
+                            VolumeCbm = reader.GetDecimal(reader.GetOrdinal("VolumeCbm")),
+                            CargoType = ReadNullableString(reader, "CargoType"),
+                            SpecialHandlingNote = ReadNullableString(reader, "SpecialHandlingNote"),
+                            Status = ReadNullableString(reader, "Status")
+                        },
+                        RoutePosition = reader.GetDouble(reader.GetOrdinal("route_position")),
+                        DistanceMeters = reader.GetDouble(reader.GetOrdinal("distance_meters"))
+                    });
+                }
+            }
+            finally
+            {
+                if (shouldCloseConnection)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+
+            return candidates;
+        }
+
+        public async Task AddTripShipmentSuggestionsAsync(IEnumerable<TripShipment> suggestions, CancellationToken ct)
+        {
+            await _db.TripShipments.AddRangeAsync(suggestions, ct);
         }
 
         public async Task SaveChangesAsync(CancellationToken ct)
@@ -77,6 +184,13 @@ namespace HMS.Modules.Matching.Infrastructure
                 await _tx.DisposeAsync();
                 _tx = null;
             }
+        }
+
+        private static string? ReadNullableString(System.Data.Common.DbDataReader reader, string columnName)
+        {
+            var ordinal = reader.GetOrdinal(columnName);
+
+            return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
         }
     }
 }
