@@ -28,7 +28,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
         setIsLoading(true);
         try {
             const res = await login({ ...formData, role });
-
+            localStorage.setItem('userId', res.userId);
             localStorage.setItem('accessToken', res.accessToken);
             localStorage.setItem('refreshToken', res.refreshToken);
             localStorage.setItem('fullName', res.fullName);
@@ -76,7 +76,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
         setIsLoading(true);
         try {
             const res = await verifyLoginOtp(phone, otp, role);
-
+            localStorage.setItem('userId', res.userId);
             localStorage.setItem('accessToken', res.accessToken);
             localStorage.setItem('refreshToken', res.refreshToken);
             localStorage.setItem('fullName', res.fullName);
