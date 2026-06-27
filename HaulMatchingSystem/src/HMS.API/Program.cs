@@ -74,6 +74,7 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
+builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
 builder.Services.AddScoped<
     HMS.Shared.Core.Interfaces.IDashboardStatsProvider,
     HMS.Modules.Matching.Infrastructure.DashboardStatsProvider
