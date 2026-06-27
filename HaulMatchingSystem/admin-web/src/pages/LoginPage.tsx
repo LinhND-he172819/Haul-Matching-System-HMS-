@@ -116,7 +116,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
                         onClick={() => { setRole(''); setError(''); setSuccess(''); setOtpSent(false); }}
                         className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === '' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
                     >
-                        Nội bộ
+                        Tài xế & Quản trị
                     </button>
                 </div>
 

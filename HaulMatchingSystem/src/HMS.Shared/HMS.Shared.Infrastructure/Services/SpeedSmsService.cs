@@ -32,6 +32,7 @@ namespace HMS.Shared.Infrastructure.Services
 
         public async Task<bool> SendSmsAsync(string phoneNumber, string content)
         {
+            _logger.LogInformation($"[SpeedSMS] Bắt đầu gửi SMS đến {phoneNumber}. Nội dung: {content}");
             try
             {
                 var senderId = _configuration["SpeedSms:SenderId"] ?? "SPEEDSMS"; // SPEEDSMS is default sandbox sender
@@ -42,7 +43,7 @@ namespace HMS.Shared.Infrastructure.Services
                 {
                     to = new[] { phoneNumber },
                     content = content,
-                    sms_type = 2,
+                    sms_type = 4, // 4: tin nhắn gửi bằng brandname mặc định (Verify hoặc Notify)
                     sender = senderId
                 };
 
