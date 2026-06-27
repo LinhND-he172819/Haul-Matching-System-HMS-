@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import AdminLiveMapPage from './pages/AdminLiveMapPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
+import HubIntakePage from './pages/HubIntakePage';
 
 type Page =
   | 'login'
@@ -19,7 +20,7 @@ type Page =
   | 'driver-portal'
   | 'driver-trips'
   | 'admin';
-type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips';
+type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'hub-intake';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -115,33 +116,31 @@ function App() {
         <button
           onClick={() => setAdminTab('dashboard')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'dashboard'
-              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
-              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
             }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">dashboard</span>
           <span className="text-label-lg font-bold">Tổng Quan</span>
         </button>
 
-        <button 
-          onClick={() => setAdminTab('live-map')} 
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
-            adminTab === 'live-map' 
-            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low' 
-            : 'text-on-surface-variant hover:bg-surface-container-low/60'
-          }`}
+        <button
+          onClick={() => setAdminTab('live-map')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'live-map'
+              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+            }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">map</span>
           <span className="text-label-lg font-bold">Bản Đồ Live</span>
         </button>
 
-        <button 
-          onClick={() => setAdminTab('create-customer')} 
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
-            adminTab === 'create-customer' 
-            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low' 
-            : 'text-on-surface-variant hover:bg-surface-container-low/60'
-          }`}
+        <button
+          onClick={() => setAdminTab('create-customer')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'create-customer'
+              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+            }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">person_add</span>
           <span className="text-label-lg font-bold">Tạo Khách Hàng</span>
@@ -150,8 +149,8 @@ function App() {
         <button
           onClick={() => setAdminTab('create-driver')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'create-driver'
-              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
-              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
             }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">local_shipping</span>
@@ -161,8 +160,8 @@ function App() {
         <button
           onClick={() => setAdminTab('vehicles')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'vehicles'
-              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
-              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
             }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">garage</span>
@@ -172,8 +171,8 @@ function App() {
         <button
           onClick={() => setAdminTab('create-shipment')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'create-shipment'
-              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
-              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
             }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">add_box</span>
@@ -183,8 +182,8 @@ function App() {
         <button
           onClick={() => setAdminTab('driver-trips')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'driver-trips'
-              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
-              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
             }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">route</span>
@@ -196,12 +195,22 @@ function App() {
           <button
             onClick={() => setAdminTab('driver-portal')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'driver-portal'
-                ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
-                : 'text-on-surface-variant hover:bg-surface-container-low/60'
+              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+              : 'text-on-surface-variant hover:bg-surface-container-low/60'
               }`}
           >
             <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">account_circle</span>
             <span className="text-label-lg font-bold">Driver Portal</span>
+          </button>
+          <button
+            onClick={() => setAdminTab('hub-intake')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'hub-intake'
+              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+              }`}
+          >
+            <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">local_shipping</span>
+            <span className="text-label-lg font-bold">Hub Intake</span>
           </button>
         </div>
       </div>
@@ -258,7 +267,7 @@ function App() {
       return (
         <CreateShipmentPage />
       );
-      
+
     case 'admin':
       if (role !== 'Admin') {
         // Enforce admin permission restriction
@@ -320,6 +329,15 @@ function App() {
           return <MatchingSuggestionPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'live-map':
           return <AdminLiveMapPage sidebar={renderSidebar()} />;
+        case 'hub-intake':
+          return (
+            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+              {renderSidebar()}
+              <div className="flex-1 flex flex-col xl:ml-64 w-full p-8 overflow-y-auto">
+                <HubIntakePage />
+              </div>
+            </div>
+          );
         default:
           return <DashboardPage sidebar={renderSidebar()} />;
       }
