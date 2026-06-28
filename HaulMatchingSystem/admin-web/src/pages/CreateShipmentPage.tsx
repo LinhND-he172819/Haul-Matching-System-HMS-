@@ -12,12 +12,14 @@ export default function CreateShipmentPage() {
     const [loading, setLoading] = useState(false);
 
     const [form, setForm] = useState({
-        customerId: localStorage.getItem('userId') ?? '',
+        customerId: "77ef126c-1a62-43f0-9190-3f4c9884f546",
+
         receiverName: "",
         receiverPhone: "",
         destAddress: "",
         destLat: "",
         destLng: "",
+
         cargoType: "",
         weightKg: "",
         volumeCbm: "",
@@ -69,13 +71,6 @@ export default function CreateShipmentPage() {
     };
 
     const submit = async () => {
-        const customerId = localStorage.getItem('userId');
-
-        if (!customerId) {
-            alert('Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.');
-            return;
-        }
-
         if (!form.cargoType.trim()) {
             alert("Vui lòng nhập loại hàng.");
             return;
