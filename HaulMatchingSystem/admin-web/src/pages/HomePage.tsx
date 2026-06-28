@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { decodeJWT } from '../utils/jwt';
 
 interface HomePageProps {
-    onNavigate: (
-        page: 'login' | 'register' | 'home' | 'create-shipment'
-    ) => void;
+    onNavigate: (page: 'login' | 'register' | 'home') => void;
     onLogout?: () => void;
 }
 
@@ -50,7 +48,7 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
                         <span className="material-symbols-outlined text-[24px]">notifications</span>
                     </button>
                     {onLogout && (
-                        <button
+                        <button 
                             onClick={onLogout}
                             className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-50 text-red-600 hover:text-red-800 transition-colors"
                             title="Đăng xuất"
@@ -69,8 +67,8 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
 
             {/* Hero Section */}
             <div className="bg-primary h-[350px] relative w-full flex flex-col items-center pt-16">
-                <div className="absolute inset-0 opacity-10"
-                    style={{ backgroundImage: 'radial-gradient(circle, #fff 2px, transparent 2px)', backgroundSize: '24px 24px' }}>
+                <div className="absolute inset-0 opacity-10" 
+                     style={{ backgroundImage: 'radial-gradient(circle, #fff 2px, transparent 2px)', backgroundSize: '24px 24px' }}>
                 </div>
                 <div className="relative z-10 text-center px-4">
                     <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Bạn Đang Muốn Đi Đâu?</h1>
@@ -81,7 +79,7 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
             {/* Booking Search Card - Floating Web Version */}
             <main className="flex-1 w-full max-w-6xl mx-auto px-4 -mt-24 relative z-20 pb-20">
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-50 p-6 md:p-8">
-
+                    
                     {/* Trip Type Selector */}
                     <div className="flex mb-6">
                         <button className="bg-primary/10 text-primary px-6 py-2.5 rounded-xl text-sm font-bold border border-transparent">
@@ -94,13 +92,13 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
 
                     {/* Web Horizontal Inputs */}
                     <div className="flex flex-col md:flex-row gap-4">
-
+                        
                         {/* Pickup */}
                         <div className="flex-1 flex items-center gap-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-xl px-4 py-3 border border-gray-200 cursor-pointer">
                             <span className="material-symbols-outlined text-primary text-[24px]">location_on</span>
                             <div className="flex flex-col w-full">
                                 <label className="text-xs text-gray-500 font-medium">Điểm đón</label>
-                                <input type="text"
+                                <input type="text" 
                                     className="bg-transparent outline-none text-gray-800 font-semibold text-[15px] placeholder-gray-400 w-full"
                                     placeholder="Chọn điểm đón"
                                     value={pickup}
@@ -121,7 +119,7 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
                             <span className="material-symbols-outlined text-primary text-[24px]" style={{ transform: 'rotate(-45deg)' }}>send</span>
                             <div className="flex flex-col w-full">
                                 <label className="text-xs text-gray-500 font-medium">Điểm trả</label>
-                                <input type="text"
+                                <input type="text" 
                                     className="bg-transparent outline-none text-gray-800 font-semibold text-[15px] placeholder-gray-400 w-full"
                                     placeholder="Chọn điểm trả"
                                     value={dropoff}
@@ -135,7 +133,7 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
                             <span className="material-symbols-outlined text-primary text-[24px]">calendar_month</span>
                             <div className="flex flex-col w-full">
                                 <label className="text-xs text-gray-500 font-medium">Ngày đi</label>
-                                <input type="text"
+                                <input type="text" 
                                     className="bg-transparent outline-none text-gray-800 font-semibold text-[15px] placeholder-gray-400 w-full"
                                     value={date}
                                     onChange={(e) => setDate(e.target.value)}
@@ -151,32 +149,6 @@ export default function HomePage({ onNavigate: _onNavigate, onLogout }: HomePage
                     </div>
                 </div>
             </main>
-            {/* Quick Actions */}
-            <div className="w-full max-w-6xl mx-auto px-4 pb-16">
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                        Gửi hàng với Ghép Chuyến
-                    </h2>
-
-                    <p className="text-gray-500 mb-6">
-                        Tạo đơn gửi hàng trước và mang hàng đến Hub gần nhất để được ghép
-                        chuyến nhanh chóng.
-                    </p>
-
-                    <button
-                        onClick={() => _onNavigate('create-shipment')}
-                        className="bg-primary hover:bg-primary-container text-white px-8 py-4 rounded-xl font-semibold flex items-center gap-3 transition-all"
-                    >
-                        <span className="material-symbols-outlined">
-                            inventory_2
-                        </span>
-
-                        Tạo đơn gửi hàng
-                    </button>
-
-                </div>
-            </div>
         </div>
     );
 }
