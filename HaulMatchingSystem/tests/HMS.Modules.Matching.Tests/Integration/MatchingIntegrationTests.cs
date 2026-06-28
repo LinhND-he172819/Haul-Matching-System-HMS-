@@ -1,9 +1,8 @@
 using HMS.Modules.Matching.Application.Services;
-using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Modules.Matching.Infrastructure;
 using HMS.Modules.Matching.Infrastructure.Redis;
-using HMS.Modules.Realtime.Interfaces;
+using HMS.Shared.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 

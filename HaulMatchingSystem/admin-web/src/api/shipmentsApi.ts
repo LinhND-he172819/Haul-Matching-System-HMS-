@@ -62,3 +62,59 @@ export async function geocodeAddress(address: string): Promise<GeocodeResponse> 
 
   return res.json();
 }
+
+export type ShipmentQrLookupResponse = {
+  id: string;
+  qrCode: string;
+  cargoType: string;
+  weightKg: number;
+  volumeCbm: number;
+  receiverName: string;
+  receiverPhone: string;
+  destAddress: string;
+  status: string;
+  specialHandlingNote?: string;
+};
+
+export type ConfirmIntakeRequest = {
+  actualWeightKg: number;
+  actualVolumeCbm: number;
+};
+
+export async function getShipmentByQrCode(
+  qrCode: string
+): Promise<ShipmentQrLookupResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/shipments/qr/${qrCode}`);
+
+  if (!res.ok) {
+    throw new Error("Không tìm thấy đơn hàng theo mã QR.");
+  }
+
+  return res.json();
+}
+
+export async function confirmShipmentIntake(
+  shipmentId: string,
+  payload: ConfirmIntakeRequest
+): Promise<{ message: string; status: string }> {
+  const token = localStorage.getItem("accessToken");
+
+  const res = await fetch(
+    `${API_BASE_URL}/api/shipments/${shipmentId}/confirm-intake`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || "Nhập kho thất bại.");
+  }
+
+  return res.json();
+}
