@@ -15,7 +15,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [role, setRole] = useState<'Customer' | 'Driver' | 'Admin'>('Customer');
+    const [role, setRole] = useState<'Customer' | ''>('Customer');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -113,17 +113,10 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
                     </button>
                     <button
                         type="button"
-                        onClick={() => { setRole('Driver'); setError(''); setSuccess(''); }}
-                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Driver' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
+                        onClick={() => { setRole(''); setError(''); setSuccess(''); setOtpSent(false); }}
+                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === '' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
                     >
-                        Tài xế
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => { setRole('Admin'); setError(''); setSuccess(''); }}
-                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Admin' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
-                    >
-                        Admin
+                        Tài xế & Quản trị
                     </button>
                 </div>
 

@@ -34,18 +34,17 @@ function App() {
 
   const [adminTab, setAdminTab] = useState<AdminTab>('dashboard');
 
-  // Sync state if user changes localStorage directly or on mount
+  // Sync state when localStorage updates in another tab/window
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    const role = localStorage.getItem('role');
+    const syncCurrentPage = () => {
+      const token = localStorage.getItem('accessToken');
+      const role = localStorage.getItem('role');
 
-    if (!token) {
-      if (currentPage !== 'register' && currentPage !== 'login') {
-        setCurrentPage('login');
-      }
-    } else {
-      // Role checking and redirection
-      if (currentPage === 'login' || currentPage === 'register') {
+      if (!token) {
+        if (currentPage !== 'register' && currentPage !== 'login') {
+          setCurrentPage('login');
+        }
+      } else if (currentPage === 'login' || currentPage === 'register') {
         if (role === 'Admin') {
           setCurrentPage('admin');
         } else if (role === 'Driver') {
@@ -54,7 +53,16 @@ function App() {
           setCurrentPage('home');
         }
       }
-    }
+    };
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'accessToken' || event.key === 'role' || event.key === null) {
+        syncCurrentPage();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [currentPage]);
 
   const handleNavigate = (

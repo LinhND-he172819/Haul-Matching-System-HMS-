@@ -85,7 +85,8 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
-builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
+builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
+//builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
 builder.Services.AddScoped<
     HMS.Shared.Core.Interfaces.IDashboardStatsProvider,
     HMS.Modules.Matching.Infrastructure.DashboardStatsProvider
@@ -135,8 +136,8 @@ await app.InitializeTransportModuleAsync();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
-    var initializer = scope.ServiceProvider.GetRequiredService<IMatchingSpatialSchemaInitializer>();
-    await initializer.InitializeAsync();
+    //var initializer = scope.ServiceProvider.GetRequiredService<IMatchingSpatialSchemaInitializer>();
+    //await initializer.InitializeAsync();
 }
 
 // Configure the HTTP request pipeline.
@@ -150,10 +151,11 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Thứ tự chuẩn: 1. Https -> 2. Cors -> 3. Auth -> 4. Map Endpoints
+app.UseCors("SignalRPolicy");
 app.UseHttpsRedirection();
 
 // Kích hoạt CORS
-app.UseCors("SignalRPolicy");
+
 
 app.UseAuthentication();
 app.UseAuthorization();
