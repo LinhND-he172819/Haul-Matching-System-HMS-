@@ -1,5 +1,6 @@
 ﻿using HMS.Modules.Realtime.Hubs;
 using HMS.Modules.Realtime.Services;
+using HMS.Shared.Core.Interfaces;
 using HMS.Shared.Core.Models.Realtime;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -22,8 +23,9 @@ namespace HMS.Modules.Realtime.Tests
             mockHubContext.Setup(x => x.Clients).Returns(mockClients.Object);
 
             var mockLogger = new Mock<ILogger<RealtimeDispatcher>>();
+            var mockSmsSender = new Mock<ISmsSender>();
 
-            var dispatcher = new RealtimeDispatcher(mockHubContext.Object, mockLogger.Object);
+            var dispatcher = new RealtimeDispatcher(mockHubContext.Object, mockLogger.Object, mockSmsSender.Object);
             var testMessage = "Hệ thống tạm đóng để bảo hành!";
 
             // 2. Act (Thực thi)
@@ -53,7 +55,8 @@ namespace HMS.Modules.Realtime.Tests
             mockHubContext.Setup(x => x.Clients).Returns(mockClients.Object);
 
             var mockLogger = new Mock<ILogger<RealtimeDispatcher>>();
-            var dispatcher = new RealtimeDispatcher(mockHubContext.Object, mockLogger.Object);
+            var mockSmsSender = new Mock<ISmsSender>();
+            var dispatcher = new RealtimeDispatcher(mockHubContext.Object, mockLogger.Object, mockSmsSender.Object);
 
             var testStats = new AdminStatsPayload
             {

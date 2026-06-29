@@ -8,6 +8,7 @@ namespace HMS.Modules.Transport.Infrastructure.Repositories;
 
 public sealed class PostgresHubRepository : IHubRepository
 {
+    private const string HubTableName = "identity.hubs";
     private readonly string _connectionString;
 
     public PostgresHubRepository(IConfiguration configuration)
@@ -20,10 +21,9 @@ public sealed class PostgresHubRepository : IHubRepository
     {
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        var hubTableName = await ResolveHubTableNameAsync(connection, cancellationToken);
 
         command.CommandText = $"""
-            INSERT INTO {hubTableName} (
+            INSERT INTO {HubTableName} (
                 id,
                 name,
                 address,
@@ -54,7 +54,6 @@ public sealed class PostgresHubRepository : IHubRepository
     {
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        var hubTableName = await ResolveHubTableNameAsync(connection, cancellationToken);
 
         var filters = new List<string> { "COALESCE(is_deleted, FALSE) = FALSE" };
         if (!string.IsNullOrWhiteSpace(search))
@@ -64,7 +63,7 @@ public sealed class PostgresHubRepository : IHubRepository
         }
 
         command.CommandText = $"""
-            {BuildSelectHubSql(hubTableName)}
+            {BuildSelectHubSql(HubTableName)}
             WHERE {string.Join(" AND ", filters)}
             ORDER BY name ASC;
             """;
@@ -83,10 +82,9 @@ public sealed class PostgresHubRepository : IHubRepository
     {
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        var hubTableName = await ResolveHubTableNameAsync(connection, cancellationToken);
 
         command.CommandText = $"""
-            {BuildSelectHubSql(hubTableName)}
+            {BuildSelectHubSql(HubTableName)}
             WHERE id = @id AND COALESCE(is_deleted, FALSE) = FALSE;
             """;
         command.Parameters.AddWithValue("id", id);
@@ -100,10 +98,9 @@ public sealed class PostgresHubRepository : IHubRepository
     {
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        var hubTableName = await ResolveHubTableNameAsync(connection, cancellationToken);
 
         command.CommandText = $"""
-            UPDATE {hubTableName}
+            UPDATE {HubTableName}
             SET
                 name = @name,
                 address = @address,
@@ -123,38 +120,6 @@ public sealed class PostgresHubRepository : IHubRepository
         await connection.OpenAsync(cancellationToken);
 
         return connection;
-    }
-
-    private static async Task<string> ResolveHubTableNameAsync(
-        NpgsqlConnection connection,
-        CancellationToken cancellationToken)
-    {
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT COALESCE(
-                (
-                    SELECT format('%I.%I', ns.nspname, cls.relname)
-                    FROM pg_constraint con
-                    JOIN pg_class vehicle_cls ON vehicle_cls.oid = con.conrelid
-                    JOIN pg_namespace vehicle_ns ON vehicle_ns.oid = vehicle_cls.relnamespace
-                    JOIN pg_class cls ON cls.oid = con.confrelid
-                    JOIN pg_namespace ns ON ns.oid = cls.relnamespace
-                    WHERE con.contype = 'f'
-                        AND vehicle_ns.nspname = 'public'
-                        AND vehicle_cls.relname = 'vehicles'
-                        AND con.conname = 'vehicles_hub_id_fkey'
-                    LIMIT 1
-                ),
-                CASE
-                    WHEN to_regclass('public.hubs') IS NOT NULL THEN 'public.hubs'
-                    ELSE 'identity.hubs'
-                END
-            );
-            """;
-
-        var result = await command.ExecuteScalarAsync(cancellationToken);
-
-        return result?.ToString() ?? "identity.hubs";
     }
 
     private static void AddHubParameters(NpgsqlCommand command, Hub hub)
