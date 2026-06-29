@@ -58,6 +58,36 @@ namespace HMS.Modules.Identity.API
             return Ok(users);
         }
 
+        [HttpGet("users/{id}")]
+        public async Task<IActionResult> GetUserById(Guid id)
+        {
+            var user = await (from u in _context.Users
+                              join v in _context.Vehicles on u.Id equals v.Id into vg
+                              from v in vg.DefaultIfEmpty()
+                              where u.Id == id && !u.IsDeleted
+                              select new UserDto
+                              {
+                                  Id = u.Id,
+                                  FullName = u.FullName,
+                                  Email = u.Email,
+                                  Phone = u.Phone,
+                                  Role = u.Role,
+                                  HubId = u.HubId,
+                                  CreatedAt = u.CreatedAt,
+                                  LicensePlate = v != null ? v.LicensePlate : null,
+                                  TruckType = v != null ? v.TruckType : null,
+                                  MaxWeightKg = v != null ? v.MaxWeightKg : null,
+                                  MaxVolumeCbm = v != null ? v.MaxVolumeCbm : null
+                              }).FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                return NotFound(new { Message = "Không tìm thấy người dùng." });
+            }
+
+            return Ok(user);
+        }
+
         [HttpPost("users")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
         {
@@ -234,7 +264,7 @@ namespace HMS.Modules.Identity.API
         }
 
         [HttpPut("users/{id}")]
-        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] CreateUserDto dto)
+        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -254,11 +284,10 @@ namespace HMS.Modules.Identity.API
                 return BadRequest(new { Message = "Email này đã được sử dụng trên hệ thống." });
             }
 
-            // Check duplicate phone
-            var phoneExists = await _context.Users.AnyAsync(u => u.Phone == dto.Phone && u.Id != id && !u.IsDeleted);
-            if (phoneExists)
+            // Block changing phone number
+            if (dto.Phone != user.Phone)
             {
-                return BadRequest(new { Message = "Số điện thoại này đã được sử dụng trên hệ thống." });
+                return BadRequest(new { Message = "Số điện thoại không được phép thay đổi." });
             }
 
             // Check hub exists if specified

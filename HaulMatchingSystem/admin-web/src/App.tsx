@@ -11,6 +11,7 @@ import HomePage from './pages/HomePage';
 import AdminLiveMapPage from './pages/AdminLiveMapPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
 import HubIntakePage from './pages/HubIntakePage';
+import ProfilePage from './pages/ProfilePage';
 
 type Page =
   | 'login'
@@ -19,7 +20,8 @@ type Page =
   | 'create-shipment'
   | 'driver-portal'
   | 'driver-trips'
-  | 'admin';
+  | 'admin'
+  | 'profile';
 type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'hub-intake';
 
 function App() {
@@ -66,7 +68,7 @@ function App() {
   }, [currentPage]);
 
   const handleNavigate = (
-    targetPage: 'login' | 'register' | 'home' | 'create-shipment'
+    targetPage: 'login' | 'register' | 'home' | 'create-shipment' | 'profile'
   ) => {
     if (targetPage === 'login') {
       setCurrentPage('login');
@@ -93,6 +95,13 @@ function App() {
         setCurrentPage('driver-portal');
       } else {
         setCurrentPage('home');
+      }
+    } else if (targetPage === 'profile') {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setCurrentPage('login');
+      } else {
+        setCurrentPage('profile');
       }
     }
   };
@@ -275,6 +284,9 @@ function App() {
       return (
         <CreateShipmentPage />
       );
+
+    case 'profile':
+      return <ProfilePage onNavigate={handleNavigate} onLogout={handleLogout} />;
 
     case 'admin':
       if (role !== 'Admin') {
