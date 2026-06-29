@@ -11,7 +11,6 @@ namespace HMS.Modules.Identity.Infrastructure
 
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Hub> Hubs { get; set; } = null!;
-        public DbSet<Vehicle> Vehicles { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -56,22 +55,6 @@ namespace HMS.Modules.Identity.Infrastructure
                 b.Property(h => h.IsDeleted).HasColumnName("is_deleted");
             });
 
-            modelBuilder.Entity<Vehicle>(b =>
-            {
-                b.ToTable("vehicles", "identity");
-
-                b.HasKey(v => v.Id);
-                b.Property(v => v.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
-
-                b.Property(v => v.HubId).HasColumnName("hub_id").IsRequired();
-                b.Property(v => v.LicensePlate).HasColumnName("license_plate").IsRequired();
-                b.Property(v => v.TruckType).HasColumnName("truck_type").IsRequired();
-                b.Property(v => v.MaxWeightKg).HasColumnName("max_weight_kg").IsRequired();
-                b.Property(v => v.MaxVolumeCbm).HasColumnName("max_volume_cbm").IsRequired();
-                b.Property(v => v.CreatedAt).HasColumnName("created_at");
-                b.Property(v => v.UpdatedAt).HasColumnName("updated_at");
-                b.Property(v => v.IsDeleted).HasColumnName("is_deleted");
-            });
         }
     }
 }

@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import AdminLiveMapPage from './pages/AdminLiveMapPage';
+import AdminHubsPage from './pages/AdminHubsPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
 import HubIntakePage from './pages/HubIntakePage';
 
@@ -20,7 +21,7 @@ type Page =
   | 'driver-portal'
   | 'driver-trips'
   | 'admin';
-type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'hub-intake';
+type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'hub-intake' | 'hubs';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -150,8 +151,8 @@ function App() {
               : 'text-on-surface-variant hover:bg-surface-container-low/60'
             }`}
         >
-          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">person_add</span>
-          <span className="text-label-lg font-bold">Tạo Khách Hàng</span>
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">group</span>
+          <span className="text-label-lg font-bold">Quản lý Khách Hàng</span>
         </button>
 
         <button
@@ -161,8 +162,20 @@ function App() {
             : 'text-on-surface-variant hover:bg-surface-container-low/60'
             }`}
         >
-          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">local_shipping</span>
-          <span className="text-label-lg font-bold">Tạo Tài Xế & Xe</span>
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">person_add</span>
+          <span className="text-label-lg font-bold">Quản lý Tài Xế</span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('hubs')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+            adminTab === 'hubs'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">hub</span>
+          <span className="text-label-lg font-bold">Quản lý Hub</span>
         </button>
 
         <button
@@ -173,7 +186,7 @@ function App() {
             }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">garage</span>
-          <span className="text-label-lg font-bold">Quáº£n lÃ½ Xe</span>
+          <span className="text-label-lg font-bold">Quản lý Xe</span>
         </button>
 
         <button
@@ -313,6 +326,15 @@ function App() {
           return <CreateCustomerPage sidebar={renderSidebar()} />;
         case 'create-driver':
           return <CreateDriverPage sidebar={renderSidebar()} />;
+        case 'hubs':
+          return (
+            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+              {renderSidebar()}
+              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+                <AdminHubsPage />
+              </div>
+            </div>
+          );
         case 'vehicles':
           return (
             <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">

@@ -27,87 +27,18 @@ public sealed class PostgresMatchingSpatialSchemaInitializer : IMatchingSpatialS
         command.CommandText = """
             CREATE EXTENSION IF NOT EXISTS postgis;
 
-            DO $$
-            DECLARE
-                shipments_table regclass;
-                trip_shipments_table regclass;
-            BEGIN
-                shipments_table := COALESCE(to_regclass('public.shipments'), to_regclass('warehouse.shipments'));
+            CREATE INDEX IF NOT EXISTS ix_warehouse_shipments_destination_gist
+                ON warehouse.shipments USING GIST (dest_location)
+                WHERE dest_location IS NOT NULL;
 
-                IF shipments_table IS NOT NULL THEN
-                    EXECUTE format(
-                        'ALTER TABLE %s ADD COLUMN IF NOT EXISTS delivery_location geometry(Point, 4326)',
-                        shipments_table);
+            CREATE INDEX IF NOT EXISTS ix_warehouse_shipments_status
+                ON warehouse.shipments (status);
 
-                    EXECUTE format(
-                        'CREATE INDEX IF NOT EXISTS ix_shipments_delivery_location_gist ON %s USING GIST (delivery_location) WHERE delivery_location IS NOT NULL',
-                        shipments_table);
-
-                    IF EXISTS (
-                        SELECT 1
-                        FROM pg_attribute
-                        WHERE attrelid = shipments_table
-                            AND attname = 'Status'
-                            AND NOT attisdropped
-                    ) THEN
-                        EXECUTE format(
-                            'CREATE INDEX IF NOT EXISTS ix_shipments_status ON %s ("Status")',
-                            shipments_table);
-                    ELSIF EXISTS (
-                        SELECT 1
-                        FROM pg_attribute
-                        WHERE attrelid = shipments_table
-                            AND attname = 'status'
-                            AND NOT attisdropped
-                    ) THEN
-                        EXECUTE format(
-                            'CREATE INDEX IF NOT EXISTS ix_shipments_status ON %s (status)',
-                            shipments_table);
-                    END IF;
-                END IF;
-
-                trip_shipments_table := to_regclass('public.trip_shipments');
-
-                IF trip_shipments_table IS NOT NULL THEN
-                    IF EXISTS (
-                        SELECT 1
-                        FROM pg_attribute
-                        WHERE attrelid = trip_shipments_table
-                            AND attname = 'ShipmentId'
-                            AND NOT attisdropped
-                    ) AND EXISTS (
-                        SELECT 1
-                        FROM pg_attribute
-                        WHERE attrelid = trip_shipments_table
-                            AND attname = 'Status'
-                            AND NOT attisdropped
-                    ) THEN
-                        EXECUTE format(
-                            'CREATE INDEX IF NOT EXISTS ix_trip_shipments_shipment_status ON %s ("ShipmentId", "Status")',
-                            trip_shipments_table);
-                    ELSIF EXISTS (
-                        SELECT 1
-                        FROM pg_attribute
-                        WHERE attrelid = trip_shipments_table
-                            AND attname = 'shipment_id'
-                            AND NOT attisdropped
-                    ) AND EXISTS (
-                        SELECT 1
-                        FROM pg_attribute
-                        WHERE attrelid = trip_shipments_table
-                            AND attname = 'status'
-                            AND NOT attisdropped
-                    ) THEN
-                        EXECUTE format(
-                            'CREATE INDEX IF NOT EXISTS ix_trip_shipments_shipment_status ON %s (shipment_id, status)',
-                            trip_shipments_table);
-                    END IF;
-                END IF;
-            END $$;
+            CREATE INDEX IF NOT EXISTS ix_transport_trip_shipments_shipment_status
+                ON transport.trip_shipments (shipment_id, status);
             """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);
-
-        _logger.LogInformation("Matching spatial schema initialized for point-to-line queries.");
+        _logger.LogInformation("Matching spatial indexes initialized on warehouse and transport schemas.");
     }
 }

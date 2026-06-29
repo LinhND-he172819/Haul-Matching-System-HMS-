@@ -1,151 +1,75 @@
-using System.Data;
 using HMS.Shared.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace HMS.Modules.Matching.Infrastructure
+namespace HMS.Modules.Matching.Infrastructure;
+
+public sealed class DashboardStatsProvider : IDashboardStatsProvider
 {
-    public class DashboardStatsProvider : IDashboardStatsProvider
+    private readonly MatchingDbContext _db;
+
+    public DashboardStatsProvider(MatchingDbContext db)
     {
-        private readonly MatchingDbContext _db;
+        _db = db;
+    }
 
-        public DashboardStatsProvider(MatchingDbContext db)
+    public async Task<(int activeTrips, int inTransitShipments, double avgUtilisation, int agingHubItems)> GetStatsAsync(
+        CancellationToken cancellationToken)
+    {
+        try
         {
-            _db = db;
+            var activeTrips = await _db.Trips
+                .AsNoTracking()
+                .CountAsync(trip => trip.Status == "Active", cancellationToken);
+
+            var inTransitShipments = await _db.Shipments
+                .AsNoTracking()
+                .CountAsync(
+                    shipment => shipment.Status == "In_Transit" || shipment.Status == "Matched",
+                    cancellationToken);
+
+            var threeDaysAgo = DateTime.UtcNow.AddDays(-3);
+            var agingHubItems = await _db.Shipments
+                .AsNoTracking()
+                .CountAsync(
+                    shipment => shipment.Status == "In_Warehouse" && shipment.CreatedAt < threeDaysAgo,
+                    cancellationToken);
+
+            var activeTripLoads = await _db.Trips
+                .AsNoTracking()
+                .Where(trip => trip.Status == "Active")
+                .Join(
+                    _db.Vehicles.AsNoTracking(),
+                    trip => trip.VehicleId,
+                    vehicle => vehicle.Id,
+                    (trip, vehicle) => new
+                    {
+                        trip.CurrentLoadWeight,
+                        trip.CurrentLoadVolume,
+                        vehicle.MaxWeightKg,
+                        vehicle.MaxVolumeCbm
+                    })
+                .ToListAsync(cancellationToken);
+
+            var utilisationValues = activeTripLoads
+                .Where(item => item.MaxWeightKg > 0 && item.MaxVolumeCbm > 0)
+                .Select(item =>
+                {
+                    var weight = (double)(item.CurrentLoadWeight / item.MaxWeightKg) * 100;
+                    var volume = (double)(item.CurrentLoadVolume / item.MaxVolumeCbm) * 100;
+
+                    return Math.Min(100, (weight + volume) / 2);
+                })
+                .ToArray();
+
+            var averageUtilisation = utilisationValues.Length == 0
+                ? 0
+                : Math.Round(utilisationValues.Average(), 2);
+
+            return (activeTrips, inTransitShipments, averageUtilisation, agingHubItems);
         }
-
-        public async Task<(int activeTrips, int inTransitShipments, double avgUtilisation, int agingHubItems)> GetStatsAsync(CancellationToken ct)
+        catch
         {
-            try
-            {
-                var activeTrips = await CountByStatusAsync("trips", ["Active"], ct);
-                var inTransitShipments = await CountByStatusAsync("shipments", ["In_Transit", "Matched"], ct);
-                var threeDaysAgo = DateTime.UtcNow.AddDays(-3);
-                int agingHubItems = await _db.Shipments.AsNoTracking()
-                    .CountAsync(s => s.Status == "In_Warehouse" && s.CreatedAt < threeDaysAgo, ct); 
-                double avgUtilisation = 0;
-                if (activeTrips > 0)
-                {
-                  var tripUtils = await _db.Trips.AsNoTracking()
-                    .Where(t => t.Status == "Active")
-                    .Join(_db.Vehicles.AsNoTracking(),
-                        t => t.VehicleId,
-                        v => v.Id,
-                        (t, v) => new
-                        {
-                          t.CurrentLoadWeight,
-                          t.CurrentLoadVolume,
-                          v.MaxWeightKg,
-                          v.MaxVolumeCbm
-                        })
-                    .ToListAsync(ct);                    
-
-                double sum = 0;
-                int count = 0;
-                foreach (var item in tripUtils)
-                {
-                  if (item.MaxWeightKg > 0)
-                  { 
-                    var weightUtil = (double)(item.CurrentLoadWeight / item.MaxWeightKg) * 100;
-                    var volUtil = item.MaxVolumeCbm > 0 ? (double)(item.CurrentLoadVolume / item.MaxVolumeCbm) * 100 : 0;
-                    var util = (weightUtil + volUtil) / 2;
-                    sum += Math.Min(100.0, util);
-                    count++;
-                  }
-                }
-                if (count > 0)
-                {
-                  avgUtilisation = Math.Round(sum / count, 2);
-                }
-              }
-                    
-              return (activeTrips, inTransitShipments, 0, agingHubItems);
-            }
-            catch
-            {
-                return (0, 0, 0, 0);
-            }
-        }
-
-        private async Task<int> CountByStatusAsync(
-            string tableName,
-            IReadOnlyCollection<string> statuses,
-            CancellationToken cancellationToken)
-        {
-            var connection = _db.Database.GetDbConnection();
-            var shouldClose = connection.State != ConnectionState.Open;
-            if (shouldClose)
-            {
-                await connection.OpenAsync(cancellationToken);
-            }
-
-            try
-            {
-                var statusColumn = await ResolveColumnAsync(connection, tableName, ["status", "Status"], cancellationToken);
-                if (statusColumn is null)
-                {
-                    return 0;
-                }
-
-                await using var command = connection.CreateCommand();
-                command.CommandText = $"""
-                    SELECT COUNT(*)::int
-                    FROM public.{QuoteIdentifier(tableName)}
-                    WHERE {QuoteIdentifier(statusColumn)} = ANY (@statuses)
-                    """;
-
-                var parameter = command.CreateParameter();
-                parameter.ParameterName = "statuses";
-                parameter.Value = statuses.ToArray();
-                command.Parameters.Add(parameter);
-
-                var result = await command.ExecuteScalarAsync(cancellationToken);
-
-                return result is null ? 0 : Convert.ToInt32(result);
-            }
-            finally
-            {
-                if (shouldClose)
-                {
-                    await connection.CloseAsync();
-                }
-            }
-        }
-
-        private static async Task<string?> ResolveColumnAsync(
-            System.Data.Common.DbConnection connection,
-            string tableName,
-            IReadOnlyCollection<string> candidates,
-            CancellationToken cancellationToken)
-        {
-            await using var command = connection.CreateCommand();
-            command.CommandText = """
-                SELECT attname
-                FROM pg_attribute
-                WHERE attrelid = to_regclass(@table_name)
-                    AND attname = ANY (@candidates)
-                    AND NOT attisdropped
-                ORDER BY array_position(@candidates, attname)
-                LIMIT 1;
-                """;
-
-            var tableParameter = command.CreateParameter();
-            tableParameter.ParameterName = "table_name";
-            tableParameter.Value = $"public.{tableName}";
-            command.Parameters.Add(tableParameter);
-
-            var candidatesParameter = command.CreateParameter();
-            candidatesParameter.ParameterName = "candidates";
-            candidatesParameter.Value = candidates.ToArray();
-            command.Parameters.Add(candidatesParameter);
-
-            var result = await command.ExecuteScalarAsync(cancellationToken);
-
-            return result?.ToString();
-        }
-
-        private static string QuoteIdentifier(string identifier)
-        {
-            return "\"" + identifier.Replace("\"", "\"\"") + "\"";
+            return (0, 0, 0, 0);
         }
     }
 }

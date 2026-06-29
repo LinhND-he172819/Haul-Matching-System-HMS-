@@ -11,7 +11,7 @@ interface Props {
     onDetails?: (id: string) => void;
 }
 
-export default function ShipmentSuggestionCard({ shipment, selected, matchPercent = 90, distanceKm = 2.1, onSelect, onAccept, onReject, onDetails }: Props) {
+export default function ShipmentSuggestionCard({ shipment, selected, distanceKm = 2.1, onSelect, onAccept, onDetails }: Props) {
     return (
         <div className="soft-card p-4">
             <div className="flex items-start justify-between">

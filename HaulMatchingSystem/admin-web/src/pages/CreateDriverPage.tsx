@@ -1,726 +1,295 @@
-import React, { useState, useEffect } from 'react';
-import { fetchHubs, fetchUsers, createUser, updateUser, deleteUser } from '../api/identityApi';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import {
+    createUser,
+    fetchHubs,
+    fetchUsers,
+    updateUser,
+    type HubDto,
+    type UserDto
+} from '../api/identityApi';
 
-interface Hub {
-    id: string;
-    name: string;
-    address: string;
+interface CreateDriverPageProps {
+    sidebar?: ReactNode;
 }
 
-interface DriverFleet {
-    id: string;
+interface DriverForm {
     fullName: string;
     phone: string;
     email: string;
     hubId: string;
-    hubName: string;
-    licensePlate: string;
-    truckType: string;
-    maxWeight: number;
-    maxVolume: number;
-    createdAt: string;
+    password: string;
+    confirmPassword: string;
 }
 
-interface CreateDriverPageProps {
-    sidebar?: React.ReactNode;
+interface Toast {
+    id: string;
+    message: string;
+    type: 'success' | 'error';
 }
+
+const emptyForm = (hubId = ''): DriverForm => ({
+    fullName: '',
+    phone: '',
+    email: '',
+    hubId,
+    password: '',
+    confirmPassword: ''
+});
 
 export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
-    const [fullName, setFullName] = useState('');
-    const [phone, setPhone] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [selectedHubId, setSelectedHubId] = useState('');
+    const [drivers, setDrivers] = useState<UserDto[]>([]);
+    const [hubs, setHubs] = useState<HubDto[]>([]);
+    const [form, setForm] = useState<DriverForm>(emptyForm());
     const [editingId, setEditingId] = useState<string | null>(null);
-    
-    // Vehicle fields
-    const [licensePlate, setLicensePlate] = useState('');
-    const [truckType, setTruckType] = useState('Xe Tải Nhẹ 1.5 Tấn');
-    const [maxWeight, setMaxWeight] = useState(1500);
-    const [maxVolume, setMaxVolume] = useState(8.5);
+    const [search, setSearch] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [toasts, setToasts] = useState<Toast[]>([]);
 
-    // Fleet & Hubs state
-    const [fleet, setFleet] = useState<DriverFleet[]>([]);
-    const [hubs, setHubs] = useState<Hub[]>([]);
-
-    const [searchTerm, setSearchTerm] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' }>>([]);
-
-    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    const showToast = (message: string, type: Toast['type'] = 'success') => {
         const id = Math.random().toString(36).substring(2, 9);
-        setToasts(prev => [...prev, { id, message, type }]);
-        setTimeout(() => {
-            setToasts(prev => prev.filter(t => t.id !== id));
+        setToasts(previous => [...previous, { id, message, type }]);
+        window.setTimeout(() => {
+            setToasts(previous => previous.filter(toast => toast.id !== id));
         }, 3000);
     };
 
-    // Synchronize data from Backend API
-    const refreshData = async () => {
+    const loadData = async () => {
+        setLoading(true);
         try {
-            const [hubsData, usersData] = await Promise.all([fetchHubs(), fetchUsers()]);
-            setHubs(hubsData);
-            
-            // Map users to DriverFleet list
-            const driverUsers = usersData
-                .filter(u => u.role === 'Driver')
-                .map((u) => {
-                    const hub = hubsData.find(h => h.id === u.hubId);
-                    return {
-                        id: u.id,
-                        fullName: u.fullName,
-                        phone: u.phone || '--',
-                        email: u.email || '--',
-                        hubId: u.hubId || '',
-                        hubName: hub ? hub.name : 'Không liên kết',
-                        licensePlate: u.licensePlate || '--',
-                        truckType: u.truckType || 'Xe Tải Nhẹ 1.5 Tấn',
-                        maxWeight: u.maxWeightKg || 1500,
-                        maxVolume: u.maxVolumeCbm || 8.5,
-                        createdAt: new Date(u.createdAt).toLocaleDateString('vi-VN')
-                    };
-                });
-            setFleet(driverUsers);
-        } catch (err: any) {
-            console.error("Lỗi đồng bộ dữ liệu tài xế từ API:", err);
-            showToast(err.message || 'Lỗi kết nối máy chủ API', 'error');
+            const [hubData, userData] = await Promise.all([fetchHubs(), fetchUsers()]);
+            setHubs(hubData);
+            setDrivers(userData.filter(user => user.role === 'Driver'));
+            setForm(current => ({ ...current, hubId: current.hubId || hubData[0]?.id || '' }));
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Không thể tải dữ liệu tài xế.', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
     useEffect(() => {
-        refreshData();
+        void loadData();
     }, []);
 
-    // Auto calculate capacity defaults when truck type changes
-    useEffect(() => {
-        if (truckType === 'Xe Tải Nhẹ 1.5 Tấn') {
-            setMaxWeight(1500);
-            setMaxVolume(8.5);
-        } else if (truckType === 'Xe Tải Trung 5 Tấn') {
-            setMaxWeight(5000);
-            setMaxVolume(22);
-        } else if (truckType === 'Xe Tải Nặng 15 Tấn') {
-            setMaxWeight(15000);
-            setMaxVolume(45);
-        } else if (truckType === 'Xe Container 32 Tấn') {
-            setMaxWeight(32000);
-            setMaxVolume(80);
-        }
-    }, [truckType]);
-
-    // Password strength check
-    const getPasswordStrength = () => {
-        if (!password) return { label: '', color: 'bg-slate-200', textClass: 'text-slate-400', width: 'w-0' };
-        if (password.length < 6) return { label: 'Yếu', color: 'bg-error', textClass: 'text-error', width: 'w-1/3' };
-        
-        const hasNumbers = /\d/.test(password);
-        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-        
-        if (password.length >= 8 && hasNumbers && hasSpecial) {
-            return { label: 'Mạnh', color: 'bg-secondary', textClass: 'text-secondary', width: 'w-full' };
-        }
-        return { label: 'Trung bình', color: 'bg-on-tertiary-container', textClass: 'text-on-tertiary-container', width: 'w-2/3' };
-    };
-
-    const strength = getPasswordStrength();
-
-    // Generate random secure password
-    const handleGeneratePassword = () => {
-        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-        let generatedPassword = '';
-        for (let i = 0; i < 12; i++) {
-            generatedPassword += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        setPassword(generatedPassword);
-        setConfirmPassword(generatedPassword);
-        showToast('Đã tạo mật khẩu ngẫu nhiên bảo mật', 'success');
-    };
-
-    const handleStartEdit = (driv: DriverFleet) => {
-        setEditingId(driv.id);
-        setFullName(driv.fullName);
-        setPhone(driv.phone === '--' ? '' : driv.phone);
-        setEmail(driv.email === '--' ? '' : driv.email);
-        setPassword('');
-        setConfirmPassword('');
-        setSelectedHubId(driv.hubId || '');
-        setLicensePlate(driv.licensePlate === '--' ? '' : driv.licensePlate);
-        setTruckType(driv.truckType);
-        setMaxWeight(driv.maxWeight);
-        setMaxVolume(driv.maxVolume);
-        showToast(`Đang sửa thông tin tài xế: ${driv.fullName}`);
-    };
-
-    const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`Bạn có chắc chắn muốn xóa tài xế "${name}" không?`)) {
-            return;
-        }
-        try {
-            await deleteUser(id);
-            showToast(`Xóa tài xế "${name}" thành công!`, 'success');
-            await refreshData();
-        } catch (err: any) {
-            showToast(err.message || 'Xóa tài xế thất bại.', 'error');
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // Validation
-        if (!fullName || !phone || !email || (!editingId && (!password || !confirmPassword)) || !selectedHubId || !licensePlate) {
-            showToast('Vui lòng điền đầy đủ các thông tin bắt buộc!', 'error');
-            return;
-        }
-
-        if (password && password !== confirmPassword) {
-            showToast('Mật khẩu nhập lại không khớp!', 'error');
-            return;
-        }
-
-        setSubmitting(true);
-
-        try {
-            if (editingId) {
-                await updateUser(editingId, {
-                    fullName,
-                    phone,
-                    email,
-                    password: password || undefined,
-                    hubId: selectedHubId || null,
-                    role: 'Driver',
-                    licensePlate,
-                    truckType,
-                    maxWeightKg: maxWeight,
-                    maxVolumeCbm: maxVolume
-                });
-                showToast(`Cập nhật tài xế "${fullName}" thành công!`, 'success');
-            } else {
-                await createUser({
-                    fullName,
-                    phone,
-                    email,
-                    password,
-                    hubId: selectedHubId || null,
-                    role: 'Driver',
-                    licensePlate,
-                    truckType,
-                    maxWeightKg: maxWeight,
-                    maxVolumeCbm: maxVolume
-                });
-                showToast(`Tạo tài xế "${fullName}" thành công!`, 'success');
-            }
-
-            // Reset form
-            setFullName('');
-            setPhone('');
-            setEmail('');
-            setPassword('');
-            setConfirmPassword('');
-            setSelectedHubId('');
-            setLicensePlate('');
-            setTruckType('Xe Tải Nhẹ 1.5 Tấn');
-            setEditingId(null);
-            
-            // Refresh from DB
-            await refreshData();
-        } catch (error: any) {
-            showToast(error?.message || 'Có lỗi xảy ra.', 'error');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const filteredFleet = fleet.filter(d => 
-        d.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        d.phone.includes(searchTerm) ||
-        d.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        d.truckType.toLowerCase().includes(searchTerm.toLowerCase())
+    const hubNames = useMemo(
+        () => Object.fromEntries(hubs.map(hub => [hub.id, hub.name])),
+        [hubs]
     );
 
-    // Get Truck Icon/Color decoration
-    const getTruckVisuals = () => {
-        switch (truckType) {
-            case 'Xe Tải Nhẹ 1.5 Tấn':
-                return { color: 'from-[#65a30d] to-[#4d7c0f]', icon: 'local_shipping', label: 'Xe tải nhẹ đô thị' };
-            case 'Xe Tải Trung 5 Tấn':
-                return { color: 'from-[#2563eb] to-[#1d4ed8]', icon: 'rv_hookup', label: 'Xe tải đường dài cỡ trung' };
-            case 'Xe Tải Nặng 15 Tấn':
-                return { color: 'from-[#ea580c] to-[#c2410c]', icon: 'local_shipping', label: 'Xe tải nặng liên tỉnh' };
-            case 'Xe Container 32 Tấn':
-                return { color: 'from-[#7c3aed] to-[#6d28d9]', icon: 'format_align_justify', label: 'Đầu kéo siêu trường' };
-            default:
-                return { color: 'from-primary to-primary-900', icon: 'local_shipping', label: 'Phương tiện vận tải' };
+    const filteredDrivers = useMemo(() => {
+        const keyword = search.trim().toLowerCase();
+        if (!keyword) return drivers;
+
+        return drivers.filter(driver => {
+            const hubName = driver.hubId ? hubNames[driver.hubId] || '' : '';
+            return driver.fullName.toLowerCase().includes(keyword) ||
+                (driver.phone || '').toLowerCase().includes(keyword) ||
+                (driver.email || '').toLowerCase().includes(keyword) ||
+                hubName.toLowerCase().includes(keyword);
+        });
+    }, [drivers, hubNames, search]);
+
+    const passwordStrength = useMemo(() => {
+        if (!form.password) return { label: '', width: 'w-0', color: 'bg-outline-variant' };
+        const score = [
+            form.password.length >= 8,
+            /\d/.test(form.password),
+            /[A-Z]/.test(form.password),
+            /[^A-Za-z0-9]/.test(form.password)
+        ].filter(Boolean).length;
+
+        if (score >= 4) return { label: 'Mạnh', width: 'w-full', color: 'bg-secondary' };
+        if (score >= 2) return { label: 'Trung bình', width: 'w-2/3', color: 'bg-tertiary' };
+        return { label: 'Yếu', width: 'w-1/3', color: 'bg-error' };
+    }, [form.password]);
+
+    const updateForm = (field: keyof DriverForm, value: string) => {
+        setForm(current => ({ ...current, [field]: value }));
+    };
+
+    const resetForm = () => {
+        setEditingId(null);
+        setForm(emptyForm(hubs[0]?.id || ''));
+        setShowPassword(false);
+    };
+
+    const editDriver = (driver: UserDto) => {
+        setEditingId(driver.id);
+        setForm({
+            fullName: driver.fullName,
+            phone: driver.phone || '',
+            email: driver.email || '',
+            hubId: driver.hubId || hubs[0]?.id || '',
+            password: '',
+            confirmPassword: ''
+        });
+        setShowPassword(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const generatePassword = () => {
+        const characters = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%';
+        let generated = '';
+        for (let index = 0; index < 12; index += 1) {
+            generated += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        setForm(current => ({ ...current, password: generated, confirmPassword: generated }));
+        setShowPassword(true);
+    };
+
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (!form.fullName.trim() || !form.phone.trim() || !form.email.trim() || !form.hubId) {
+            showToast('Vui lòng điền đầy đủ thông tin tài xế.', 'error');
+            return;
+        }
+        if (!editingId && !form.password) {
+            showToast('Mật khẩu là bắt buộc khi tạo tài xế.', 'error');
+            return;
+        }
+        if (form.password && form.password.length < 6) {
+            showToast('Mật khẩu phải có ít nhất 6 ký tự.', 'error');
+            return;
+        }
+        if (form.password !== form.confirmPassword) {
+            showToast('Mật khẩu nhập lại không khớp.', 'error');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            const payload = {
+                fullName: form.fullName.trim(),
+                phone: form.phone.trim(),
+                email: form.email.trim(),
+                hubId: form.hubId,
+                role: 'Driver'
+            };
+
+            if (editingId) {
+                await updateUser(editingId, {
+                    ...payload,
+                    password: form.password || undefined
+                });
+                showToast(`Đã cập nhật tài xế "${payload.fullName}".`);
+            } else {
+                await createUser({ ...payload, password: form.password });
+                showToast(`Đã tạo tài xế "${payload.fullName}".`);
+            }
+
+            resetForm();
+            await loadData();
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Không thể lưu tài xế.', 'error');
+        } finally {
+            setSaving(false);
         }
     };
 
-    const truckVisual = getTruckVisuals();
-
     return (
-        <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
-            {/* Sidebar */}
+        <div className="min-h-screen bg-surface text-on-surface font-body-md flex overflow-x-hidden">
             {sidebar}
-
-            {/* Main Content wrapper */}
-            <div className="flex-1 flex flex-col xl:ml-64 w-full">
-                {/* Header */}
-                <header className="bg-surface-container-lowest border-b border-outline-variant h-16 w-full flex justify-between items-center px-8 sticky top-0 z-10">
-                    <div className="text-headline-md font-bold text-primary flex items-center gap-2">
-                        <span className="material-symbols-outlined">local_shipping</span>
-                        Hệ Thống Đăng Ký Tài Xế & Xe Tải
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-surface-variant overflow-hidden border border-outline-variant/50 ml-2">
-                        <img alt="User Avatar" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLsAnOAwTMZ6WYlncjkQ1wDt3lh-5zxXSSS8JggN1WvIsN8EuRxgEIdFOjF9I1_IhNz75PX8mHdibja7ELV4_3v0bVkMJLEaGeaaQVolYGiFyeLnJ13AmHloSfAL5cv_9FiHGaCngsQzKDui3CrqaSwov1bKnbVGvda30ObggYAs_Di8Q_l54hEDSewYFtlGK4wk_bc_l7fKJoXtxssZT84eHh3fzZ9XbCLzIBt0x9yzQRo1g6lxMUhRoag" />
+            <div className="flex min-w-0 flex-1 flex-col xl:ml-64">
+                <header className="sticky top-0 z-20 flex min-h-16 items-center border-b border-outline-variant bg-surface-container-lowest px-5 md:px-8">
+                    <div className="flex items-center gap-2 text-headline-md font-bold text-primary">
+                        <span className="material-symbols-outlined">badge</span>
+                        Quản lý Tài Xế
                     </div>
                 </header>
 
-                {/* Form Main Area */}
-                <main className="flex-1 p-container-margin overflow-y-auto space-y-6">
-                    {/* Page Title */}
-                    <div>
-                        <div className="flex items-center text-label-md font-label-md text-on-surface-variant mb-1">
-                            <span className="hover:text-primary cursor-pointer transition-colors">Quản trị viên</span>
-                            <span className="material-symbols-outlined text-[14px] mx-1">chevron_right</span>
-                            <span className="text-primary font-bold">Tạo tài xế</span>
-                        </div>
-                        <h2 className="text-headline-lg font-headline-lg text-on-surface">Đăng Ký Tài Xế & Phương Tiện</h2>
-                        <p className="text-body-md text-on-surface-variant mt-1">
-                            Đăng ký tài khoản tài xế (Driver) mới kèm theo đăng ký xe tải để phục vụ thuật toán ghép chuyến (Kết nối hệ thống live API).
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
-                        {/* Form Card */}
-                        <div className="lg:col-span-2 bg-surface-container-lowest rounded-2xl p-card-padding card-shadow border border-outline-variant/30 relative overflow-hidden group">
-                            <div className="absolute top-0 left-0 w-2 h-full bg-primary transition-all duration-300 group-hover:w-3" />
-                            
-                            <form onSubmit={handleSubmit} className="space-y-6 pl-2">
-                                {/* SECTION 1: Driver Information */}
-                                <div>
-                                    <h3 className="text-headline-md font-bold text-primary mb-4 pb-2 border-b border-outline-variant/20 flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[22px]">badge</span>
-                                        1. Thông Tin Tài Xế
-                                    </h3>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                        {/* Full Name */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
-                                                Họ và tên tài xế <span className="text-error">*</span>
-                                            </label>
-                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">person</span>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Nhập họ và tên tài xế" 
-                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                    value={fullName}
-                                                    onChange={(e) => setFullName(e.target.value)}
-                                                    required 
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Phone */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
-                                                Số điện thoại <span className="text-error">*</span>
-                                            </label>
-                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">call</span>
-                                                <input 
-                                                    type="tel" 
-                                                    placeholder="Ví dụ: 0987654321" 
-                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                    value={phone}
-                                                    onChange={(e) => setPhone(e.target.value)}
-                                                    required 
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                        {/* Email */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
-                                                Địa chỉ Email <span className="text-error">*</span>
-                                            </label>
-                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">mail</span>
-                                                <input 
-                                                    type="email" 
-                                                    placeholder="driver@example.com" 
-                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
-                                                    required 
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Password */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center justify-between">
-                                                <span className="flex items-center gap-1">Mật khẩu <span className="text-error">*</span></span>
-                                                <button 
-                                                    type="button" 
-                                                    onClick={handleGeneratePassword}
-                                                    className="text-primary hover:underline text-[12px] flex items-center gap-1 font-bold"
-                                                >
-                                                    <span className="material-symbols-outlined text-[14px]">key</span> Tạo ngẫu nhiên
-                                                </button>
-                                            </label>
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                                    <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">lock</span>
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="Nhập hoặc tạo mật khẩu" 
-                                                        className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                        value={password}
-                                                        onChange={(e) => setPassword(e.target.value)}
-                                                        required={!editingId} 
-                                                    />
-                                                </div>
-                                                {password && (
-                                                    <div className="px-1 mt-1 flex flex-col gap-1">
-                                                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                                            <div className={`h-full ${strength.color} ${strength.width} transition-all duration-300`}></div>
-                                                        </div>
-                                                        <span className={`text-[11px] font-bold ${strength.textClass}`}>
-                                                            Mật khẩu: {strength.label}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                        {/* Hub Selection */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
-                                                Kho hàng trực thuộc (Hub) quản lý <span className="text-error">*</span>
-                                            </label>
-                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">warehouse</span>
-                                                <select 
-                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                    value={selectedHubId}
-                                                    onChange={(e) => setSelectedHubId(e.target.value)}
-                                                    required
-                                                >
-                                                    <option value="" className="bg-surface">-- Chọn kho hàng trực thuộc --</option>
-                                                    {hubs.map((hub) => (
-                                                        <option key={hub.id} value={hub.id} className="bg-surface">
-                                                            {hub.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Confirm Password */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
-                                                Nhập lại mật khẩu <span className="text-error">*</span>
-                                            </label>
-                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">lock_reset</span>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Nhập lại mật khẩu để xác nhận" 
-                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                    value={confirmPassword}
-                                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                                    required={!editingId} 
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* SECTION 2: Vehicle Information */}
-                                <div className="pt-4">
-                                    <h3 className="text-headline-md font-bold text-primary mb-4 pb-2 border-b border-outline-variant/20 flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[22px]">local_shipping</span>
-                                        2. Đăng Ký Phương Tiện (Xe Tải)
-                                    </h3>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                        {/* License Plate */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
-                                                Biển số xe tải <span className="text-error">*</span>
-                                            </label>
-                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">featured_play_list</span>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Ví dụ: 29C-123.45" 
-                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                    value={licensePlate}
-                                                    onChange={(e) => setLicensePlate(e.target.value)}
-                                                    required 
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Truck Type */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
-                                                Phân loại xe tải <span className="text-error">*</span>
-                                            </label>
-                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">category</span>
-                                                <select 
-                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                    value={truckType}
-                                                    onChange={(e) => setTruckType(e.target.value)}
-                                                    required
-                                                >
-                                                    <option value="Xe Tải Nhẹ 1.5 Tấn" className="bg-surface">Xe Tải Nhẹ (1.5 Tấn)</option>
-                                                    <option value="Xe Tải Trung 5 Tấn" className="bg-surface">Xe Tải Trung (5.0 Tấn)</option>
-                                                    <option value="Xe Tải Nặng 15 Tấn" className="bg-surface">Xe Tải Nặng (15.0 Tấn)</option>
-                                                    <option value="Xe Container 32 Tấn" className="bg-surface">Xe Đầu Kéo Container (32.0 Tấn)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {/* Max Weight */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
-                                                Tải trọng tối đa (kg) <span className="text-error">*</span>
-                                            </label>
-                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">weight</span>
-                                                <input 
-                                                    type="number" 
-                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                    value={maxWeight}
-                                                    onChange={(e) => setMaxWeight(Number(e.target.value))}
-                                                    required 
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Max Volume */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-label-md font-bold text-on-surface-variant flex items-center gap-1">
-                                                Thể tích thùng hàng (CBM) <span className="text-error">*</span>
-                                            </label>
-                                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-3 border border-outline-variant/50 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-all">
-                                                <span className="material-symbols-outlined text-on-surface-variant/70 mr-2 text-[20px]">view_in_ar</span>
-                                                <input 
-                                                    type="number" 
-                                                    step="0.1"
-                                                    className="bg-transparent border-none outline-none text-body-md w-full focus:ring-0 p-0 text-on-surface"
-                                                    value={maxVolume}
-                                                    onChange={(e) => setMaxVolume(Number(e.target.value))}
-                                                    required 
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Submit Button */}
-                                <div className="flex justify-end gap-3 pt-4 border-t border-outline-variant/20">
-                                    {editingId && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setEditingId(null);
-                                                setFullName('');
-                                                setPhone('');
-                                                setEmail('');
-                                                setPassword('');
-                                                setConfirmPassword('');
-                                                setSelectedHubId('');
-                                                setLicensePlate('');
-                                                setTruckType('Xe Tải Nhẹ 1.5 Tấn');
-                                            }}
-                                            className="border border-outline hover:bg-surface-container-low text-on-surface text-label-lg font-bold py-3 px-6 rounded-xl transition-all"
-                                        >
-                                            Hủy sửa
-                                        </button>
-                                    )}
-                                    <button
-                                        type="submit"
-                                        disabled={submitting}
-                                        className="bg-primary hover:bg-primary/90 text-on-primary text-label-lg font-bold py-3 px-8 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        {submitting ? (
-                                            <>
-                                                <span className="material-symbols-outlined animate-spin">sync</span>
-                                                Đang lưu dữ liệu...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className="material-symbols-outlined">{editingId ? 'edit' : 'local_shipping'}</span>
-                                                {editingId ? 'Cập nhật Tài Xế & Xe' : 'Đăng Ký Tài Xế & Xe'}
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-
-                        {/* Truck capacity visualizer card */}
-                        <div className="space-y-4">
-                            {/* Visual Truck Spec Card */}
-                            <div className={`bg-gradient-to-br ${truckVisual.color} text-white rounded-2xl p-card-padding shadow-lg flex flex-col justify-between h-[250px] relative overflow-hidden transition-all duration-300 group`}>
-                                <div className="absolute right-0 bottom-0 opacity-10 translate-x-4 translate-y-4 transition-transform group-hover:scale-105 duration-300">
-                                    <span className="material-symbols-outlined text-[150px]">{truckVisual.icon}</span>
-                                </div>
-
-                                <div className="relative z-10 space-y-1">
-                                    <span className="text-[10px] uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full font-bold">Thông số phương tiện</span>
-                                    <h4 className="text-headline-md font-bold pt-1">{truckType}</h4>
-                                    <p className="text-xs text-white/70">{truckVisual.label}</p>
-                                </div>
-
-                                <div className="relative z-10 grid grid-cols-2 gap-4 border-t border-white/20 pt-4">
-                                    <div>
-                                        <span className="text-[10px] text-white/60 block uppercase">Trọng tải tối đa</span>
-                                        <span className="text-headline-sm font-bold">{maxWeight.toLocaleString('vi-VN')} kg</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-[10px] text-white/60 block uppercase">Thể tích thùng</span>
-                                        <span className="text-headline-sm font-bold">{maxVolume} CBM</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Help Box */}
-                            <div className="bg-surface-container rounded-2xl p-card-padding border border-outline-variant/30 space-y-4">
-                                <h3 className="text-label-lg font-bold text-on-surface flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-primary text-[20px]">info</span>
-                                    Ghép chuyến tối ưu
-                                </h3>
-                                <p className="text-xs text-on-surface-variant leading-relaxed">
-                                    Khi tài xế được thêm vào Hub, thuật toán sẽ dựa trên Trọng tải và Thể tích của xe để gợi ý các lô hàng gom tối ưu nhất trên cùng một chuyến hành trình nhằm tối đa hóa hiệu suất xe.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Table View: Drivers Fleet */}
-                    <div className="bg-surface-container-lowest rounded-2xl p-card-padding card-shadow border border-outline-variant/30 space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <main className="mx-auto grid w-full max-w-[1500px] grid-cols-1 gap-4 p-4 md:p-8 xl:grid-cols-[minmax(0,1fr)_430px]">
+                    <section className="order-2 min-w-0 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 card-shadow xl:order-1 md:p-5">
+                        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                             <div>
-                                <h3 className="text-headline-md font-bold text-on-surface flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-primary">airport_shuttle</span>
-                                    Danh Sách Tài Xế & Đội Xe Mới
-                                </h3>
-                                <p className="text-xs text-on-surface-variant">Dữ liệu tài xế được đồng bộ trực tiếp từ cơ sở dữ liệu PostgreSQL của hệ thống.</p>
+                                <h1 className="text-xl font-bold text-on-surface">Danh sách tài xế</h1>
+                                <p className="mt-1 text-sm text-on-surface-variant">{drivers.length} tài khoản tài xế</p>
                             </div>
-                            <div className="flex items-center bg-surface-container-low rounded-xl px-3 py-1.5 border border-outline-variant/50 w-64">
-                                <span className="material-symbols-outlined text-on-surface-variant mr-2 text-[18px]">search</span>
-                                <input 
-                                    type="text" 
-                                    placeholder="Tìm biển số, tên tài xế..." 
-                                    className="bg-transparent border-none outline-none text-xs w-full focus:ring-0 p-0 text-on-surface"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                            <div className="flex w-full items-center gap-2 lg:w-auto">
+                                <label className="flex h-10 flex-1 items-center rounded-lg border border-outline-variant/50 bg-surface-container-low px-3 lg:w-80">
+                                    <span className="material-symbols-outlined mr-2 text-[19px] text-on-surface-variant">search</span>
+                                    <input className="w-full bg-transparent text-sm outline-none" onChange={event => setSearch(event.target.value)} placeholder="Tìm tên, SĐT, email hoặc Hub" type="search" value={search} />
+                                </label>
+                                <button aria-label="Tải lại danh sách" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-outline-variant/50 text-primary hover:bg-surface-container-low disabled:opacity-50" disabled={loading} onClick={() => void loadData()} title="Tải lại" type="button">
+                                    <span className={`material-symbols-outlined text-[20px] ${loading ? 'animate-spin' : ''}`}>refresh</span>
+                                </button>
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-xs border-collapse">
-                                <thead>
-                                    <tr className="border-b border-outline-variant/30 text-on-surface-variant">
-                                        <th className="py-3 px-4 font-bold">Mã tài xế</th>
-                                        <th className="py-3 px-4 font-bold">Tên tài xế</th>
-                                        <th className="py-3 px-4 font-bold">Số điện thoại</th>
-                                        <th className="py-3 px-4 font-bold">Biển số xe</th>
-                                        <th className="py-3 px-4 font-bold">Loại xe tải</th>
-                                        <th className="py-3 px-4 font-bold">Trọng tải (kg)</th>
-                                        <th className="py-3 px-4 font-bold">Thể tích (CBM)</th>
-                                        <th className="py-3 px-4 font-bold">Kho hàng (Hub)</th>
-                                        <th className="py-3 px-4 font-bold">Ngày tạo</th>
-                                        <th className="py-3 px-4 font-bold text-center">Thao tác</th>
+                        <div className="overflow-x-auto rounded-lg border border-outline-variant/20">
+                            <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+                                <thead className="bg-surface-container-low text-xs text-on-surface-variant">
+                                    <tr>
+                                        <th className="px-4 py-3 font-bold">Tài xế</th>
+                                        <th className="px-4 py-3 font-bold">Liên hệ</th>
+                                        <th className="px-4 py-3 font-bold">Hub trực thuộc</th>
+                                        <th className="px-4 py-3 font-bold">Ngày tạo</th>
+                                        <th className="px-4 py-3 text-center font-bold">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredFleet.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={10} className="py-8 text-center text-on-surface-variant/70 font-semibold">
-                                                Không có tài xế nào khớp với từ khóa tìm kiếm.
+                                    {loading ? (
+                                        <tr><td className="px-4 py-12 text-center text-on-surface-variant" colSpan={5}>Đang tải danh sách tài xế...</td></tr>
+                                    ) : filteredDrivers.length === 0 ? (
+                                        <tr><td className="px-4 py-12 text-center text-on-surface-variant" colSpan={5}>Không tìm thấy tài xế phù hợp.</td></tr>
+                                    ) : filteredDrivers.map(driver => (
+                                        <tr className={`border-t border-outline-variant/15 hover:bg-surface-container-low/50 ${editingId === driver.id ? 'bg-primary/5' : ''}`} key={driver.id}>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">{driver.fullName.charAt(0).toUpperCase()}</div>
+                                                    <div><p className="font-bold text-on-surface">{driver.fullName}</p><p className="text-xs text-on-surface-variant">{driver.id.slice(0, 8).toUpperCase()}</p></div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3"><p className="font-medium">{driver.phone || '--'}</p><p className="mt-0.5 text-xs text-on-surface-variant">{driver.email || '--'}</p></td>
+                                            <td className="px-4 py-3 font-medium">{driver.hubId ? hubNames[driver.hubId] || 'Hub không xác định' : 'Chưa liên kết'}</td>
+                                            <td className="px-4 py-3 text-on-surface-variant">{new Date(driver.createdAt).toLocaleDateString('vi-VN')}</td>
+                                            <td className="px-4 py-3 text-center">
+                                                <button aria-label={`Sửa tài xế ${driver.fullName}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary hover:bg-primary/10" onClick={() => editDriver(driver)} title="Sửa tài xế" type="button">
+                                                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                                                </button>
                                             </td>
                                         </tr>
-                                    ) : (
-                                        filteredFleet.map(driv => (
-                                            <tr key={driv.id} className="border-b border-outline-variant/10 hover:bg-surface-container-low/30 transition-colors">
-                                                <td className="py-3.5 px-4 font-bold text-primary">{driv.id.substring(0, 8).toUpperCase()}</td>
-                                                <td className="py-3.5 px-4 font-bold flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
-                                                        {driv.fullName.charAt(0)}
-                                                    </div>
-                                                    {driv.fullName}
-                                                </td>
-                                                <td className="py-3.5 px-4 font-semibold text-slate-700">{driv.phone}</td>
-                                                <td className="py-3.5 px-4 font-bold text-slate-800">
-                                                    <span className="bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 text-[10px]">
-                                                        {driv.licensePlate}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3.5 px-4 text-slate-600 font-medium">{driv.truckType}</td>
-                                                <td className="py-3.5 px-4 text-slate-700 font-semibold">{driv.maxWeight.toLocaleString('vi-VN')}</td>
-                                                <td className="py-3.5 px-4 text-slate-700 font-semibold">{driv.maxVolume}</td>
-                                                <td className="py-3.5 px-4 font-medium text-slate-800">{driv.hubName}</td>
-                                                <td className="py-3.5 px-4 text-slate-500">{driv.createdAt}</td>
-                                                <td className="py-3.5 px-4 text-center">
-                                                    <div className="flex justify-center gap-2">
-                                                        <button 
-                                                            type="button"
-                                                            onClick={() => handleStartEdit(driv)}
-                                                            className="text-primary hover:text-primary/80 transition-colors"
-                                                            title="Sửa"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[18px]">edit</span>
-                                                        </button>
-                                                        <button 
-                                                            type="button"
-                                                            onClick={() => handleDelete(driv.id, driv.fullName)}
-                                                            className="text-error hover:text-error/80 transition-colors"
-                                                            title="Xóa"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                    </section>
+
+                    <aside className="order-1 xl:order-2">
+                        <form className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-5 card-shadow xl:sticky xl:top-20" onSubmit={handleSubmit}>
+                            <div className="mb-5 flex items-start justify-between gap-3 border-b border-outline-variant/20 pb-4">
+                                <div><h2 className="text-xl font-bold">{editingId ? 'Cập nhật tài xế' : 'Tạo tài xế'}</h2><p className="mt-1 text-sm text-on-surface-variant">{editingId ? 'Để trống mật khẩu nếu muốn giữ nguyên.' : 'Tạo tài khoản Driver mới.'}</p></div>
+                                {editingId && <button aria-label="Hủy chỉnh sửa" className="flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant/50 text-on-surface-variant hover:bg-surface-container-low" onClick={resetForm} title="Hủy chỉnh sửa" type="button"><span className="material-symbols-outlined text-[20px]">close</span></button>}
+                            </div>
+
+                            <div className="space-y-4">
+                                <TextField autoComplete="name" icon="person" label="Họ và tên *" onChange={value => updateForm('fullName', value)} placeholder="Nguyễn Văn A" value={form.fullName} />
+                                <TextField autoComplete="tel" icon="call" label="Số điện thoại *" onChange={value => updateForm('phone', value)} placeholder="0987654321" type="tel" value={form.phone} />
+                                <TextField autoComplete="email" icon="mail" label="Email *" onChange={value => updateForm('email', value)} placeholder="driver@example.com" type="email" value={form.email} />
+
+                                <label className="flex flex-col gap-2"><span className="text-sm font-bold text-on-surface-variant">Hub trực thuộc *</span><div className="flex h-11 items-center rounded-lg border border-outline-variant/50 bg-surface-container-low px-3"><span className="material-symbols-outlined mr-2 text-[20px] text-on-surface-variant">warehouse</span><select className="w-full bg-transparent text-sm outline-none" disabled={hubs.length === 0} onChange={event => updateForm('hubId', event.target.value)} required value={form.hubId}>{hubs.length === 0 ? <option value="">Chưa có Hub</option> : hubs.map(hub => <option key={hub.id} value={hub.id}>{hub.name}</option>)}</select></div></label>
+
+                                <div className="flex flex-col gap-2"><div className="flex items-center justify-between"><span className="text-sm font-bold text-on-surface-variant">Mật khẩu {editingId ? 'mới' : '*'}</span><button className="text-xs font-bold text-primary hover:underline" onClick={generatePassword} type="button">Tạo ngẫu nhiên</button></div><PasswordField onChange={value => updateForm('password', value)} onToggleVisibility={() => setShowPassword(current => !current)} placeholder={editingId ? 'Để trống để giữ nguyên' : 'Tối thiểu 6 ký tự'} required={!editingId} showPassword={showPassword} value={form.password} /><div className="flex items-center gap-3 px-1"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-container-high"><div className={`h-full transition-all ${passwordStrength.width} ${passwordStrength.color}`} /></div><span className="min-w-16 text-right text-xs font-semibold text-on-surface-variant">{passwordStrength.label}</span></div></div>
+                                <div className="flex flex-col gap-2"><span className="text-sm font-bold text-on-surface-variant">Nhập lại mật khẩu {editingId ? 'mới' : '*'}</span><PasswordField onChange={value => updateForm('confirmPassword', value)} onToggleVisibility={() => setShowPassword(current => !current)} placeholder="Nhập lại mật khẩu" required={!editingId || Boolean(form.password)} showPassword={showPassword} value={form.confirmPassword} /></div>
+                            </div>
+
+                            <div className="mt-6 flex gap-3 border-t border-outline-variant/20 pt-5"><button className="flex-1 rounded-lg border border-outline-variant px-4 py-3 text-sm font-bold hover:bg-surface-container-low" onClick={resetForm} type="button">Làm mới</button><button className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-on-primary hover:bg-primary/90 disabled:opacity-50" disabled={saving || hubs.length === 0} type="submit"><span className={`material-symbols-outlined text-[20px] ${saving ? 'animate-spin' : ''}`}>{saving ? 'progress_activity' : 'save'}</span>{saving ? 'Đang lưu...' : editingId ? 'Cập nhật' : 'Tạo tài xế'}</button></div>
+                        </form>
+                    </aside>
                 </main>
             </div>
 
-            {/* Toast Container */}
-            <div className="fixed right-6 bottom-6 z-50 flex flex-col gap-3">
-                {toasts.map(toast => (
-                    <div 
-                        key={toast.id} 
-                        className={`p-4 rounded-xl border shadow-lg flex gap-2 items-center min-w-[280px] bg-surface animate-bounce duration-500 ${
-                            toast.type === 'success' ? 'border-secondary text-secondary' : 'border-error text-error'
-                        }`}
-                    >
-                        <span className="material-symbols-outlined">
-                            {toast.type === 'success' ? 'check_circle' : 'error'}
-                        </span>
-                        <span className="text-xs font-bold text-on-surface">{toast.message}</span>
-                    </div>
-                ))}
-            </div>
+            <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">{toasts.map(toast => <div className={`flex min-w-[280px] items-center gap-2 rounded-lg border bg-surface p-4 shadow-lg ${toast.type === 'success' ? 'border-secondary' : 'border-error'}`} key={toast.id}><span className={`material-symbols-outlined ${toast.type === 'success' ? 'text-secondary' : 'text-error'}`}>{toast.type === 'success' ? 'check_circle' : 'error'}</span><span className="text-xs font-bold">{toast.message}</span></div>)}</div>
         </div>
     );
+}
+
+function TextField({ autoComplete, icon, label, onChange, placeholder, type = 'text', value }: { autoComplete: string; icon: string; label: string; onChange: (value: string) => void; placeholder: string; type?: string; value: string }) {
+    return <label className="flex flex-col gap-2"><span className="text-sm font-bold text-on-surface-variant">{label}</span><div className="flex h-11 items-center rounded-lg border border-outline-variant/50 bg-surface-container-low px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"><span className="material-symbols-outlined mr-2 text-[20px] text-on-surface-variant">{icon}</span><input autoComplete={autoComplete} className="w-full bg-transparent text-sm outline-none" onChange={event => onChange(event.target.value)} placeholder={placeholder} required type={type} value={value} /></div></label>;
+}
+
+function PasswordField({ onChange, onToggleVisibility, placeholder, required, showPassword, value }: { onChange: (value: string) => void; onToggleVisibility: () => void; placeholder: string; required: boolean; showPassword: boolean; value: string }) {
+    return <div className="flex h-11 items-center rounded-lg border border-outline-variant/50 bg-surface-container-low px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"><span className="material-symbols-outlined mr-2 text-[20px] text-on-surface-variant">lock</span><input autoComplete="new-password" className="w-full bg-transparent text-sm outline-none" minLength={value ? 6 : undefined} onChange={event => onChange(event.target.value)} placeholder={placeholder} required={required} type={showPassword ? 'text' : 'password'} value={value} /><button aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} className="ml-2 flex h-8 w-8 items-center justify-center text-on-surface-variant hover:text-primary" onClick={onToggleVisibility} title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} type="button"><span className="material-symbols-outlined text-[19px]">{showPassword ? 'visibility_off' : 'visibility'}</span></button></div>;
 }
