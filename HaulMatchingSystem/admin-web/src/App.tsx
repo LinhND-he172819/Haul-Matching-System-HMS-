@@ -297,7 +297,7 @@ function App() {
 
     case 'create-shipment':
       return (
-        <CreateShipmentPage />
+        <CreateShipmentPage onNavigate={handleNavigate} />
       );
 
     case 'admin':
@@ -360,7 +360,7 @@ function App() {
             <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
               {renderSidebar()}
               <div className="flex-1 flex flex-col xl:ml-64 w-full p-8 overflow-y-auto">
-                <CreateShipmentPage />
+                <CreateShipmentPage onNavigate={handleNavigate} />
               </div>
             </div>
           );

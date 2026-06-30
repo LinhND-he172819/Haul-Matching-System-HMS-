@@ -6,7 +6,11 @@ import {
     type DraftShipmentResponse,
 } from "../api/shipmentsApi";
 
-export default function CreateShipmentPage() {
+interface CreateShipmentPageProps {
+    onNavigate: (page: 'login' | 'register' | 'home' | 'create-shipment') => void;
+}
+
+export default function CreateShipmentPage({ onNavigate }: CreateShipmentPageProps) {
     const [step, setStep] = useState(1);
     const [result, setResult] = useState<DraftShipmentResponse | null>(null);
     const [loading, setLoading] = useState(false);
@@ -221,15 +225,19 @@ export default function CreateShipmentPage() {
                     </div>
 
                     <div className="w-full flex flex-col sm:flex-row gap-4 mt-6">
-                        <button className="flex-1 bg-[#00288e] text-white text-sm font-semibold py-3 px-6 rounded-lg hover:bg-[#1e40af] flex justify-center items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => onNavigate('home')}
+                            className="flex-1 bg-[#00288e] text-white text-sm font-semibold py-3 px-6 rounded-lg hover:bg-[#1e40af] flex justify-center items-center gap-2"
+                        >
                             <span className="material-symbols-outlined">home</span>
                             Về trang chủ
                         </button>
 
-                        <button className="flex-1 border border-[#00288e] text-[#00288e] text-sm font-semibold py-3 px-6 rounded-lg hover:bg-[#eff4ff] flex justify-center items-center gap-2">
+                        {/* <button className="flex-1 border border-[#00288e] text-[#00288e] text-sm font-semibold py-3 px-6 rounded-lg hover:bg-[#eff4ff] flex justify-center items-center gap-2">
                             <span className="material-symbols-outlined">download</span>
                             Tải mã QR về máy
-                        </button>
+                        </button> */}
                     </div>
                 </div>
             </main>
