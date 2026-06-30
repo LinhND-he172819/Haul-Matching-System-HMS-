@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import AdminLiveMapPage from './pages/AdminLiveMapPage';
 import AdminHubsPage from './pages/AdminHubsPage';
+import AdminTripsPage from './pages/AdminTripsPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
 import HubIntakePage from './pages/HubIntakePage';
 
@@ -21,7 +22,7 @@ type Page =
   | 'driver-portal'
   | 'driver-trips'
   | 'admin';
-type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'hub-intake' | 'hubs';
+type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hubs';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -108,6 +109,7 @@ function App() {
   };
 
   const renderSidebar = () => (
+    <>
     <nav className="bg-surface-container-lowest border-r border-outline-variant fixed left-0 h-full w-64 flex flex-col py-6 px-4 z-20 hidden xl:flex">
       {/* Brand Logo */}
       <div className="mb-8 flex items-center gap-3 px-2">
@@ -121,7 +123,7 @@ function App() {
       </div>
 
       {/* Nav List */}
-      <div className="flex-1 space-y-2">
+      <div className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1">
         <button
           onClick={() => setAdminTab('dashboard')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'dashboard'
@@ -201,14 +203,14 @@ function App() {
         </button>
 
         <button
-          onClick={() => setAdminTab('driver-trips')}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'driver-trips'
+          onClick={() => setAdminTab('admin-trips')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'admin-trips'
             ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
             : 'text-on-surface-variant hover:bg-surface-container-low/60'
             }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">route</span>
-          <span className="text-label-lg font-bold">Quản lý Trips</span>
+          <span className="text-label-lg font-bold">Quản lý chuyến đi</span>
         </button>
 
         <div className="pt-4 border-t border-outline-variant/30 mt-4">
@@ -237,7 +239,7 @@ function App() {
       </div>
 
       {/* Logout */}
-      <div className="mt-auto px-4 py-2 border-t border-outline-variant/20 pt-4 text-center">
+      <div className="mt-auto shrink-0 px-4 py-2 border-t border-outline-variant/20 pt-4 text-center">
         <button
           onClick={handleLogout}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-error text-error hover:bg-error/5 transition-all text-label-lg font-bold mb-3"
@@ -245,9 +247,18 @@ function App() {
           <span className="material-symbols-outlined text-[20px]">logout</span>
           Đăng xuất
         </button>
-        <span className="text-xs text-on-surface-variant/60 font-semibold block">HMS Admin Panel v1.2</span>
       </div>
     </nav>
+    <button
+      aria-label="Đăng xuất"
+      className="fixed right-4 top-3 z-50 flex h-10 w-10 items-center justify-center rounded-lg border border-error bg-surface-container-lowest text-error shadow-sm hover:bg-error/5 xl:hidden"
+      onClick={handleLogout}
+      title="Đăng xuất"
+      type="button"
+    >
+      <span className="material-symbols-outlined text-[20px]">logout</span>
+    </button>
+    </>
   );
 
   // Guard checks
@@ -355,6 +366,8 @@ function App() {
           );
         case 'driver-trips':
           return <DriverTripsPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
+        case 'admin-trips':
+          return <AdminTripsPage sidebar={renderSidebar()} />;
         case 'driver-portal':
           return <MatchingSuggestionPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'live-map':

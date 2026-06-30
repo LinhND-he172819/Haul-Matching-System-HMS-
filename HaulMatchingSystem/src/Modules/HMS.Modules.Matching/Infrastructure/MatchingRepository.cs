@@ -21,7 +21,9 @@ namespace HMS.Modules.Matching.Infrastructure
 
         public async Task<Trip?> GetActiveTripForDriverAsync(Guid driverId, CancellationToken ct)
         {
-            return await _db.Trips.FirstOrDefaultAsync(t => t.DriverId == driverId && t.Status == "Active", ct);
+            return await _db.Trips.FirstOrDefaultAsync(
+                t => t.DriverId == driverId && t.Status == "Active" && !t.IsDeleted,
+                ct);
         }
 
         public async Task<List<TripShipment>> GetSuggestedTripShipmentsAsync(Guid tripId, CancellationToken ct)
