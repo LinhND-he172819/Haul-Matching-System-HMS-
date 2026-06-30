@@ -27,5 +27,8 @@ namespace HMS.Modules.Matching.Core.Models
 
         [Column("version")]
         public int Version { get; set; }
+
+        [Column("is_deleted")]
+        public bool IsDeleted { get; set; }
     }
 }
