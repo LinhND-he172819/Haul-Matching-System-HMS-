@@ -41,16 +41,6 @@ public static class DbInitializer
                 is_deleted boolean DEFAULT false
             );
 
-            CREATE TABLE IF NOT EXISTS public.hubs (
-                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                name text NOT NULL,
-                address text NOT NULL,
-                geo_location geography(Point, 4326),
-                created_at timestamp with time zone DEFAULT now(),
-                updated_at timestamp with time zone DEFAULT now(),
-                is_deleted boolean DEFAULT false
-            );
-
             CREATE TABLE IF NOT EXISTS identity.users (
                 id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                 hub_id uuid,
@@ -70,24 +60,10 @@ public static class DbInitializer
                 is_deleted boolean DEFAULT false
             );
 
-            CREATE TABLE IF NOT EXISTS identity.vehicles (
-                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                hub_id uuid NOT NULL,
-                license_plate text NOT NULL,
-                truck_type text NOT NULL,
-                max_weight_kg numeric NOT NULL,
-                max_volume_cbm numeric NOT NULL,
-                created_at timestamp with time zone DEFAULT now(),
-                updated_at timestamp with time zone DEFAULT now(),
-                is_deleted boolean DEFAULT false
-            );
-
             ALTER TABLE identity.users ADD COLUMN IF NOT EXISTS refresh_token text;
             ALTER TABLE identity.users ADD COLUMN IF NOT EXISTS refresh_token_expiry_time timestamp with time zone;
             ALTER TABLE identity.hubs ADD COLUMN IF NOT EXISTS geo_location geography(Point, 4326);
-            ALTER TABLE public.hubs ADD COLUMN IF NOT EXISTS geo_location geography(Point, 4326);
             ALTER TABLE identity.hubs ALTER COLUMN geo_location DROP NOT NULL;
-            ALTER TABLE public.hubs ALTER COLUMN geo_location DROP NOT NULL;
             """
         );
     }
@@ -104,31 +80,6 @@ public static class DbInitializer
                     ('11111111-2222-3333-4444-555555555554'::uuid, 'Kho Da Nang', '88 Nguyen Luong Bang, Lien Chieu, Da Nang', 108.1530, 16.0710)
             )
             INSERT INTO identity.hubs (id, name, address, geo_location, created_at, updated_at, is_deleted)
-            SELECT
-                id,
-                name,
-                address,
-                ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
-                now(),
-                now(),
-                false
-            FROM seed_hubs
-            ON CONFLICT (id) DO UPDATE
-            SET
-                name = EXCLUDED.name,
-                address = EXCLUDED.address,
-                geo_location = EXCLUDED.geo_location,
-                updated_at = now(),
-                is_deleted = false;
-
-            WITH seed_hubs(id, name, address, longitude, latitude) AS (
-                VALUES
-                    ('11111111-2222-3333-4444-555555555551'::uuid, 'Kho Go Vap - TP.HCM', '12 Nguyen Oanh, Go Vap, HCMC', 106.6667, 10.8380),
-                    ('11111111-2222-3333-4444-555555555552'::uuid, 'Kho Tan Binh - TP.HCM', '45 Cong Hoa, Tan Binh, HCMC', 106.6520, 10.8010),
-                    ('11111111-2222-3333-4444-555555555553'::uuid, 'Kho Ha Noi', '102 Giai Phong, Dong Da, Ha Noi', 105.8412, 21.0035),
-                    ('11111111-2222-3333-4444-555555555554'::uuid, 'Kho Da Nang', '88 Nguyen Luong Bang, Lien Chieu, Da Nang', 108.1530, 16.0710)
-            )
-            INSERT INTO public.hubs (id, name, address, geo_location, created_at, updated_at, is_deleted)
             SELECT
                 id,
                 name,

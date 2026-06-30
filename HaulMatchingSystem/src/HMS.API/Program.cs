@@ -85,6 +85,7 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
+builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
 builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
 builder.Services.AddScoped<
     HMS.Shared.Core.Interfaces.IDashboardStatsProvider,
@@ -131,6 +132,12 @@ builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var identityDb = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+    HMS.API.DbInitializer.Initialize(identityDb);
+}
+
 await app.InitializeTransportModuleAsync();
 
 await using (var scope = app.Services.CreateAsyncScope())
@@ -149,11 +156,14 @@ if (app.Environment.IsDevelopment())
 // Use exception middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Thứ tự chuẩn: 1. Https -> 2. Cors -> 3. Auth -> 4. Map Endpoints
-app.UseHttpsRedirection();
+app.UseCors("SignalRPolicy");
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Kích hoạt CORS
-app.UseCors("SignalRPolicy");
+
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -163,20 +173,6 @@ app.MapControllers();
 // Map Endpoint tới Hub
 app.MapHub<HmsFleetHub>("/hub/fleet");
 app.MapTransportModule();
-
-// Seed default hubs if database hubs table is empty
-using (var scope = app.Services.CreateScope())
-{
-    try
-    {
-        var identityDb = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-        HMS.API.DbInitializer.Initialize(identityDb);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine("Lỗi khởi tạo database: " + ex.Message);
-    }
-}
 
 app.Run();
 

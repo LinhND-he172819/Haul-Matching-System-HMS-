@@ -2,7 +2,7 @@ using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
-using HMS.Modules.Realtime.Interfaces;
+using HMS.Shared.Core.Interfaces;
 using Moq;
 using Xunit;
 

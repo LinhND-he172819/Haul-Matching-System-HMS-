@@ -20,12 +20,14 @@ namespace HMS.Modules.Identity.Application.Services
         private readonly IIdentityDbContext _context; // Đổi tên DbContext của bạn cho đúng
         private readonly JwtConfigs _jwtConfigs;
         private readonly IMemoryCache _cache;
+        private readonly HMS.Shared.Core.Interfaces.ISmsService _smsService;
 
-        public AuthService(IIdentityDbContext context, IOptions<JwtConfigs> jwtConfigs, IMemoryCache cache)
+        public AuthService(IIdentityDbContext context, IOptions<JwtConfigs> jwtConfigs, IMemoryCache cache, HMS.Shared.Core.Interfaces.ISmsService smsService)
         {
             _context = context;
             _jwtConfigs = jwtConfigs.Value;
             _cache = cache;
+            _smsService = smsService;
         }
 
         // 1. Xử lý ĐĂNG NHẬP
@@ -123,6 +125,7 @@ namespace HMS.Modules.Identity.Application.Services
             var otp = GenerateOtp();
             _cache.Set("OTP_LOGIN_" + request.Phone, otp, TimeSpan.FromMinutes(3));
             Console.WriteLine($"[OTP LOGIN] Gửi OTP {otp} đến số điện thoại {request.Phone}");
+            await _smsService.SendSmsAsync(request.Phone, $"Ma OTP dang nhap cua ban la: {otp}. Ma co hieu luc trong 3 phut.");
         }
 
         public async Task<AuthResponse?> VerifyLoginOtpAsync(VerifyLoginOtpRequest request)
@@ -171,6 +174,7 @@ namespace HMS.Modules.Identity.Application.Services
             var otp = GenerateOtp();
             _cache.Set("OTP_REG_" + request.Phone, otp, TimeSpan.FromMinutes(3));
             Console.WriteLine($"[OTP REG] Gửi OTP {otp} đến số điện thoại {request.Phone}");
+            await _smsService.SendSmsAsync(request.Phone, $"Ma OTP dang ky cua ban la: {otp}. Ma co hieu luc trong 3 phut.");
         }
 
         public async Task<AuthResponse?> VerifyRegisterOtpAsync(VerifyRegisterOtpRequest request)
