@@ -49,7 +49,11 @@ function formatNumber(value: number) {
     return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(value);
 }
 
-export default function AdminVehiclesPage() {
+interface AdminVehiclesPageProps {
+    sidebar?: React.ReactNode;
+}
+
+export default function AdminVehiclesPage({ sidebar }: AdminVehiclesPageProps) {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [hubs, setHubs] = useState<Hub[]>([]);
     const [search, setSearch] = useState('');
@@ -225,6 +229,7 @@ export default function AdminVehiclesPage() {
 
     return (
         <div className="min-h-screen bg-surface text-on-surface font-body-md">
+            {sidebar}
             <header className="sticky top-0 z-20 border-b border-outline-variant/40 bg-surface-container-lowest/95 backdrop-blur">
                 <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-4 md:px-8">
                     <div className="flex items-center gap-3">

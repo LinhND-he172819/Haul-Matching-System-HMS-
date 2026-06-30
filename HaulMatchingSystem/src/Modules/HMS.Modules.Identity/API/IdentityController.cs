@@ -146,9 +146,9 @@ namespace HMS.Modules.Identity.API
                     _context.Vehicles.Add(vehicle);
                     await _context.SaveChangesAsync();
 
-                    // Synchronize vehicle details to public.vehicles in Matching schema
+                    // Synchronize vehicle details to identity.vehicles in Identity schema
                     await _context.Database.ExecuteSqlRawAsync(
-                        "INSERT INTO public.vehicles (\"Id\", \"MaxWeightKg\", \"MaxVolumeCbm\") VALUES ({0}, {1}, {2}) " +
+                        "INSERT INTO identity.vehicles (\"Id\", \"MaxWeightKg\", \"MaxVolumeCbm\") VALUES ({0}, {1}, {2}) " +
                         "ON CONFLICT (\"Id\") DO UPDATE SET \"MaxWeightKg\" = {1}, \"MaxVolumeCbm\" = {2}",
                         user.Id, (decimal)(dto.MaxWeightKg ?? 1500), (decimal)(dto.MaxVolumeCbm ?? 8.5m)
                     );
@@ -156,7 +156,7 @@ namespace HMS.Modules.Identity.API
                     // Create an Active trip for the new driver in public.trips
                     var activeTripId = Guid.NewGuid();
                     await _context.Database.ExecuteSqlRawAsync(
-                        "INSERT INTO public.trips (\"Id\", \"DriverId\", \"VehicleId\", \"CurrentLoadWeight\", \"CurrentLoadVolume\", \"Status\") " +
+                        "INSERT INTO transport.trips (\"Id\", \"DriverId\", \"VehicleId\", \"CurrentLoadWeight\", \"CurrentLoadVolume\", \"Status\") " +
                         "VALUES ({0}, {1}, {2}, 0, 0, 'Active') " +
                         "ON CONFLICT (\"Id\") DO NOTHING",
                         activeTripId, user.Id, user.Id
@@ -217,7 +217,7 @@ namespace HMS.Modules.Identity.API
 
                     // Complete any active trips for the deleted driver
                     await _context.Database.ExecuteSqlRawAsync(
-                        "UPDATE public.trips SET \"Status\" = 'Completed' WHERE \"DriverId\" = {0} AND \"Status\" = 'Active'",
+                        "UPDATE transport.trips SET \"Status\" = 'Completed' WHERE \"DriverId\" = {0} AND \"Status\" = 'Active'",
                         id
                     );
                 }
@@ -314,9 +314,9 @@ namespace HMS.Modules.Identity.API
                         _context.Vehicles.Update(vehicle);
                         await _context.SaveChangesAsync();
 
-                        // Sync with public.vehicles
+                        // Sync with identity.vehicles
                         await _context.Database.ExecuteSqlRawAsync(
-                            "UPDATE public.vehicles SET \"MaxWeightKg\" = {0}, \"MaxVolumeCbm\" = {1} WHERE \"Id\" = {2}",
+                            "UPDATE identity.vehicles SET \"MaxWeightKg\" = {0}, \"MaxVolumeCbm\" = {1} WHERE \"Id\" = {2}",
                             (decimal)(dto.MaxWeightKg ?? 1500), (decimal)(dto.MaxVolumeCbm ?? 8.5m), id
                         );
                     }
@@ -338,7 +338,7 @@ namespace HMS.Modules.Identity.API
                         await _context.SaveChangesAsync();
 
                         await _context.Database.ExecuteSqlRawAsync(
-                            "INSERT INTO public.vehicles (\"Id\", \"MaxWeightKg\", \"MaxVolumeCbm\") VALUES ({0}, {1}, {2})",
+                            "INSERT INTO identity.vehicles (\"Id\", \"MaxWeightKg\", \"MaxVolumeCbm\") VALUES ({0}, {1}, {2})",
                             user.Id, (decimal)(dto.MaxWeightKg ?? 1500), (decimal)(dto.MaxVolumeCbm ?? 8.5m)
                         );
                     }

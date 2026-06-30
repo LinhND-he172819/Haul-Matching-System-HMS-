@@ -10,9 +10,11 @@ import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import AdminLiveMapPage from './pages/AdminLiveMapPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
+import AdminHubsPage from './pages/AdminHubsPage';
 
 type Page = 'login' | 'register' | 'home' | 'admin' | 'driver-portal' | 'driver-trips';
-type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips';
+type AdminTab = 'dashboard' | 'live-map' |'admin-hubs'| 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips';
+
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -118,6 +120,17 @@ function App() {
         </button>
 
         <button 
+          onClick={() => setAdminTab('admin-hubs')} 
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+            adminTab === 'admin-hubs' 
+            ? 'text-primary font-bold bg-surface-container-low border-r-4 border-primary' 
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'}`}
+        >
+          <span className="material-symbols-outlined">hub</span>
+          <span className="text-label-lg font-bold">Quản lý Kho (Hubs)</span>
+        </button>
+
+        <button 
           onClick={() => setAdminTab('create-customer')} 
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
             adminTab === 'create-customer' 
@@ -150,7 +163,7 @@ function App() {
           }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">garage</span>
-          <span className="text-label-lg font-bold">Quáº£n lÃ½ Xe</span>
+          <span className="text-label-lg font-bold">Quản Lý Xe</span>
         </button>
 
         <button 
@@ -301,6 +314,8 @@ function App() {
           return <MatchingSuggestionPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'live-map':
           return <AdminLiveMapPage sidebar={renderSidebar()} />;
+        case 'admin-hubs':
+          return <AdminHubsPage sidebar={renderSidebar()} />;
         default:
           return <DashboardPage sidebar={renderSidebar()} />;
       }

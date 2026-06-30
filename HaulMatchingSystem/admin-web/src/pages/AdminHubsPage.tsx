@@ -52,7 +52,11 @@ function formatDateTime(value: string) {
     });
 }
 
-export default function AdminHubsPage() {
+interface AdminHubsPageProps {
+    sidebar?: React.ReactNode;
+}
+
+export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
     const [hubs, setHubs] = useState<Hub[]>([]);
     const [search, setSearch] = useState('');
     const [form, setForm] = useState<HubFormState>(emptyForm);
@@ -213,7 +217,7 @@ export default function AdminHubsPage() {
         setStatus('Ready');
         setMessage('Create a hub or select one to edit.');
     };
-
+    
     const buildPayload = (): HubPayload | null => {
         const latitudeValue = Number(form.latitude);
         const longitudeValue = Number(form.longitude);

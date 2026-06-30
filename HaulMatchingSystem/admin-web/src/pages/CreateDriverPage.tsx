@@ -61,6 +61,9 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
         try {
             const [hubsData, usersData] = await Promise.all([fetchHubs(), fetchUsers()]);
             setHubs(hubsData);
+
+            console.log("HUBS RAW:", hubsData);
+            console.log("IS ARRAY:", Array.isArray(hubsData));
             
             // Map users to DriverFleet list
             const driverUsers = usersData
