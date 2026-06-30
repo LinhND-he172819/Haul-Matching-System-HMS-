@@ -30,7 +30,7 @@ export default function DashboardPage({ sidebar }: DashboardPageProps) {
 
     useEffect(() => {
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl((import.meta.env.VITE_API_URL ?? "https://localhost:7059") + "/hub/fleet", {
+            .withUrl(`${apiBaseUrl.replace(/\/+$/, '')}/hub/fleet`, {
                 accessTokenFactory: () => {
                 const token = localStorage.getItem("jwt_token");
                 return token || "";
