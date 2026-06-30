@@ -78,10 +78,10 @@ export default function HubIntakePage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-[#0b1c30]">
-            Nghiệp vụ nhập kho
+            Nhập kho
           </h1>
           <p className="text-sm text-[#444653] mt-1">
-            Quét hoặc nhập mã QR của đơn Draft, đối chiếu thông tin và xác nhận
+            Quét hoặc nhập mã QR của đơn, đối chiếu thông tin và xác nhận
             hàng vào Hub.
           </p>
         </div>
@@ -241,7 +241,7 @@ export default function HubIntakePage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-[#c4c5d5] p-5">
+            {/* <div className="bg-white rounded-xl shadow-sm border border-[#c4c5d5] p-5">
               <h3 className="font-semibold flex items-center gap-2 text-[#0b1c30]">
                 <span className="material-symbols-outlined text-[#ba1a1a]">
                   warning
@@ -259,7 +259,7 @@ export default function HubIntakePage() {
                   cho Matching Engine.
                 </li>
               </ul>
-            </div>
+            </div> */}
           </aside>
         </div>
       </div>
