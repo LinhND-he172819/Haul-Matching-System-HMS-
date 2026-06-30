@@ -34,7 +34,9 @@ namespace HMS.Modules.Transport.Workers
                     var dbContext = scope.ServiceProvider.GetRequiredService<TransportDbContext>();
                     var dispatcher = scope.ServiceProvider.GetRequiredService<IRealtimeDispatcher>();
 
-                    var thresholdTime = DateTime.UtcNow.AddMinutes(-3);
+                    //var thresholdTime = DateTime.UtcNow.AddMinutes(-3);
+                    // Demo
+                    var thresholdTime = DateTime.UtcNow.AddSeconds(-20);
 
                     // 🔥 OPTIMIZED QUERY (NO N+1)
                     var staleTrips = await dbContext.Set<StaleTripQueryResult>()
@@ -117,7 +119,9 @@ namespace HMS.Modules.Transport.Workers
                     _logger.LogError(ex, "Lỗi xảy ra trong quá trình quét tín hiệu GPS định kỳ.");
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                //await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                // Demo
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
     }
