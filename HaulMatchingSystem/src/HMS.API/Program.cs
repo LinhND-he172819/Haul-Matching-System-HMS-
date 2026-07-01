@@ -175,7 +175,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 // Kích hoạt CORS
-
+app.UseCors("SignalRPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();

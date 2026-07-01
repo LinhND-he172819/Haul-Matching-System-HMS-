@@ -6,18 +6,24 @@ import {
     type DraftShipmentResponse,
 } from "../api/shipmentsApi";
 
-export default function CreateShipmentPage() {
+interface CreateShipmentPageProps {
+    onNavigate: (page: 'login' | 'register' | 'home' | 'create-shipment') => void;
+}
+
+export default function CreateShipmentPage({ onNavigate }: CreateShipmentPageProps) {
     const [step, setStep] = useState(1);
     const [result, setResult] = useState<DraftShipmentResponse | null>(null);
     const [loading, setLoading] = useState(false);
 
     const [form, setForm] = useState({
-        customerId: localStorage.getItem('userId') ?? '',
+        customerId: "77ef126c-1a62-43f0-9190-3f4c9884f546",
+
         receiverName: "",
         receiverPhone: "",
         destAddress: "",
         destLat: "",
         destLng: "",
+
         cargoType: "",
         weightKg: "",
         volumeCbm: "",
@@ -69,13 +75,6 @@ export default function CreateShipmentPage() {
     };
 
     const submit = async () => {
-        const customerId = localStorage.getItem('userId');
-
-        if (!customerId) {
-            alert('Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.');
-            return;
-        }
-
         if (!form.cargoType.trim()) {
             alert("Vui lòng nhập loại hàng.");
             return;
@@ -221,15 +220,19 @@ export default function CreateShipmentPage() {
                     </div>
 
                     <div className="w-full flex flex-col sm:flex-row gap-4 mt-6">
-                        <button className="flex-1 bg-[#00288e] text-white text-sm font-semibold py-3 px-6 rounded-lg hover:bg-[#1e40af] flex justify-center items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => onNavigate('home')}
+                            className="flex-1 bg-[#00288e] text-white text-sm font-semibold py-3 px-6 rounded-lg hover:bg-[#1e40af] flex justify-center items-center gap-2"
+                        >
                             <span className="material-symbols-outlined">home</span>
                             Về trang chủ
                         </button>
 
-                        <button className="flex-1 border border-[#00288e] text-[#00288e] text-sm font-semibold py-3 px-6 rounded-lg hover:bg-[#eff4ff] flex justify-center items-center gap-2">
+                        {/* <button className="flex-1 border border-[#00288e] text-[#00288e] text-sm font-semibold py-3 px-6 rounded-lg hover:bg-[#eff4ff] flex justify-center items-center gap-2">
                             <span className="material-symbols-outlined">download</span>
                             Tải mã QR về máy
-                        </button>
+                        </button> */}
                     </div>
                 </div>
             </main>
