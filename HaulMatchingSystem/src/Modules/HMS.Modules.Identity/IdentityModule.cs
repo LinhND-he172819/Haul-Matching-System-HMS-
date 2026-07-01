@@ -48,6 +48,23 @@ namespace HMS.Modules.Identity
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero // Hết hạn là khóa ngay lập tức
                 };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            path.StartsWithSegments("/hub/fleet"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
             // 3. Đăng ký các Service xử lý Logic bên trong Identity Module

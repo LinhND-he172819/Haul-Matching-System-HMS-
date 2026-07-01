@@ -22,14 +22,14 @@ public sealed class PostgresVehicleRepository : IVehicleRepository
         await using var command = connection.CreateCommand();
 
         command.CommandText = """
-            INSERT INTO vehicles (
-                "Id",
+            INSERT INTO transport.vehicles (
+                id,
                 code,
                 license_plate,
                 hub_id,
                 vehicle_type,
-                "MaxWeightKg",
-                "MaxVolumeCbm",
+                max_weight_kg,
+                max_volume_cbm,
                 status,
                 created_at,
                 updated_at,
@@ -99,7 +99,7 @@ public sealed class PostgresVehicleRepository : IVehicleRepository
 
         command.CommandText = $"""
             {SelectVehicleSql}
-            WHERE "Id" = @id AND COALESCE(is_deleted, FALSE) = FALSE;
+            WHERE id = @id AND COALESCE(is_deleted, FALSE) = FALSE;
             """;
         command.Parameters.AddWithValue("id", id);
 
@@ -114,17 +114,17 @@ public sealed class PostgresVehicleRepository : IVehicleRepository
         await using var command = connection.CreateCommand();
 
         command.CommandText = """
-            UPDATE vehicles
+            UPDATE transport.vehicles
             SET
                 code = @code,
                 license_plate = @license_plate,
                 hub_id = @hub_id,
                 vehicle_type = @vehicle_type,
-                "MaxWeightKg" = @max_weight_kg,
-                "MaxVolumeCbm" = @max_volume_cbm,
+                max_weight_kg = @max_weight_kg,
+                max_volume_cbm = @max_volume_cbm,
                 status = @status,
                 updated_at = @updated_at
-            WHERE "Id" = @id AND COALESCE(is_deleted, FALSE) = FALSE;
+            WHERE id = @id AND COALESCE(is_deleted, FALSE) = FALSE;
             """;
 
         AddVehicleParameters(command, vehicle);
@@ -171,16 +171,16 @@ public sealed class PostgresVehicleRepository : IVehicleRepository
 
     private const string SelectVehicleSql = """
         SELECT
-            "Id" AS id,
+            id,
             code,
             license_plate,
             hub_id,
             vehicle_type,
-            "MaxWeightKg" AS max_weight_kg,
-            "MaxVolumeCbm" AS max_volume_cbm,
+            max_weight_kg,
+            max_volume_cbm,
             status,
             created_at,
             updated_at
-        FROM vehicles
+        FROM transport.vehicles
         """;
 }

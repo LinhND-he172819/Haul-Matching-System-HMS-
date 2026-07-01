@@ -14,7 +14,7 @@ export default function MatchingSuggestionList({ shipments, selectedIds, onSelec
 
     return (
         <div className="space-y-4">
-            {shipments.map((s, idx) => (
+            {shipments.map((s) => (
                 <ShipmentSuggestionCard
                     key={s.shipmentId}
                     shipment={s}
@@ -22,8 +22,6 @@ export default function MatchingSuggestionList({ shipments, selectedIds, onSelec
                     onSelect={onSelect}
                     onAccept={onAccept}
                     onReject={onReject}
-                    matchPercent={Math.max(78, 95 - idx * 6)}
-                    distanceKm={Number((2.1 + idx * 2.4).toFixed(1))}
                 />
             ))}
         </div>

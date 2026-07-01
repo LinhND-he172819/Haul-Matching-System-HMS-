@@ -9,10 +9,19 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import AdminLiveMapPage from './pages/AdminLiveMapPage';
+import AdminHubsPage from './pages/AdminHubsPage';
+import AdminTripsPage from './pages/AdminTripsPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
 
-type Page = 'login' | 'register' | 'home' | 'admin' | 'driver-portal' | 'driver-trips';
-type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips';
+type Page =
+  | 'login'
+  | 'register'
+  | 'home'
+  | 'create-shipment'
+  | 'driver-portal'
+  | 'driver-trips'
+  | 'admin';
+type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hubs';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -79,6 +88,7 @@ function App() {
   };
 
   const renderSidebar = () => (
+    <>
     <nav className="bg-surface-container-lowest border-r border-outline-variant fixed left-0 h-full w-64 flex flex-col py-6 px-4 z-20 hidden xl:flex">
       {/* Brand Logo */}
       <div className="mb-8 flex items-center gap-3 px-2">
@@ -125,8 +135,8 @@ function App() {
             : 'text-on-surface-variant hover:bg-surface-container-low/60'
           }`}
         >
-          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">person_add</span>
-          <span className="text-label-lg font-bold">Tạo Khách Hàng</span>
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">group</span>
+          <span className="text-label-lg font-bold">Quản lý Khách Hàng</span>
         </button>
 
         <button 
@@ -137,8 +147,20 @@ function App() {
             : 'text-on-surface-variant hover:bg-surface-container-low/60'
           }`}
         >
-          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">local_shipping</span>
-          <span className="text-label-lg font-bold">Tạo Tài Xế & Xe</span>
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">person_add</span>
+          <span className="text-label-lg font-bold">Quản lý Tài Xế</span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('hubs')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+            adminTab === 'hubs'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">hub</span>
+          <span className="text-label-lg font-bold">Quản lý Hub</span>
         </button>
 
         <button
@@ -150,7 +172,7 @@ function App() {
           }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">garage</span>
-          <span className="text-label-lg font-bold">Quáº£n lÃ½ Xe</span>
+          <span className="text-label-lg font-bold">Quản lý Xe</span>
         </button>
 
         <button 
@@ -165,16 +187,15 @@ function App() {
           <span className="text-label-lg font-bold">Tạo Vận Đơn</span>
         </button>
 
-        <button 
-          onClick={() => setAdminTab('driver-trips')} 
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
-            adminTab === 'driver-trips' 
-            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low' 
+        <button
+          onClick={() => setAdminTab('admin-trips')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'admin-trips'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
             : 'text-on-surface-variant hover:bg-surface-container-low/60'
           }`}
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">route</span>
-          <span className="text-label-lg font-bold">Quản lý Trips</span>
+          <span className="text-label-lg font-bold">Quản lý chuyến đi</span>
         </button>
 
         <div className="pt-4 border-t border-outline-variant/30 mt-4">
@@ -194,17 +215,26 @@ function App() {
       </div>
 
       {/* Logout */}
-      <div className="mt-auto px-4 py-2 border-t border-outline-variant/20 pt-4 text-center">
-        <button 
+      <div className="mt-auto shrink-0 px-4 py-2 border-t border-outline-variant/20 pt-4 text-center">
+        <button
           onClick={handleLogout}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-error text-error hover:bg-error/5 transition-all text-label-lg font-bold mb-3"
         >
           <span className="material-symbols-outlined text-[20px]">logout</span>
           Đăng xuất
         </button>
-        <span className="text-xs text-on-surface-variant/60 font-semibold block">HMS Admin Panel v1.2</span>
       </div>
     </nav>
+    <button
+      aria-label="Đăng xuất"
+      className="fixed right-4 top-3 z-50 flex h-10 w-10 items-center justify-center rounded-lg border border-error bg-surface-container-lowest text-error shadow-sm hover:bg-error/5 xl:hidden"
+      onClick={handleLogout}
+      title="Đăng xuất"
+      type="button"
+    >
+      <span className="material-symbols-outlined text-[20px]">logout</span>
+    </button>
+    </>
   );
 
   // Guard checks
@@ -240,6 +270,11 @@ function App() {
 
     case 'driver-trips':
       return <DriverTripsPage onLogout={handleLogout} />;
+
+    case 'create-shipment':
+      return (
+        <CreateShipmentPage onNavigate={handleNavigate} />
+      );
 
     case 'admin':
       if (role !== 'Admin') {
@@ -277,6 +312,15 @@ function App() {
           return <CreateCustomerPage sidebar={renderSidebar()} />;
         case 'create-driver':
           return <CreateDriverPage sidebar={renderSidebar()} />;
+        case 'hubs':
+          return (
+            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+              {renderSidebar()}
+              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+                <AdminHubsPage />
+              </div>
+            </div>
+          );
         case 'vehicles':
           return (
             <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
@@ -291,12 +335,14 @@ function App() {
             <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
               {renderSidebar()}
               <div className="flex-1 flex flex-col xl:ml-64 w-full p-8 overflow-y-auto">
-                <CreateShipmentPage />
+                <CreateShipmentPage onNavigate={handleNavigate} />
               </div>
             </div>
           );
         case 'driver-trips':
           return <DriverTripsPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
+        case 'admin-trips':
+          return <AdminTripsPage sidebar={renderSidebar()} />;
         case 'driver-portal':
           return <MatchingSuggestionPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'live-map':

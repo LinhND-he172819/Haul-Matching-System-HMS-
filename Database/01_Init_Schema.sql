@@ -232,4 +232,30 @@ CREATE INDEX idx_trips_status ON transport.trips (status);
 CREATE INDEX idx_gps_logs_trip_time ON transport.gps_logs (trip_id, device_timestamp DESC);
 CREATE INDEX idx_fin_trans_user ON finance.financial_transactions (user_id, transaction_type);
 
+ALTER TABLE transport.trip_shipments
+DROP CONSTRAINT chk_ts_status;
+ALTER TABLE transport.trip_shipments
+ADD CONSTRAINT chk_ts_status CHECK (
+   status IN (
+       'Suggested',
+       'Matched',
+       'In_Transit',
+       'Delivered',
+       'Failed',
+       'Rejected'
+   )
+);
+ALTER TABLE transport.trip_shipments
+ADD COLUMN suggested_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE transport.trip_shipments
+ADD COLUMN responded_at TIMESTAMPTZ;
+ALTER TABLE transport.trip_shipments
+ADD COLUMN responded_by UUID
+REFERENCES identity.users(id);
+ALTER TABLE warehouse.shipments
+ADD COLUMN special_handling_note TEXT;
+CREATE INDEX idx_trip_shipments_trip_status
+ON transport.trip_shipments(trip_id, status);
+
+
 
