@@ -38,7 +38,7 @@ export default function DashboardPage({ sidebar }: DashboardPageProps) {
     const accessToken = localStorage.getItem("accessToken");
     const refreshToken = localStorage.getItem("refreshToken");
 
-    const response = await fetch("https://localhost:7059/api/auth/refresh-token", {
+    const response = await fetch(`${apiBaseUrl}/api/auth/refresh-token`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"

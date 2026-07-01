@@ -42,6 +42,8 @@ public static class TransportModule
             client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
         });
 
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(TransportModule).Assembly));
+
         return services;
     }
     public static async Task<WebApplication> InitializeTransportModuleAsync(

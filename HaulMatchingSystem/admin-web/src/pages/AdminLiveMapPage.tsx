@@ -35,8 +35,7 @@ export default function AdminLiveMapPage({ sidebar }: AdminLiveMapPageProps) {
     const loadActiveTrips = async () => {
         try {
             setLoading(true);
-            // Gọi lên Endpoint lấy các chuyến đang chạy của module Transport
-            const response = await fetch(`${apiBaseUrl}/api/transport/active-trips`, {
+            const response = await fetch(`${apiBaseUrl}/api/trips/active`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
                 }
@@ -67,24 +66,23 @@ export default function AdminLiveMapPage({ sidebar }: AdminLiveMapPageProps) {
 
         // Bắt sự kiện xe mất sóng từ con FleetMonitorWorker bên C#
         connection.on("ReceiveVehicleAlert", (alertData: any) => {
-            // SỬA LỖI CHÍ MẠNG: Đổi alertData.vehicleId thành alertData.tripId cho khớp với Backend Payload
-            if (alertData.alertType === "Signal_Loss" || alertData.alertType === 0) {
+            if (alertData.alertType === "Signal_Loss" || alertData.alertType === 2) {
                 setOfflineTripIds(prev => new Set(prev).add(alertData.tripId));
             }
         });
 
-        // Bắt thêm sự kiện GPS Ping để nếu xe có mạng lại -> Xóa trạng thái mất sóng ngay lập tức
-        connection.on("ReceiveGpsPing", (pingData: any) => {
-            setOfflineTripIds(prev => {
-                const next = new Set(prev);
-                next.delete(pingData.tripId);
-                return next;
-            });
+        connection.on("ReceiveVehicleLocation", (gpsData: any) => {
+        // Khi nhận được tọa độ chứng tỏ xe đã có mạng lại -> Xóa xe khỏi danh sách đen mất sóng
+        setOfflineTripIds(prev => {
+            const next = new Set(prev);
+            next.delete(gpsData.tripId);
+            return next;
+     });
             
             // Cập nhật vị trí xe chạy thời gian thực trên màn hình Admin
             setActiveTrips(prevTrips => 
-                prevTrips.map(t => t.id === pingData.tripId 
-                    ? { ...t, currentLat: pingData.lat, currentLng: pingData.lng } 
+                prevTrips.map(t => t.id === gpsData.tripId 
+                    ? { ...t, currentLat: gpsData.lat, currentLng: gpsData.lng } 
                     : t
                 )
             );
@@ -123,9 +121,6 @@ export default function AdminLiveMapPage({ sidebar }: AdminLiveMapPageProps) {
                     <div className="mb-6 flex justify-between items-center">
                         <div>
                             <h2 className="text-headline-lg font-headline-lg text-on-surface mb-2">Giám sát xe trực tuyến</h2>
-                            <p className="text-body-md text-on-surface-variant">
-                                Dữ liệu thực từ Database kết hợp tín hiệu WebSocket SignalR.
-                            </p>
                         </div>
                         <button 
                             onClick={loadActiveTrips}
@@ -145,49 +140,57 @@ export default function AdminLiveMapPage({ sidebar }: AdminLiveMapPageProps) {
                         /* Vùng bản đồ hiển thị xe thật */
                         <div className="relative w-full min-h-[500px] bg-slate-100 rounded-xl border border-outline-variant/30 overflow-hidden card-shadow p-6 flex flex-wrap gap-6 items-start">
                             {activeTrips.map((trip) => {
-                                // Kiểm tra xem TripId này có nằm trong danh sách đen mất sóng không
-                                const isSignalLost = offlineTripIds.has(trip.id);
+    // Kiểm tra xem TripId này có nằm trong danh sách đen mất sóng không
+    const isSignalLost = offlineTripIds.has(trip.id);
 
-                                return (
-                                    <div key={trip.id} className="relative bg-white p-4 rounded-xl border border-outline-variant/50 shadow-sm w-64 transition-all">
-                                        
-                                        {/* ALERT BADGE CHUẨN KỊCH BẢN EX-04b */}
-                                        {isSignalLost && (
-                                            <div className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-md animate-pulse z-10">
-                                                !
-                                            </div>
-                                        )}
+    return (
+        // Đổi màu viền và nền của cả khung xe sang tone đỏ nhạt nếu mất sóng
+        <div key={trip.id} className={`relative p-4 rounded-xl border shadow-sm w-64 transition-all duration-300 ${isSignalLost ? 'bg-red-50 border-red-500' : 'bg-white border-outline-variant/50'}`}>
+            
+            {/* ALERT BADGE NHẤP NHÁY */}
+            {isSignalLost && (
+                <div className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-md animate-pulse z-10">
+                    !
+                </div>
+            )}
 
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isSignalLost ? 'bg-slate-200 text-slate-500' : 'bg-[#1b39b7]/10 text-[#1b39b7]'}`}>
-                                                <span className="material-symbols-outlined">local_shipping</span>
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-slate-800">{trip.licensePlate ?? 'Chưa rõ biển số'}</div>
-                                                <div className="text-xs text-slate-500 font-semibold">{trip.driverName ?? `Tài xế ID: ${trip.driverId.substring(0,6)}`}</div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="text-[11px] font-mono bg-slate-50 p-2 rounded text-slate-500 mb-2">
-                                            Trip: ...{trip.id.substring(24)}
-                                        </div>
+            <div className="flex items-center gap-3 mb-3">
+                {/* TÂM ĐIỂM SỬA ĐỔI: Đổi Icon xe tải sang Nền Đỏ - Chữ Trắng nổi bật */}
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${isSignalLost ? 'bg-red-600 text-white' : 'bg-[#1b39b7]/10 text-[#1b39b7]'}`}>
+                    <span className="material-symbols-outlined">local_shipping</span>
+                </div>
+                <div>
+                    {/* Đổi cả màu biển số xe sang đỏ đậm cho đồng bộ */}
+                    <div className={`font-bold ${isSignalLost ? 'text-red-700' : 'text-slate-800'}`}>
+                        {trip.licensePlate ?? 'Chưa rõ biển số'}
+                    </div>
+                    <div className="text-xs text-slate-500 font-semibold">
+                        {trip.driverName ?? `Tài xế ID: ${trip.driverId.substring(0,6)}`}
+                    </div>
+                </div>
+            </div>
+            
+            <div className="text-[11px] font-mono bg-white/60 p-2 rounded text-slate-500 mb-2 border border-slate-100">
+                Trip: ...{trip.id.substring(24)}
+            </div>
 
-                                        <div className="border-t border-outline-variant/20 pt-2 mt-2">
-                                            {isSignalLost ? (
-                                                <div className="flex items-center gap-1 text-red-600 text-xs font-bold">
-                                                    <span className="material-symbols-outlined text-sm">wifi_off</span>
-                                                    MẤT TÍN HIỆU ({'>'} 3 phút)
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
-                                                    <span className="material-symbols-outlined text-sm">wifi</span>
-                                                    ĐANG HOẠT ĐỘNG
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+            <div className="border-t border-outline-variant/20 pt-2 mt-2">
+                {isSignalLost ? (
+                    // Cảnh báo chữ đỏ rực kèm icon warning
+                    <div className="flex items-center gap-1 text-red-600 text-xs font-bold">
+                        <span className="material-symbols-outlined text-sm">warning</span>
+                        MẤT TÍN HIỆU ({'>'} 3 phút)
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
+                        <span className="material-symbols-outlined text-sm">wifi</span>
+                        ĐANG HOẠT ĐỘNG
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+})}
                         </div>
                     )}
                 </main>

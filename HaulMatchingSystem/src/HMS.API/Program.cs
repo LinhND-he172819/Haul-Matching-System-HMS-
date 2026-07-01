@@ -9,10 +9,12 @@ using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Infrastructure;
 using HMS.Modules.Matching.Infrastructure.Redis;
+using HMS.Modules.Matching.Infrastructure.Schema;
 using HMS.Modules.Realtime.Hubs;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
-using HMS.Modules.Matching.Infrastructure.Schema;
+using HMS.Modules.Telemetry;
+using HMS.Modules.Telemetry.Endpoints;
 using HMS.Modules.Transport;
 using HMS.Modules.Transport.Channels;
 using HMS.Modules.Transport.Workers;
@@ -22,6 +24,9 @@ using StackExchange.Redis;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Kestrel to listen on all network interfaces 
+builder.WebHost.UseUrls("http://0.0.0.0:5104");
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -75,9 +80,12 @@ builder.Services.AddDbContext<IdentityDbContext>(opt => opt.UseNpgsql(conn));
 builder.Services.AddScoped<IIdentityDbContext>(provider =>
     provider.GetRequiredService<IdentityDbContext>()
 );
+// Modules registration
 builder.Services.AddIdentityModule(builder.Configuration);
 
 builder.Services.AddTransportModule(builder.Configuration);
+
+builder.Services.AddTelemetryModule();
 
 // Redis
 var redisConn = builder.Configuration.GetValue<string>("Redis:Connection") ?? "localhost:6379";
@@ -177,6 +185,8 @@ app.MapControllers();
 // Map Endpoint tới Hub
 app.MapHub<HmsFleetHub>("/hub/fleet");
 app.MapTransportModule();
+
+app.MapTraccarEndpoints();
 
 app.Run();
 

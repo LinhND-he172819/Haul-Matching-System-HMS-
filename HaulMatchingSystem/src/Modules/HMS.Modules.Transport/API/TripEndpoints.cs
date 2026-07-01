@@ -44,6 +44,16 @@ public static class TripEndpoints
             return Results.Ok(trips);
         });
 
+        group.MapGet("/active", async (ITripService service, CancellationToken cancellationToken) =>
+        {
+            var trips = await service.ListAsync(
+                driverId: null,
+                status: TripStatus.Active,
+                cancellationToken);
+
+            return Results.Ok(trips);
+        });
+
         group.MapGet("/{id:guid}", async (Guid id, ITripService service, CancellationToken cancellationToken) =>
         {
             var trip = await service.GetByIdAsync(id, cancellationToken);
