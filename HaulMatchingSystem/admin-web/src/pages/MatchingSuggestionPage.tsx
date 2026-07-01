@@ -37,72 +37,6 @@ export default function MatchingSuggestionPage({ onBackToAdmin, onLogout }: Matc
     const selectedCount = selected.size;
     const totalCount = data?.shipments?.length ?? 0;
 
-    // --- CÁC STATE GIẢ LẬP ĐỂ DEMO ---
-    const [isDriving, setIsDriving] = useState(false);
-    const [isMockOffline, setIsMockOffline] = useState(false);
-    const [gps, setGps] = useState({ lat: 10.7800, lng: 106.7000 });
-    const [syncLog, setSyncLog] = useState<string[]>([]);
-    
-    // Hàm thêm log màn hình cho dễ nhìn lúc Demo
-    const addLog = (msg: string) => setSyncLog(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 5)]);
-
-    // --- LUỒNG HOẠT ĐỘNG GIẢ LẬP GPS ---
-    useEffect(() => {
-        let interval: any;
-        if (isDriving) {
-            interval = setInterval(async () => {
-                // Giả lập xe nhích tọa độ tiến lên
-                const nextGps = { lat: gps.lat + 0.0004, lng: gps.lng + 0.0002 };
-                setGps(nextGps);
-
-                const mockPayload = {
-                    idempotencyKey: `sim-key-${crypto.randomUUID()}`, // Dùng luôn hàm UUID có sẵn của trình duyệt
-                    actionType: 'GpsPing',
-                    payload: { tripId: "3fa85f64-5717-4562-b3fc-2c963f66afa6", lat: nextGps.lat, lng: nextGps.lng },
-                    deviceTimestamp: new Date().toISOString()
-                };
-
-                if (isMockOffline) {
-                    // TÌNH HUỐNG OFFLINE (Task EX-04): Lưu thẳng vào Dexie.js thông qua offlineDb
-                    try {
-                        await offlineDb.table('offlineActions').add(mockPayload);
-                        addLog("📦 Mất mạng! Đã găm 1 tọa độ GPS vào Dexie.js");
-                    } catch (e) {
-                        console.error("Lỗi ghi Dexie:", e);
-                    }
-                } else {
-                    // TÌNH HUỐNG ONLINE: Tương lai sẽ gọi SignalR đẩy lên Server tại đây
-                    addLog("🚀 Online! Đã gửi tọa độ GPS trực tiếp lên Server");
-                }
-            }, 3000); // Cứ 3 giây sinh 1 tọa độ
-        }
-        return () => clearInterval(interval);
-    }, [isDriving, isMockOffline, gps]);
-
-    // --- LUỒNG TỰ ĐỘNG ĐỒNG BỘ KHI CÓ MẠNG LẠI (Task EX-04c) ---
-    useEffect(() => {
-        if (!isMockOffline) {
-            const triggerAutoSync = async () => {
-                try {
-                    const records = await offlineDb.table('offlineActions').toArray();
-                    if (records.length > 0) {
-                        addLog(`🔄 Có mạng lại! Đang đẩy ${records.length} gói tin từ Dexie lên Server...`);
-                        
-                        // Giả lập hoặc gọi API POST thật của bạn tại đây:
-                        // await axios.post('/api/transport/sync-offline', records);
-                        
-                        await offlineDb.table('offlineActions').clear();
-                        addLog("✅ Đồng bộ thành công! Bộ nhớ Dexie.js đã trống.");
-                    }
-                } catch (e) {
-                    console.error("Lỗi đồng bộ Dexie:", e);
-                }
-            };
-            triggerAutoSync();
-        }
-    }, [isMockOffline]);
-    /// hết demo GPS
-
     function pushToast(message: string, type: ToastType = 'info') {
         const id = crypto.randomUUID();
         setToasts(prev => [...prev, { id, message, type }]);
@@ -254,44 +188,7 @@ export default function MatchingSuggestionPage({ onBackToAdmin, onLogout }: Matc
             </aside>
 
             <main className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6">
-                <section className="space-y-4">
-                    {/* 🚨 HIỂN THỊ OFFLINE BADGE (Yêu cầu Task EX-04) */}
-                    {isMockOffline && (
-                        <div className="bg-red-600 text-white p-3 rounded-xl font-bold flex items-center gap-2 animate-pulse shadow-sm text-sm">
-                            <span className="material-symbols-outlined text-base">wifi_off</span>
-                            ỨNG DỤNG ĐANG CHẠY Ở CHẾ ĐỘ NGOẠI TUYẾN (OFFLINE MODE)
-                        </div>
-                    )}
-                    {/* 🛠️ PANEL ĐIỀU KHIỂN GIẢ LẬP CHO BUỔI DEMO */}
-                    <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm space-y-3">
-                        <div className="text-sm font-bold text-[#1b39b7] flex items-center gap-2">
-                            <span className="material-symbols-outlined text-base">tune</span> Bảng điều khiển Giả lập GPS & Mạng ngoại tuyến
-                        </div>
-                        <div className="flex gap-3">
-                            <button 
-                                onClick={() => setIsDriving(!isDriving)}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold text-white shadow-sm transition-all ${isDriving ? 'bg-red-500' : 'bg-emerald-600'}`}
-                            >
-                                {isDriving ? "🛑 Dừng xe tải" : "🚚 Bắt đầu di chuyển"}
-                            </button>
-                            <button 
-                                disabled={!isDriving}
-                                onClick={() => setIsMockOffline(!isMockOffline)}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold text-white shadow-sm transition-all disabled:opacity-40 ${isMockOffline ? 'bg-teal-600' : 'bg-amber-500'}`}
-                            >
-                                {isMockOffline ? "📶 Khôi phục mạng" : "🚇 Đi vào hầm (Ngắt mạng)"}
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                            <div className="text-xs font-mono bg-slate-900 text-emerald-400 p-2 rounded-lg">
-                                GPS: {gps.lat.toFixed(5)} , {gps.lng.toFixed(5)}
-                            </div>
-                            <div className="text-[11px] font-mono bg-slate-100 p-2 rounded-lg text-slate-600 h-8 overflow-hidden whitespace-nowrap text-ellipsis">
-                                {syncLog[0] ?? "Chưa có hoạt động log..."}
-                            </div>
-                        </div>
-                    </div>
-                    {/* --- END DEMO PANEL --- */}
+                <section className="space-y-4">          
                     <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)] gap-4">
                         <div className="soft-card p-4 flex items-center justify-between">
                             <div>

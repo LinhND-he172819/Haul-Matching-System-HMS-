@@ -121,7 +121,7 @@ namespace HMS.Modules.Transport.Workers
 
                 //await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
                 // Demo
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
             }
         }
     }

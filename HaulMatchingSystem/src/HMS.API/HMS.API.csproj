@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\HMS.Modules.Telemetry\HMS.Modules.Telemetry.csproj" />
     <ProjectReference Include="..\Modules\HMS.Modules.Identity\HMS.Modules.Identity.csproj" />
     <ProjectReference Include="..\Modules\HMS.Modules.Warehouse\HMS.Modules.Warehouse.csproj" />
     <ProjectReference Include="..\Modules\HMS.Modules.Transport\HMS.Modules.Transport.csproj" />
