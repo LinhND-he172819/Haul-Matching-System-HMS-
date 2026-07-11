@@ -18,6 +18,7 @@ using HMS.Modules.Telemetry.Endpoints;
 using HMS.Modules.Transport;
 using HMS.Modules.Transport.Channels;
 using HMS.Modules.Transport.Workers;
+using HMS.Modules.Warehouse.Application.Services;
 using HMS.Shared.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -85,6 +86,8 @@ builder.Services.AddIdentityModule(builder.Configuration);
 
 builder.Services.AddTransportModule(builder.Configuration);
 
+builder.Services.AddScoped<IHubInventoryService, HubInventoryService>();
+
 builder.Services.AddTelemetryModule();
 
 // Redis
@@ -97,7 +100,7 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
-builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
+//builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
 builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
 builder.Services.AddScoped<
     HMS.Shared.Core.Interfaces.IDashboardStatsProvider,

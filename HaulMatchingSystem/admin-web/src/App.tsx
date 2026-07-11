@@ -12,6 +12,7 @@ import AdminLiveMapPage from './pages/AdminLiveMapPage';
 import AdminHubsPage from './pages/AdminHubsPage';
 import AdminTripsPage from './pages/AdminTripsPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
+import HubInventoryPage from './pages/HubInventoryPage';
 
 type Page =
   | 'login'
@@ -21,7 +22,7 @@ type Page =
   | 'driver-portal'
   | 'driver-trips'
   | 'admin';
-type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hubs';
+type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hub-inventory' | 'hubs';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -58,11 +59,18 @@ function App() {
     }
   }, [currentPage]);
 
-  const handleNavigate = (targetPage: 'login' | 'register' | 'home') => {
+  const handleNavigate = (targetPage: 'login' | 'register' | 'home' | 'create-shipment') => {
     if (targetPage === 'login') {
       setCurrentPage('login');
     } else if (targetPage === 'register') {
       setCurrentPage('register');
+    } else if (targetPage === 'create-shipment') {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setCurrentPage('login');
+      } else {
+        setCurrentPage('create-shipment');
+      }
     } else if (targetPage === 'home') {
       const token = localStorage.getItem('accessToken');
       const role = localStorage.getItem('role');
@@ -161,6 +169,18 @@ function App() {
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">hub</span>
           <span className="text-label-lg font-bold">Quản lý Hub</span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('hub-inventory')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+            adminTab === 'hub-inventory'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">warehouse</span>
+          <span className="text-label-lg font-bold">Kho Hub</span>
         </button>
 
         <button
@@ -343,6 +363,8 @@ function App() {
           return <DriverTripsPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'admin-trips':
           return <AdminTripsPage sidebar={renderSidebar()} />;
+        case 'hub-inventory':
+          return <HubInventoryPage sidebar={renderSidebar()} />;
         case 'driver-portal':
           return <MatchingSuggestionPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'live-map':

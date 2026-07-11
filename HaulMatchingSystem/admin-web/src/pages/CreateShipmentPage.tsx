@@ -15,20 +15,18 @@ export default function CreateShipmentPage({ onNavigate }: CreateShipmentPagePro
     const [result, setResult] = useState<DraftShipmentResponse | null>(null);
     const [loading, setLoading] = useState(false);
 
-    const [form, setForm] = useState({
-        customerId: "77ef126c-1a62-43f0-9190-3f4c9884f546",
-
+    const [form, setForm] = useState(() => ({
+        customerId: localStorage.getItem('userId') ?? localStorage.getItem('customerId') ?? '',
         receiverName: "",
         receiverPhone: "",
         destAddress: "",
         destLat: "",
         destLng: "",
-
         cargoType: "",
         weightKg: "",
         volumeCbm: "",
         specialHandlingNote: "",
-    });
+    }));
 
     const update = (key: string, value: string) => {
         setForm((prev) => ({ ...prev, [key]: value }));
