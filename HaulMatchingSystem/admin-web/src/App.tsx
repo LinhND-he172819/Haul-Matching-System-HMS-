@@ -13,6 +13,7 @@ import AdminHubsPage from './pages/AdminHubsPage';
 import AdminTripsPage from './pages/AdminTripsPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
 import HubInventoryPage from './pages/HubInventoryPage';
+import HubIntakePage from './pages/HubIntakePage';
 
 type Page =
   | 'login'
@@ -181,6 +182,18 @@ function App() {
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">warehouse</span>
           <span className="text-label-lg font-bold">Kho Hub</span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('hub-intake')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+            adminTab === 'hub-intake'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">qr_code_scanner</span>
+          <span className="text-label-lg font-bold">Nhập Kho (QR)</span>
         </button>
 
         <button
@@ -365,6 +378,15 @@ function App() {
           return <AdminTripsPage sidebar={renderSidebar()} />;
         case 'hub-inventory':
           return <HubInventoryPage sidebar={renderSidebar()} />;
+        case 'hub-intake':
+          return (
+            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+              {renderSidebar()}
+              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+                <HubIntakePage />
+              </div>
+            </div>
+          );
         case 'driver-portal':
           return <MatchingSuggestionPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'live-map':
