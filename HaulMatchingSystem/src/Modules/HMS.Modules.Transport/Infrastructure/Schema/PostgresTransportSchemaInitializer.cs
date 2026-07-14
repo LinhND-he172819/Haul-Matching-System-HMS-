@@ -205,6 +205,39 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
                 lng numeric(9, 6) NULL,
                 created_at timestamptz NOT NULL DEFAULT now()
             );
+
+            -- Trip Posts (Đăng bài chuyến xe còn chỗ)
+            CREATE TABLE IF NOT EXISTS transport.trip_posts (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                trip_id uuid NOT NULL REFERENCES transport.trips(id),
+                created_by uuid NOT NULL REFERENCES identity.users(id),
+                title varchar(200) NOT NULL,
+                description text NULL,
+                accept_until timestamptz NOT NULL,
+                status varchar(30) NOT NULL DEFAULT 'Open',
+                published_at timestamptz NULL,
+                closed_at timestamptz NULL,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                is_deleted boolean NOT NULL DEFAULT FALSE,
+                CONSTRAINT ck_transport_trip_posts_status CHECK (status IN ('Open', 'Closed', 'Expired', 'Cancelled'))
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_transport_trip_posts_trip_id
+                ON transport.trip_posts (trip_id)
+                WHERE is_deleted = FALSE;
+
+            CREATE INDEX IF NOT EXISTS ix_transport_trip_posts_status
+                ON transport.trip_posts (status)
+                WHERE is_deleted = FALSE;
+
+            CREATE INDEX IF NOT EXISTS ix_transport_trip_posts_created_at
+                ON transport.trip_posts (created_at DESC)
+                WHERE is_deleted = FALSE;
+
+            CREATE UNIQUE INDEX IF NOT EXISTS ux_transport_trip_posts_open_per_trip
+                ON transport.trip_posts (trip_id)
+                WHERE status = 'Open' AND is_deleted = FALSE;
             """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);

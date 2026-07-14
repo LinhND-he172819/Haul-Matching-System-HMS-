@@ -54,7 +54,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddSignalR();
 
 // Add controllers
-builder.Services.AddControllers().AddJsonOptions(options =>
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(HMS.Modules.Transport.Controllers.TripPostsController).Assembly)
+    .AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
@@ -134,6 +136,7 @@ builder.Services.AddHostedService<DashboardStatsWorker>();
 builder.Services.AddSingleton<GpsSyncChannel>();
 builder.Services.AddHostedService<WriteBehindGpsWorker>();
 builder.Services.AddHostedService<FleetMonitorWorker>();
+builder.Services.AddHostedService<TripPostExpiryWorker>();
 
 // Đăng ký NullSmsSender để mock SMS trong môi trường phát triển
 //builder.Services.AddScoped<ISmsSender, NullSmsSender>();

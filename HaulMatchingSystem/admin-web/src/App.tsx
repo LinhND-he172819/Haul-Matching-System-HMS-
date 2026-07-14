@@ -13,7 +13,7 @@ import AdminHubsPage from './pages/AdminHubsPage';
 import AdminTripsPage from './pages/AdminTripsPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
 import HubInventoryPage from './pages/HubInventoryPage';
-import HubIntakePage from './pages/HubIntakePage';
+import TripPostManagementPage from './pages/TripPostManagementPage';
 
 type Page =
   | 'login'
@@ -23,7 +23,7 @@ type Page =
   | 'driver-portal'
   | 'driver-trips'
   | 'admin';
-type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hub-inventory' | 'hubs';
+type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hub-inventory' | 'hubs' | 'trip-posts';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -185,18 +185,6 @@ function App() {
         </button>
 
         <button
-          onClick={() => setAdminTab('hub-intake')}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
-            adminTab === 'hub-intake'
-            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
-            : 'text-on-surface-variant hover:bg-surface-container-low/60'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">qr_code_scanner</span>
-          <span className="text-label-lg font-bold">Nhập Kho (QR)</span>
-        </button>
-
-        <button
           onClick={() => setAdminTab('vehicles')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
             adminTab === 'vehicles'
@@ -229,6 +217,17 @@ function App() {
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">route</span>
           <span className="text-label-lg font-bold">Quản lý chuyến đi</span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('trip-posts')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${adminTab === 'trip-posts'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">article</span>
+          <span className="text-label-lg font-bold">Đăng bài chuyến xe</span>
         </button>
 
         <div className="pt-4 border-t border-outline-variant/30 mt-4">
@@ -376,17 +375,10 @@ function App() {
           return <DriverTripsPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'admin-trips':
           return <AdminTripsPage sidebar={renderSidebar()} />;
+        case 'trip-posts':
+          return <TripPostManagementPage sidebar={renderSidebar()} />;
         case 'hub-inventory':
           return <HubInventoryPage sidebar={renderSidebar()} />;
-        case 'hub-intake':
-          return (
-            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
-              {renderSidebar()}
-              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
-                <HubIntakePage />
-              </div>
-            </div>
-          );
         case 'driver-portal':
           return <MatchingSuggestionPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'live-map':
