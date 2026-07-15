@@ -3,6 +3,7 @@ using HMS.Modules.Matching.Application.Requests;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Modules.Matching.Infrastructure.Redis;
+using HMS.Shared.Core.Enums;
 using HMS.Shared.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -16,13 +17,20 @@ namespace HMS.Modules.Matching.Application.Services
         private readonly IMatchingRepository _repo;
         private readonly IRedisLockService _redis;
         private readonly IRealtimeDispatcher _dispatcher;
+        private readonly IShipmentStateService _shipmentStateService;
         private readonly ILogger<MatchingService> _logger;
 
-        public MatchingService(IMatchingRepository repo, IRedisLockService redis, IRealtimeDispatcher dispatcher, ILogger<MatchingService> logger)
+        public MatchingService(
+            IMatchingRepository repo,
+            IRedisLockService redis,
+            IRealtimeDispatcher dispatcher,
+            IShipmentStateService shipmentStateService,
+            ILogger<MatchingService> logger)
         {
             _repo = repo;
             _redis = redis;
             _dispatcher = dispatcher;
+            _shipmentStateService = shipmentStateService;
             _logger = logger;
         }
 
@@ -163,14 +171,25 @@ namespace HMS.Modules.Matching.Application.Services
                     throw new InvalidOperationException("Volume capacity exceeded");
                 }
 
-                // update statuses
+                // ── Share the underlying Npgsql connection with ShipmentStateService ──
+                var dbConn = _repo.GetUnderlyingConnection();
+                var dbTxn = _repo.GetUnderlyingTransaction();
+
+                // ── Transition shipment statuses via State Machine ──
                 foreach (var s in shipments)
                 {
-                    if (s.Status == "Matched" || s.Status == "In_Transit")
-                        throw new InvalidOperationException($"Shipment {s.Id} cannot be accepted (already matched/in transit)");
-
-                    s.Status = "Matched";
+                    await _shipmentStateService.TransitionAsync(
+                        s.Id,
+                        ShipmentStatus.Matched,
+                        connection: dbConn,
+                        transaction: dbTxn,
+                        performedBy: driverId,
+                        ct: ct);
                 }
+
+                // Update EF-tracked shipment entities so SaveChanges works
+                foreach (var s in shipments)
+                    s.Status = ShipmentStatus.Matched.ToString();
 
                 foreach (var ts in suggested)
                 {
@@ -184,7 +203,7 @@ namespace HMS.Modules.Matching.Application.Services
 
                 await _repo.SaveChangesAsync(ct);
 
-                // remove redis locks
+                // Remove redis locks
                 foreach (var sid in shipmentIds)
                 {
                     var key = $"shipment:{sid}:matching-lock";
@@ -222,12 +241,13 @@ namespace HMS.Modules.Matching.Application.Services
                     ts.RespondedBy = driverId;
                 }
 
+                // ── REJECT does NOT change shipment status ──
+                // Shipments remain In_Warehouse. Only TripShipment.Status changes.
+                // Validate that shipments are still rejectable (not already matched/in-transit).
                 foreach (var s in shipments)
                 {
                     if (s.Status == "Matched" || s.Status == "In_Transit")
                         throw new InvalidOperationException($"Shipment {s.Id} cannot be rejected (already matched/in transit)");
-
-                    s.Status = "In_Warehouse";
                 }
 
                 await _repo.SaveChangesAsync(ct);
@@ -269,13 +289,25 @@ namespace HMS.Modules.Matching.Application.Services
                 if (trip.CurrentLoadWeight + totalWeight > vehicle.MaxWeightKg) throw new InvalidOperationException("Weight capacity exceeded");
                 if (trip.CurrentLoadVolume + totalVolume > vehicle.MaxVolumeCbm) throw new InvalidOperationException("Volume capacity exceeded");
 
+                // ── Share the underlying Npgsql connection with ShipmentStateService ──
+                var dbConn = _repo.GetUnderlyingConnection();
+                var dbTxn = _repo.GetUnderlyingTransaction();
+
+                // ── Transition shipment statuses via State Machine ──
                 foreach (var s in shipments)
                 {
-                    if (s.Status == "Matched" || s.Status == "In_Transit")
-                        throw new InvalidOperationException($"Shipment {s.Id} cannot be accepted");
-
-                    s.Status = "Matched";
+                    await _shipmentStateService.TransitionAsync(
+                        s.Id,
+                        ShipmentStatus.Matched,
+                        connection: dbConn,
+                        transaction: dbTxn,
+                        performedBy: driverId,
+                        ct: ct);
                 }
+
+                // Update EF-tracked shipment entities so SaveChanges works
+                foreach (var s in shipments)
+                    s.Status = ShipmentStatus.Matched.ToString();
 
                 foreach (var ts in toAccept)
                 {
@@ -326,12 +358,12 @@ namespace HMS.Modules.Matching.Application.Services
                     ts.RespondedBy = driverId;
                 }
 
+                // ── REJECT does NOT change shipment status ──
+                // Shipments remain In_Warehouse. Only TripShipment.Status changes.
                 foreach (var s in shipments)
                 {
                     if (s.Status == "Matched" || s.Status == "In_Transit")
-                        throw new InvalidOperationException($"Shipment {s.Id} cannot be rejected");
-
-                    s.Status = "In_Warehouse";
+                        throw new InvalidOperationException($"Shipment {s.Id} cannot be rejected (already matched/in transit)");
                 }
 
                 await _repo.SaveChangesAsync(ct);

@@ -1,5 +1,8 @@
 using System.Security.Claims;
 using HMS.Modules.Warehouse.Application.DTOs;
+using HMS.Modules.Warehouse.Application.Services;
+using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -12,10 +15,12 @@ namespace HMS.Modules.Warehouse.Controllers;
 public class ShipmentsController : ControllerBase
 {
     private readonly IConfiguration _configuration;
+    private readonly IShipmentStateService _shipmentStateService;
 
-    public ShipmentsController(IConfiguration configuration)
+    public ShipmentsController(IConfiguration configuration, IShipmentStateService shipmentStateService)
     {
         _configuration = configuration;
+        _shipmentStateService = shipmentStateService;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -122,18 +127,18 @@ public class ShipmentsController : ControllerBase
             });
         }
 
-        // ── Update shipment ──
+        // ── Open connection to first check & then update ──
         await using var conn = new NpgsqlConnection(
             _configuration.GetConnectionString("DefaultConnection"));
 
         await conn.OpenAsync();
 
-        const string sql = """
+        // ── First: update weight/volume for intake ──
+        const string updateSql = """
             UPDATE warehouse.shipments
             SET
                 weight_kg = @actual_weight_kg,
                 volume_cbm = @actual_volume_cbm,
-                status = 'In_Warehouse',
                 current_hub_id = @hub_id,
                 intake_confirmed_by = @staff_id,
                 intake_confirmed_at = NOW(),
@@ -144,45 +149,62 @@ public class ShipmentsController : ControllerBase
             RETURNING id;
         """;
 
-        await using var cmd = new NpgsqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("id", id);
-        cmd.Parameters.AddWithValue("actual_weight_kg", request.ActualWeightKg);
-        cmd.Parameters.AddWithValue("actual_volume_cbm", request.ActualVolumeCbm);
-        cmd.Parameters.AddWithValue("hub_id", hubId);
-        cmd.Parameters.AddWithValue("staff_id", staffId);
-
-        var updatedId = await cmd.ExecuteScalarAsync();
-
-        if (updatedId == null)
+        await using (var cmd = new NpgsqlCommand(updateSql, conn))
         {
-            // Could be: not found, deleted, or wrong status
-            // Check if shipment exists to give a more specific error
-            const string checkSql = """
-                SELECT status, is_deleted
-                FROM warehouse.shipments
-                WHERE id = @id;
-            """;
-            await using var checkCmd = new NpgsqlCommand(checkSql, conn);
-            checkCmd.Parameters.AddWithValue("id", id);
+            cmd.Parameters.AddWithValue("id", id);
+            cmd.Parameters.AddWithValue("actual_weight_kg", request.ActualWeightKg);
+            cmd.Parameters.AddWithValue("actual_volume_cbm", request.ActualVolumeCbm);
+            cmd.Parameters.AddWithValue("hub_id", hubId);
+            cmd.Parameters.AddWithValue("staff_id", staffId);
 
-            await using var checkReader = await checkCmd.ExecuteReaderAsync();
+            var updatedId = await cmd.ExecuteScalarAsync();
 
-            if (!await checkReader.ReadAsync())
+            if (updatedId == null)
             {
-                return NotFound(new { message = "Không tìm thấy đơn hàng." });
+                // Check specific failure reason
+                const string checkSql = """
+                    SELECT status, is_deleted
+                    FROM warehouse.shipments
+                    WHERE id = @id;
+                """;
+                await using var checkCmd = new NpgsqlCommand(checkSql, conn);
+                checkCmd.Parameters.AddWithValue("id", id);
+
+                await using var checkReader = await checkCmd.ExecuteReaderAsync();
+
+                if (!await checkReader.ReadAsync())
+                {
+                    return NotFound(new { message = "Không tìm thấy đơn hàng." });
+                }
+
+                var isDeleted = checkReader.GetBoolean(1);
+                if (isDeleted)
+                {
+                    return NotFound(new { message = "Đơn hàng đã bị xóa." });
+                }
+
+                var currentStatus = checkReader.GetString(0);
+                return Conflict(new
+                {
+                    message = $"Chỉ đơn ở trạng thái Draft mới được nhập kho. Trạng thái hiện tại: {currentStatus}."
+                });
             }
+        }
 
-            var isDeleted = checkReader.GetBoolean(1);
-            if (isDeleted)
-            {
-                return NotFound(new { message = "Đơn hàng đã bị xóa." });
-            }
-
-            var currentStatus = checkReader.GetString(0);
-            return Conflict(new
-            {
-                message = $"Chỉ đơn ở trạng thái Draft mới được nhập kho. Trạng thái hiện tại: {currentStatus}."
-            });
+        // ── Transition: Draft → In_Warehouse via State Machine ──
+        try
+        {
+            await _shipmentStateService.TransitionAsync(
+                id,
+                ShipmentStatus.In_Warehouse,
+                connection: conn,
+                transaction: null,
+                performedBy: staffId,
+                ct: HttpContext.RequestAborted);
+        }
+        catch (HMS.Shared.Core.Exceptions.InvalidShipmentTransitionException ex)
+        {
+            return Conflict(new { message = ex.Message });
         }
 
         return Ok(new

@@ -20,6 +20,7 @@ using HMS.Modules.Transport.Channels;
 using HMS.Modules.Transport.Workers;
 using HMS.Modules.Warehouse.Application.Services;
 using HMS.Shared.Core.Interfaces;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using System.Text.Json.Serialization;
@@ -89,6 +90,14 @@ builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddTransportModule(builder.Configuration);
 
 builder.Services.AddScoped<IHubInventoryService, HubInventoryService>();
+
+// Shipment State Machine
+builder.Services.AddScoped<IShipmentStateService, ShipmentStateService>();
+builder.Services.AddScoped<HMS.Modules.Warehouse.Application.Services.PostgresWarehouseSchemaInitializer>();
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(HMS.Shared.Core.Events.ShipmentStatusChangedEvent).Assembly));
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(HMS.Modules.Warehouse.Application.Services.ShipmentStateService).Assembly));
 
 builder.Services.AddTelemetryModule();
 
@@ -162,6 +171,14 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var initializer = scope.ServiceProvider.GetRequiredService<IMatchingSpatialSchemaInitializer>();
     await initializer.InitializeAsync();
+}
+
+// Initialize warehouse schema (shipment_status_history)
+await using (var whScope = app.Services.CreateAsyncScope())
+{
+    var whInitializer = whScope.ServiceProvider
+        .GetRequiredService<HMS.Modules.Warehouse.Application.Services.PostgresWarehouseSchemaInitializer>();
+    await whInitializer.InitializeAsync();
 }
 
 // Configure the HTTP request pipeline.

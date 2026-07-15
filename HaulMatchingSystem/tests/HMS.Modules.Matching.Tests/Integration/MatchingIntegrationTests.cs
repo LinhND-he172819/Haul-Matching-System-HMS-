@@ -3,7 +3,7 @@ using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Modules.Matching.Infrastructure;
 using HMS.Modules.Matching.Infrastructure.Redis;
-using HMS.Modules.Realtime.Interfaces;
+using HMS.Shared.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 
@@ -41,8 +41,19 @@ namespace HMS.Modules.Matching.Tests.Integration
             dispatcherMock.Setup(d => d.BroadcastMatchingAcceptedAsync(It.IsAny<object>())).Returns(Task.CompletedTask);
             dispatcherMock.Setup(d => d.BroadcastMatchingRejectedAsync(It.IsAny<object>())).Returns(Task.CompletedTask);
             var loggerMock = new Mock<Microsoft.Extensions.Logging.ILogger<MatchingService>>();
+            var shipmentStateServiceMock = new Mock<IShipmentStateService>();
+            shipmentStateServiceMock
+                .Setup(s => s.TransitionAsync(
+                    It.IsAny<Guid>(),
+                    It.IsAny<HMS.Shared.Core.Enums.ShipmentStatus>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<Guid?>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Guid _, HMS.Shared.Core.Enums.ShipmentStatus to, object? _, object? _, Guid? _, string? _, CancellationToken _) => to);
 
-            var svc = new MatchingService(repo, redisMock.Object, dispatcherMock.Object, loggerMock.Object);
+            var svc = new MatchingService(repo, redisMock.Object, dispatcherMock.Object, shipmentStateServiceMock.Object, loggerMock.Object);
 
             // act
             await svc.AcceptAllAsync(trip.DriverId, CancellationToken.None);
