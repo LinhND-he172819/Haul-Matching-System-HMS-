@@ -1,0 +1,70 @@
+﻿Test run for C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Matching.Tests\bin\Debug\net8.0\HMS.Modules.Matching.Tests.dll (.NETCoreApp,Version=v8.0)
+Microsoft (R) Test Execution Command Line Tool Version 17.9.0 (x64)
+Copyright (c) Microsoft Corporation.  All rights reserved.
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+dotnet : [xUnit.net 00:00:00.55]     HMS.Modules.Matching.Tests.ProposalService
+Tests.AcceptAll_Success_AcceptsAllAndSendsNotification [FAIL]
+At line:1 char:1
++ dotnet test tests/HMS.Modules.Matching.Tests/HMS.Modules.Matching.Tes ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...fication [FAIL] 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Failed HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptAll_Success_AcceptsAllAndSendsNotification [209 ms]
+  Error Message:
+   System.NotSupportedException : Unsupported expression: t => t.Connection
+Non-overridable members (here: DbTransaction.get_Connection) may not be used in setup / verification expressions.
+  Stack Trace:
+     at Moq.Guard.IsOverridable(MethodInfo method, Expression expression) in /_/src/Moq/Guard.cs:line 99
+   at Moq.MethodExpectation..ctor(LambdaExpression expression, MethodInfo method, IReadOnlyList`1 arguments, Boolean exactGenericTypeArguments, Boolean skipMatcherInitialization, Boolean allowNonOverridable) in /_/src/Moq/MethodExpectation.cs:line 236
+   at Moq.ExpressionExtensions.<Split>g__Split|5_0(Expression e, Expression& r, MethodExpectation& p, Boolean assignment, Boolean allowNonOverridableLastProperty) in /_/src/Moq/ExpressionExtensions.cs:line 347
+   at Moq.ExpressionExtensions.Split(LambdaExpression expression, Boolean allowNonOverridableLastProperty) in /_/src/Moq/ExpressionExtensions.cs:line 170
+   at Moq.Mock.SetupRecursive[TSetup](Mock mock, LambdaExpression expression, Func`4 setupLast, Boolean allowNonOverridableLastProperty) in /_/src/Moq/Mock.cs:line 728
+   at Moq.Mock.Setup(Mock mock, LambdaExpression expression, Condition condition) in /_/src/Moq/Mock.cs:line 562
+   at Moq.Mock`1.Setup[TResult](Expression`1 expression) in /_/src/Moq/Mock`1.cs:line 645
+   at HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptAll_Success_AcceptsAllAndSendsNotification() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Matching.Tests\ProposalServiceTests.cs:line 618
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:00.74]     HMS.Modules.Matching.Tests.ProposalServiceTests.Cre
+ateProposal_Success_ReturnsResponseAndSendsSignalR [FAIL]
+  Failed HMS.Modules.Matching.Tests.ProposalServiceTests.CreateProposal_Success_ReturnsResponseAndSendsSignalR [28 ms]
+  Error Message:
+   System.InvalidOperationException : Ch├í┬╗ΓÇ░ h├í┬╗ΓÇö tr├í┬╗┬ú Pickup Mode DirectPickup cho ├äΓÇÿ├í┬╗┬ü xu├í┬║┬Ñt.
+  Stack Trace:
+     at HMS.Modules.Matching.Application.Services.ProposalService.CreateProposalAsync(Guid tripPostId, Guid customerId, CreateProposalRequest request, CancellationToken ct) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Matching\Application\Services\ProposalService.cs:line 78
+   at HMS.Modules.Matching.Tests.ProposalServiceTests.CreateProposal_Success_ReturnsResponseAndSendsSignalR() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Matching.Tests\ProposalServiceTests.cs:line 220
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:00.79]     HMS.Modules.Matching.Tests.ProposalServiceTests.Acc
+eptProposal_Success_TransitionsAndSendsNotifications [FAIL]
+[xUnit.net 00:00:00.81]     HMS.Modules.Matching.Tests.ProposalServiceTests.Acc
+eptProposal_ProposalNotForThisDriver_ThrowsUnauthorized [FAIL]
+  Failed HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptProposal_Success_TransitionsAndSendsNotifications [13 ms]
+  Error Message:
+   System.NotSupportedException : Unsupported expression: t => t.Connection
+Non-overridable members (here: DbTransaction.get_Connection) may not be used in setup / verification expressions.
+  Stack Trace:
+     at Moq.Guard.IsOverridable(MethodInfo method, Expression expression) in /_/src/Moq/Guard.cs:line 99
+   at Moq.MethodExpectation..ctor(LambdaExpression expression, MethodInfo method, IReadOnlyList`1 arguments, Boolean exactGenericTypeArguments, Boolean skipMatcherInitialization, Boolean allowNonOverridable) in /_/src/Moq/MethodExpectation.cs:line 236
+   at Moq.ExpressionExtensions.<Split>g__Split|5_0(Expression e, Expression& r, MethodExpectation& p, Boolean assignment, Boolean allowNonOverridableLastProperty) in /_/src/Moq/ExpressionExtensions.cs:line 347
+   at Moq.ExpressionExtensions.Split(LambdaExpression expression, Boolean allowNonOverridableLastProperty) in /_/src/Moq/ExpressionExtensions.cs:line 170
+   at Moq.Mock.SetupRecursive[TSetup](Mock mock, LambdaExpression expression, Func`4 setupLast, Boolean allowNonOverridableLastProperty) in /_/src/Moq/Mock.cs:line 728
+   at Moq.Mock.Setup(Mock mock, LambdaExpression expression, Condition condition) in /_/src/Moq/Mock.cs:line 562
+   at Moq.Mock`1.Setup[TResult](Expression`1 expression) in /_/src/Moq/Mock`1.cs:line 645
+   at HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptProposal_Success_TransitionsAndSendsNotifications() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Matching.Tests\ProposalServiceTests.cs:line 411
+--- End of stack trace from previous location ---
+  Failed HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptProposal_ProposalNotForThisDriver_ThrowsUnauthorized [16 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.UnauthorizedAccessException)
+Actual:   typeof(System.InvalidOperationException)
+---- System.InvalidOperationException : Trip Post kh├â┬┤ng c├â┬▓n m├í┬╗┼╕.
+  Stack Trace:
+     at HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptProposal_ProposalNotForThisDriver_ThrowsUnauthorized() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Matching.Tests\ProposalServiceTests.cs:line 312
+--- End of stack trace from previous location ---
+----- Inner Stack Trace -----
+   at HMS.Modules.Matching.Application.Services.ProposalService.AcceptProposalAsync(Guid proposalId, Guid driverId, CancellationToken ct) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Matching\Application\Services\ProposalService.cs:line 235
+   at HMS.Modules.Matching.Application.Services.ProposalService.AcceptProposalAsync(Guid proposalId, Guid driverId, CancellationToken ct) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Matching\Application\Services\ProposalService.cs:line 350
+
+Failed!  - Failed:     4, Passed:    22, Skipped:     0, Total:    26, Duration: 1 s - HMS.Modules.Matching.Tests.dll (net8.0)

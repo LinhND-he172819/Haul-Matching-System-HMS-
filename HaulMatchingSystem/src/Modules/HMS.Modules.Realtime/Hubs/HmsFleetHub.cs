@@ -31,6 +31,14 @@ namespace HMS.Modules.Realtime.Hubs
                     await Groups.AddToGroupAsync(Context.ConnectionId, $"Driver_{userId}");
                 }
             }
+            else if (userRole == "Customer")
+            {
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"Customer_{userId}");
+                }
+            }
 
             _logger.LogInformation($"[SignalR] Client kết nối: {Context.ConnectionId}");
             await base.OnConnectedAsync();

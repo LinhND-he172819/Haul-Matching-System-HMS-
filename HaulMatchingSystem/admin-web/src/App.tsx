@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import DashboardPage from './pages/DashboardPage';
-import MatchingSuggestionPage from './pages/MatchingSuggestionPage';
+import DriverProposalPage from './pages/DriverProposalPage';
 import CreateCustomerPage from './pages/CreateCustomerPage';
 import CreateDriverPage from './pages/CreateDriverPage';
 import CreateShipmentPage from './pages/CreateShipmentPage';
@@ -321,7 +321,7 @@ function App() {
       return <HomePage onNavigate={handleNavigate} onNewProposal={handleNewProposal} onLogout={handleLogout} />;
 
     case 'driver-portal':
-      return <MatchingSuggestionPage onLogout={handleLogout} />;
+      return <DriverProposalPage onLogout={handleLogout} />;
 
     case 'driver-trips':
       return <DriverTripsPage onLogout={handleLogout} />;
@@ -408,7 +408,7 @@ function App() {
         case 'hub-inventory':
           return <HubInventoryPage sidebar={renderSidebar()} />;
         case 'driver-portal':
-          return <MatchingSuggestionPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
+          return <DriverProposalPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'live-map':
           return <AdminLiveMapPage sidebar={renderSidebar()} />;
         default:

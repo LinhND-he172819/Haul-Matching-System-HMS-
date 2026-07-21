@@ -111,6 +111,8 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
+builder.Services.AddScoped<IProposalRepository, ProposalRepository>();
+builder.Services.AddScoped<IProposalService, ProposalService>();
 //builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
 builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
 builder.Services.AddScoped<
