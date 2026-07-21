@@ -1,10 +1,12 @@
 using HMS.Modules.Transport.API;
 using HMS.Modules.Transport.Application.Services;
+using HMS.Modules.Transport.Controllers;
 using HMS.Modules.Transport.Core.Interfaces;
 using HMS.Modules.Transport.Data;
 using HMS.Modules.Transport.Infrastructure.Repositories;
 using HMS.Modules.Transport.Infrastructure.Routing;
 using HMS.Modules.Transport.Infrastructure.Schema;
+using HMS.Modules.Transport.Workers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
@@ -31,7 +33,11 @@ public static class TransportModule
         services.AddScoped<ITripService, TripService>();
         services.AddScoped<ITripRoutePlanner, OsrmTripRoutePlanner>();
         services.AddScoped<IHubLocationRepository, PostgresHubLocationRepository>();
-        //services.AddSingleton<ITransportSchemaInitializer, PostgresTransportSchemaInitializer>();
+        services.AddSingleton<ITransportSchemaInitializer, PostgresTransportSchemaInitializer>();
+
+        // TripPost module
+        services.AddScoped<ITripPostRepository, PostgresTripPostRepository>();
+        services.AddScoped<ITripPostService, TripPostService>();
         services.AddHttpClient<IOsrmRouteClient, OsrmRouteClient>((serviceProvider, client) =>
         {
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
@@ -42,36 +48,18 @@ public static class TransportModule
             client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
         });
 
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(TransportModule).Assembly));
+
         return services;
     }
-    //public static IServiceCollection AddTransportModule(this IServiceCollection services)
-    //{
-    //    services.AddScoped<ITripRepository, PostgresTripRepository>();
-    //    services.AddScoped<ITripService, TripService>();
-    //    services.AddScoped<ITripRoutePlanner, OsrmTripRoutePlanner>();
-    //    services.AddScoped<IHubLocationRepository, PostgresHubLocationRepository>();
-    //    services.AddSingleton<ITransportSchemaInitializer, PostgresTransportSchemaInitializer>();
-    //    services.AddHttpClient<IOsrmRouteClient, OsrmRouteClient>((serviceProvider, client) =>
-    //    {
-    //        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-    //        var baseUrl = configuration.GetValue<string>("Osrm:BaseUrl") ?? "https://router.project-osrm.org";
-    //        var timeoutSeconds = configuration.GetValue("Osrm:TimeoutSeconds", 10);
-
-    //        client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-    //        client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-    //    });
-
-    //    return services;
-    //}
-
     public static async Task<WebApplication> InitializeTransportModuleAsync(
         this WebApplication app,
         CancellationToken cancellationToken = default)
     {
-        //await using var scope = app.Services.CreateAsyncScope();
-        //var initializer = scope.ServiceProvider.GetRequiredService<ITransportSchemaInitializer>();
+        await using var scope = app.Services.CreateAsyncScope();
+        var initializer = scope.ServiceProvider.GetRequiredService<ITransportSchemaInitializer>();
 
-        //await initializer.InitializeAsync(cancellationToken);
+        await initializer.InitializeAsync(cancellationToken);
 
         return app;
     }

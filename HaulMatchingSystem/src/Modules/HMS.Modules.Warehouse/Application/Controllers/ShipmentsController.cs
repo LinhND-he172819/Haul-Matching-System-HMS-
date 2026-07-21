@@ -1,9 +1,10 @@
+using System.Security.Claims;
 using HMS.Modules.Warehouse.Application.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using Microsoft.Extensions.Configuration;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
+
 namespace HMS.Modules.Warehouse.Controllers;
 
 [ApiController]
@@ -15,6 +16,183 @@ public class ShipmentsController : ControllerBase
     public ShipmentsController(IConfiguration configuration)
     {
         _configuration = configuration;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // GET /api/shipments/qr/{qrCode}
+    // Tìm shipment theo mã QR (dùng khi staff quét / nhập QR).
+    // ─────────────────────────────────────────────────────────────
+    [Authorize(Roles = "Admin,Warehouse_Staff")]
+    [HttpGet("qr/{qrCode}")]
+    public async Task<ActionResult<ShipmentQrLookupResponse>> GetByQrCode(string qrCode)
+    {
+        if (string.IsNullOrWhiteSpace(qrCode))
+            return BadRequest(new { message = "Mã QR không được để trống." });
+
+        var trimmed = qrCode.Trim();
+
+        await using var conn = new NpgsqlConnection(
+            _configuration.GetConnectionString("DefaultConnection"));
+
+        await conn.OpenAsync();
+
+        const string sql = """
+            SELECT
+                id,
+                qr_code,
+                cargo_type,
+                weight_kg,
+                volume_cbm,
+                receiver_name,
+                receiver_phone,
+                dest_address,
+                status,
+                special_handling_note
+            FROM warehouse.shipments
+            WHERE qr_code = @qr_code
+              AND is_deleted = FALSE
+            LIMIT 1;
+        """;
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("qr_code", trimmed);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+
+        if (!await reader.ReadAsync())
+        {
+            return NotFound(new { message = "Không tìm thấy đơn hàng theo mã QR." });
+        }
+
+        var response = new ShipmentQrLookupResponse
+        {
+            Id = reader.GetGuid(0),
+            QrCode = reader.GetString(1),
+            CargoType = reader.GetString(2),
+            WeightKg = reader.GetDecimal(3),
+            VolumeCbm = reader.GetDecimal(4),
+            ReceiverName = reader.GetString(5),
+            ReceiverPhone = reader.GetString(6),
+            DestAddress = reader.GetString(7),
+            Status = reader.GetString(8),
+            SpecialHandlingNote = reader.IsDBNull(9) ? null : reader.GetString(9)
+        };
+
+        return Ok(response);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // PUT /api/shipments/{id}/confirm-intake
+    // Xác nhận nhập kho – StaffId & HubId lấy từ JWT.
+    // ─────────────────────────────────────────────────────────────
+    [Authorize(Roles = "Admin,Warehouse_Staff")]
+    [HttpPut("{id:guid}/confirm-intake")]
+    public async Task<IActionResult> ConfirmIntake(
+        Guid id,
+        [FromBody] ConfirmIntakeRequest request)
+    {
+        // Validate actual measurements
+        if (request.ActualWeightKg <= 0 || request.ActualVolumeCbm <= 0)
+        {
+            return BadRequest(new
+            {
+                message = "Cân nặng và thể tích thực tế phải lớn hơn 0."
+            });
+        }
+
+        // ── Extract StaffId from JWT ──
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!Guid.TryParse(userIdClaim, out var staffId))
+        {
+            return Unauthorized(new
+            {
+                message = "Không xác định được nhân viên đăng nhập."
+            });
+        }
+
+        // ── Extract HubId from JWT ──
+        var hubClaim = User.FindFirst("HubId")?.Value;
+
+        if (!Guid.TryParse(hubClaim, out var hubId))
+        {
+            return BadRequest(new
+            {
+                message = "Tài khoản nhân viên chưa được gán Hub."
+            });
+        }
+
+        // ── Update shipment ──
+        await using var conn = new NpgsqlConnection(
+            _configuration.GetConnectionString("DefaultConnection"));
+
+        await conn.OpenAsync();
+
+        const string sql = """
+            UPDATE warehouse.shipments
+            SET
+                weight_kg = @actual_weight_kg,
+                volume_cbm = @actual_volume_cbm,
+                status = 'In_Warehouse',
+                current_hub_id = @hub_id,
+                intake_confirmed_by = @staff_id,
+                intake_confirmed_at = NOW(),
+                updated_at = NOW()
+            WHERE id = @id
+              AND status = 'Draft'
+              AND is_deleted = FALSE
+            RETURNING id;
+        """;
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("id", id);
+        cmd.Parameters.AddWithValue("actual_weight_kg", request.ActualWeightKg);
+        cmd.Parameters.AddWithValue("actual_volume_cbm", request.ActualVolumeCbm);
+        cmd.Parameters.AddWithValue("hub_id", hubId);
+        cmd.Parameters.AddWithValue("staff_id", staffId);
+
+        var updatedId = await cmd.ExecuteScalarAsync();
+
+        if (updatedId == null)
+        {
+            // Could be: not found, deleted, or wrong status
+            // Check if shipment exists to give a more specific error
+            const string checkSql = """
+                SELECT status, is_deleted
+                FROM warehouse.shipments
+                WHERE id = @id;
+            """;
+            await using var checkCmd = new NpgsqlCommand(checkSql, conn);
+            checkCmd.Parameters.AddWithValue("id", id);
+
+            await using var checkReader = await checkCmd.ExecuteReaderAsync();
+
+            if (!await checkReader.ReadAsync())
+            {
+                return NotFound(new { message = "Không tìm thấy đơn hàng." });
+            }
+
+            var isDeleted = checkReader.GetBoolean(1);
+            if (isDeleted)
+            {
+                return NotFound(new { message = "Đơn hàng đã bị xóa." });
+            }
+
+            var currentStatus = checkReader.GetString(0);
+            return Conflict(new
+            {
+                message = $"Chỉ đơn ở trạng thái Draft mới được nhập kho. Trạng thái hiện tại: {currentStatus}."
+            });
+        }
+
+        return Ok(new
+        {
+            message = "Nhập kho thành công.",
+            status = "In_Warehouse",
+            currentHubId = hubId.ToString(),
+            intakeConfirmedBy = staffId.ToString(),
+            intakeConfirmedAt = DateTimeOffset.UtcNow.ToString("o")
+        });
     }
 
     [HttpPost("draft")]
@@ -89,118 +267,6 @@ public class ShipmentsController : ControllerBase
             QrCode = reader.GetString(1),
             Status = reader.GetString(2),
             CreatedAt = reader.GetDateTime(3)
-        });
-    }
-
-    [HttpGet("qr/{qrCode}")]
-    public async Task<ActionResult<ShipmentQrLookupResponse>> GetByQrCode(string qrCode)
-    {
-        await using var conn = new NpgsqlConnection(
-            _configuration.GetConnectionString("DefaultConnection"));
-
-        await conn.OpenAsync();
-
-        const string sql = """
-        SELECT
-            id,
-            qr_code,
-            cargo_type,
-            weight_kg,
-            volume_cbm,
-            receiver_name,
-            receiver_phone,
-            dest_address,
-            status,
-            special_handling_note
-        FROM warehouse.shipments
-        WHERE qr_code = @qr_code
-          AND is_deleted = FALSE
-        LIMIT 1;
-    """;
-
-        await using var cmd = new NpgsqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("qr_code", qrCode);
-
-        await using var reader = await cmd.ExecuteReaderAsync();
-
-        if (!await reader.ReadAsync())
-            return NotFound("Không tìm thấy đơn hàng theo mã QR.");
-
-        return Ok(new ShipmentQrLookupResponse
-        {
-            Id = reader.GetGuid(0),
-            QrCode = reader.GetString(1),
-            CargoType = reader.GetString(2),
-            WeightKg = reader.GetDecimal(3),
-            VolumeCbm = reader.GetDecimal(4),
-            ReceiverName = reader.GetString(5),
-            ReceiverPhone = reader.GetString(6),
-            DestAddress = reader.GetString(7),
-            Status = reader.GetString(8),
-            SpecialHandlingNote = reader.IsDBNull(9) ? null : reader.GetString(9)
-        });
-    }
-
-    [Authorize]
-    [HttpPut("{id:guid}/confirm-intake")]
-    public async Task<IActionResult> ConfirmIntake(
-    Guid id,
-    [FromBody] ConfirmIntakeRequest request)
-    {
-        if (request.ActualWeightKg <= 0 || request.ActualVolumeCbm <= 0)
-            return BadRequest("Cân nặng và thể tích thực tế phải lớn hơn 0.");
-
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (!Guid.TryParse(userIdClaim, out var staffId))
-            return Unauthorized("Không xác định được nhân viên đăng nhập.");
-
-        var hubClaim = User.FindFirst("HubId")?.Value;
-
-        if (!Guid.TryParse(hubClaim, out var hubId))
-            return BadRequest("Tài khoản nhân viên chưa được gán Hub.");
-
-        await using var conn = new NpgsqlConnection(
-            _configuration.GetConnectionString("DefaultConnection"));
-
-        await conn.OpenAsync();
-
-        const string sql = """
-        UPDATE warehouse.shipments
-        SET
-            weight_kg = @actual_weight_kg,
-            volume_cbm = @actual_volume_cbm,
-            status = 'In_Warehouse',
-            current_hub_id = @hub_id,
-            intake_confirmed_by = @staff_id,
-            intake_confirmed_at = NOW(),
-            updated_at = NOW()
-        WHERE id = @id
-          AND status = 'Draft'
-          AND is_deleted = FALSE
-        RETURNING id;
-    """;
-
-        await using var cmd = new NpgsqlCommand(sql, conn);
-
-        cmd.Parameters.AddWithValue("id", id);
-        cmd.Parameters.AddWithValue("actual_weight_kg", request.ActualWeightKg);
-        cmd.Parameters.AddWithValue("actual_volume_cbm", request.ActualVolumeCbm);
-        cmd.Parameters.AddWithValue("hub_id", hubId);
-        cmd.Parameters.AddWithValue("staff_id", staffId);
-
-        var updatedId = await cmd.ExecuteScalarAsync();
-
-        if (updatedId is null)
-            return BadRequest("Chỉ đơn ở trạng thái Draft mới được nhập kho.");
-
-        return Ok(new
-        {
-            message = "Nhập kho thành công.",
-            status = "In_Warehouse",
-            currentHubId = hubId,
-            intakeConfirmedBy = staffId,
-            intakeConfirmedAt = DateTime.UtcNow
         });
     }
 }

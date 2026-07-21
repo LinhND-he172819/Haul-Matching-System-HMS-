@@ -13,15 +13,14 @@ export interface CreateUserPayload {
     fullName: string;
     phone: string;
     email: string;
-    passwordHash?: string; // We can hash on backend, so we send plain password as `password`
-    password?: string;
+    password: string;
     hubId?: string | null;
     role: string;
-    licensePlate?: string;
-    truckType?: string;
-    maxWeightKg?: number;
-    maxVolumeCbm?: number;
 }
+
+export type UpdateUserPayload = Omit<CreateUserPayload, 'password'> & {
+    password?: string;
+};
 
 export async function fetchHubs(): Promise<HubDto[]> {
     const res = await fetch(`${API_BASE}/api/identity/hubs`, { credentials: 'include' });
@@ -60,7 +59,7 @@ export interface UserDto {
     email?: string;
     phone?: string;
     role: string;
-    hubId?: string;
+    hubId?: string | null;
     createdAt: string;
     licensePlate?: string;
     truckType?: string;
@@ -84,7 +83,7 @@ export async function fetchUserById(id: string): Promise<UserDto> {
     return await res.json();
 }
 
-export async function updateUser(id: string, payload: CreateUserPayload): Promise<any> {
+export async function updateUser(id: string, payload: UpdateUserPayload): Promise<any> {
     const res = await fetch(`${API_BASE}/api/identity/users/${id}`, {
         method: 'PUT',
         credentials: 'include',

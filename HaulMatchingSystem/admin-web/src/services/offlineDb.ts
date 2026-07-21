@@ -25,4 +25,4 @@ export class HmsLocalDatabase extends Dexie {
   }
 }
 
-export const db = new HmsLocalDatabase();
+export const offlineDb = new HmsLocalDatabase();

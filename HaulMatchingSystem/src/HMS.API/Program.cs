@@ -9,19 +9,25 @@ using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Infrastructure;
 using HMS.Modules.Matching.Infrastructure.Redis;
+using HMS.Modules.Matching.Infrastructure.Schema;
 using HMS.Modules.Realtime.Hubs;
 using HMS.Modules.Realtime.Services;
 using HMS.Modules.Realtime.Workers;
-using HMS.Modules.Matching.Infrastructure.Schema;
+using HMS.Modules.Telemetry;
+using HMS.Modules.Telemetry.Endpoints;
 using HMS.Modules.Transport;
 using HMS.Modules.Transport.Channels;
 using HMS.Modules.Transport.Workers;
+using HMS.Modules.Warehouse.Application.Services;
 using HMS.Shared.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Kestrel to listen on all network interfaces 
+builder.WebHost.UseUrls("http://0.0.0.0:5104");
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -48,9 +54,15 @@ builder.Services.AddCors(options =>
 builder.Services.AddSignalR();
 
 // Add controllers
-builder.Services.AddControllers().AddJsonOptions(options =>
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(HMS.Modules.Transport.Controllers.TripPostsController).Assembly)
+    .AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 // FluentValidation
@@ -71,9 +83,14 @@ builder.Services.AddDbContext<IdentityDbContext>(opt => opt.UseNpgsql(conn));
 builder.Services.AddScoped<IIdentityDbContext>(provider =>
     provider.GetRequiredService<IdentityDbContext>()
 );
+// Modules registration
 builder.Services.AddIdentityModule(builder.Configuration);
 
 builder.Services.AddTransportModule(builder.Configuration);
+
+builder.Services.AddScoped<IHubInventoryService, HubInventoryService>();
+
+builder.Services.AddTelemetryModule();
 
 // Redis
 var redisConn = builder.Configuration.GetValue<string>("Redis:Connection") ?? "localhost:6379";
@@ -85,8 +102,8 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
-builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
-//builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
+//builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
+builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
 builder.Services.AddScoped<
     HMS.Shared.Core.Interfaces.IDashboardStatsProvider,
     HMS.Modules.Matching.Infrastructure.DashboardStatsProvider
@@ -119,6 +136,7 @@ builder.Services.AddHostedService<DashboardStatsWorker>();
 builder.Services.AddSingleton<GpsSyncChannel>();
 builder.Services.AddHostedService<WriteBehindGpsWorker>();
 builder.Services.AddHostedService<FleetMonitorWorker>();
+builder.Services.AddHostedService<TripPostExpiryWorker>();
 
 // Đăng ký NullSmsSender để mock SMS trong môi trường phát triển
 //builder.Services.AddScoped<ISmsSender, NullSmsSender>();
@@ -132,12 +150,18 @@ builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var identityDb = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+    HMS.API.DbInitializer.Initialize(identityDb);
+}
+
 await app.InitializeTransportModuleAsync();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
-    //var initializer = scope.ServiceProvider.GetRequiredService<IMatchingSpatialSchemaInitializer>();
-    //await initializer.InitializeAsync();
+    var initializer = scope.ServiceProvider.GetRequiredService<IMatchingSpatialSchemaInitializer>();
+    await initializer.InitializeAsync();
 }
 
 // Configure the HTTP request pipeline.
@@ -150,12 +174,14 @@ if (app.Environment.IsDevelopment())
 // Use exception middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Thứ tự chuẩn: 1. Https -> 2. Cors -> 3. Auth -> 4. Map Endpoints
 app.UseCors("SignalRPolicy");
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Kích hoạt CORS
-
+app.UseCors("SignalRPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -166,19 +192,7 @@ app.MapControllers();
 app.MapHub<HmsFleetHub>("/hub/fleet");
 app.MapTransportModule();
 
-// Seed default hubs if database hubs table is empty
-using (var scope = app.Services.CreateScope())
-{
-    try
-    {
-        var identityDb = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-        HMS.API.DbInitializer.Initialize(identityDb);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine("Lỗi khởi tạo database: " + ex.Message);
-    }
-}
+app.MapTraccarEndpoints();
 
 app.Run();
 

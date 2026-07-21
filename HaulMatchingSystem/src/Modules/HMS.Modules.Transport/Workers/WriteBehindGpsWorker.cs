@@ -52,7 +52,7 @@ namespace HMS.Modules.Transport.Workers
                     var existingKeys = existingKeysList.ToHashSet();
                     var logsToInsert = new List<GpsLog>();
 
-                    foreach (var req in batch)
+                    foreach (var req in uniqueIncomingRequests)
                     {
                         if (existingKeys.Contains(req.IdempotencyKey)) continue;
 

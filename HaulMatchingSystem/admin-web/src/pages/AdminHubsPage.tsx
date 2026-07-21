@@ -213,7 +213,7 @@ export default function AdminHubsPage() {
         setStatus('Ready');
         setMessage('Create a hub or select one to edit.');
     };
-
+    
     const buildPayload = (): HubPayload | null => {
         const latitudeValue = Number(form.latitude);
         const longitudeValue = Number(form.longitude);
@@ -304,14 +304,14 @@ export default function AdminHubsPage() {
             </header>
 
             <main className="mx-auto grid max-w-[1440px] grid-cols-1 gap-4 px-4 py-4 md:px-8 xl:grid-cols-[minmax(0,1fr)_480px]">
-                <section className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <section className="space-y-4 xl:contents">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:col-start-1 xl:row-start-1">
                         <MetricCard icon="hub" label="Active hubs" value={String(activeHubs)} />
                         <MetricCard icon="pin_drop" label="PostGIS points" value={String(activeHubs)} />
                         <MetricCard icon="travel_explore" label="Geocoder" value="Nominatim" />
                     </div>
 
-                    <section className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-card-padding card-shadow">
+                    <section className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-card-padding card-shadow xl:col-start-1 xl:row-start-2">
                         <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
                             <div>
                                 <h2 className="font-headline-md text-xl font-semibold text-on-surface">Hub Map</h2>
@@ -338,7 +338,7 @@ export default function AdminHubsPage() {
                         </div>
                     </section>
 
-                    <section className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-card-padding card-shadow">
+                    <section className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-card-padding card-shadow xl:col-span-2 xl:row-start-3">
                         <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
                             <div>
                                 <h2 className="font-headline-md text-xl font-semibold text-on-surface">Hub List</h2>
@@ -409,7 +409,7 @@ export default function AdminHubsPage() {
                     </section>
                 </section>
 
-                <aside className="space-y-4">
+                <aside className="space-y-4 xl:col-start-2 xl:row-span-2 xl:row-start-1">
                     <section className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-card-padding card-shadow">
                         <div className="mb-4 flex items-start justify-between gap-3">
                             <div>

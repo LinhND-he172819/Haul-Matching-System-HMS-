@@ -21,7 +21,9 @@ namespace HMS.Modules.Matching.Infrastructure
 
         public async Task<Trip?> GetActiveTripForDriverAsync(Guid driverId, CancellationToken ct)
         {
-            return await _db.Trips.FirstOrDefaultAsync(t => t.DriverId == driverId && t.Status == "Active", ct);
+            return await _db.Trips.FirstOrDefaultAsync(
+                t => t.DriverId == driverId && t.Status == "Active" && !t.IsDeleted,
+                ct);
         }
 
         public async Task<List<TripShipment>> GetSuggestedTripShipmentsAsync(Guid tripId, CancellationToken ct)
@@ -69,33 +71,33 @@ namespace HMS.Modules.Matching.Infrastructure
 
                 command.CommandText = """
                     SELECT
-                        s."Id",
-                        s."ReceiverName",
-                        s."ReceiverPhone",
-                        s."DestAddress",
-                        s."WeightKg",
-                        s."VolumeCbm",
-                        s."CargoType",
-                        s."SpecialHandlingNote",
-                        s."Status",
-                        ST_LineLocatePoint(tt.route_linestring, s.delivery_location) AS route_position,
-                        ST_Distance(tt.route_linestring::geography, s.delivery_location::geography) AS distance_meters
-                    FROM shipments s
+                        s.id,
+                        s.receiver_name,
+                        s.receiver_phone,
+                        s.dest_address,
+                        s.weight_kg,
+                        s.volume_cbm,
+                        s.cargo_type,
+                        s.special_handling_note,
+                        s.status,
+                        ST_LineLocatePoint(tt.route_linestring, s.dest_location::geometry) AS route_position,
+                        ST_Distance(tt.route_linestring::geography, s.dest_location) AS distance_meters
+                    FROM warehouse.shipments s
                     JOIN transport.trips tt ON tt.id = @trip_id
                     WHERE tt.is_deleted = FALSE
-                        AND s.delivery_location IS NOT NULL
-                        AND s."Status" = 'In_Warehouse'
-                        AND s."WeightKg" <= @remaining_weight_capacity
-                        AND s."VolumeCbm" <= @remaining_volume_capacity
+                        AND s.dest_location IS NOT NULL
+                        AND s.status = 'In_Warehouse'
+                        AND s.weight_kg <= @remaining_weight_capacity
+                        AND s.volume_cbm <= @remaining_volume_capacity
                         AND ST_DWithin(
                             tt.route_linestring::geography,
-                            s.delivery_location::geography,
+                            s.dest_location,
                             @route_buffer_meters)
                         AND NOT EXISTS (
                             SELECT 1
-                            FROM trip_shipments ts
-                            WHERE ts."ShipmentId" = s."Id"
-                                AND ts."Status" IN ('Suggested', 'Matched')
+                            FROM transport.trip_shipments ts
+                            WHERE ts.shipment_id = s.id
+                                AND ts.status IN ('Suggested', 'Matched')
                         )
                     ORDER BY route_position ASC, distance_meters ASC
                     LIMIT @limit;
@@ -114,15 +116,15 @@ namespace HMS.Modules.Matching.Infrastructure
                     {
                         Shipment = new Shipment
                         {
-                            Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                            ReceiverName = ReadNullableString(reader, "ReceiverName"),
-                            ReceiverPhone = ReadNullableString(reader, "ReceiverPhone"),
-                            DestAddress = ReadNullableString(reader, "DestAddress"),
-                            WeightKg = reader.GetDecimal(reader.GetOrdinal("WeightKg")),
-                            VolumeCbm = reader.GetDecimal(reader.GetOrdinal("VolumeCbm")),
-                            CargoType = ReadNullableString(reader, "CargoType"),
-                            SpecialHandlingNote = ReadNullableString(reader, "SpecialHandlingNote"),
-                            Status = ReadNullableString(reader, "Status")
+                            Id = reader.GetGuid(reader.GetOrdinal("id")),
+                            ReceiverName = ReadNullableString(reader, "receiver_name"),
+                            ReceiverPhone = ReadNullableString(reader, "receiver_phone"),
+                            DestAddress = ReadNullableString(reader, "dest_address"),
+                            WeightKg = reader.GetDecimal(reader.GetOrdinal("weight_kg")),
+                            VolumeCbm = reader.GetDecimal(reader.GetOrdinal("volume_cbm")),
+                            CargoType = ReadNullableString(reader, "cargo_type"),
+                            SpecialHandlingNote = ReadNullableString(reader, "special_handling_note"),
+                            Status = ReadNullableString(reader, "status")
                         },
                         RoutePosition = reader.GetDouble(reader.GetOrdinal("route_position")),
                         DistanceMeters = reader.GetDouble(reader.GetOrdinal("distance_meters"))

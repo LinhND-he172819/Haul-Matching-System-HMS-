@@ -1,12 +1,9 @@
-using HMS.Modules.Identity.Core.Entities;
-using HMS.Modules.Identity.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using Microsoft.EntityFrameworkCore;
-using Vehicle = HMS.Modules.Matching.Core.Models.Vehicle;
 
 namespace HMS.Modules.Matching.Infrastructure
 {
-    public class MatchingDbContext : DbContext, IIdentityDbContext
+    public class MatchingDbContext : DbContext
     {
         public MatchingDbContext(DbContextOptions<MatchingDbContext> options)
             : base(options) { }
@@ -15,8 +12,6 @@ namespace HMS.Modules.Matching.Infrastructure
         public DbSet<Vehicle> Vehicles { get; set; } = null!;
         public DbSet<Shipment> Shipments { get; set; } = null!;
         public DbSet<TripShipment> TripShipments { get; set; } = null!;
-        public DbSet<Hub> Hubs { get; set; }
-        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -25,7 +20,7 @@ namespace HMS.Modules.Matching.Infrastructure
             modelBuilder.Entity<Trip>(b =>
             {
                 b.ToTable("trips", "transport");
-                b.Property(p => p.Version).IsRowVersion();
+                b.Property(p => p.Version).IsConcurrencyToken();
                 b.HasIndex(p => p.DriverId);
                 b.HasIndex(p => p.VehicleId);
                 b.HasOne<Vehicle>()
@@ -34,7 +29,7 @@ namespace HMS.Modules.Matching.Infrastructure
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            modelBuilder.Entity<Vehicle>(b => b.ToTable("vehicles", "identity"));
+            modelBuilder.Entity<Vehicle>(b => b.ToTable("vehicles", "transport"));
             modelBuilder.Entity<Shipment>(b => b.ToTable("shipments", "warehouse"));
 
             modelBuilder.Entity<TripShipment>(b =>

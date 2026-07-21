@@ -28,35 +28,79 @@ export default function DashboardPage({ sidebar }: DashboardPageProps) {
     });
     const [connectionStatus, setConnectionStatus] = useState<string>('Đang kết nối...');
 
+    const isExpiringSoon = (token: string) => {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        const exp = payload.exp * 1000;
+        return Date.now() > exp - 60000;
+    };
+
+    const refreshToken = async () => {
+    const accessToken = localStorage.getItem("accessToken");
+    const refreshToken = localStorage.getItem("refreshToken");
+
+    const response = await fetch(`${apiBaseUrl}/api/auth/refresh-token`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            accessToken,
+            refreshToken
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error("Refresh token failed");
+    }
+
+    const data = await response.json();
+
+    localStorage.setItem("accessToken", data.accessToken);
+    localStorage.setItem("refreshToken", data.refreshToken);
+
+    return data.accessToken;
+};
+
     useEffect(() => {
+    const startConnection = async () => {
+
+        let token = localStorage.getItem("accessToken");
+
+        if (!token) {
+            setConnectionStatus("No token");
+            return;
+        }
+
+        if (isExpiringSoon(token)) {
+            token = await refreshToken(); // gọi API backend
+        }
+
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl((import.meta.env.VITE_API_URL ?? "https://localhost:7059") + "/hub/fleet", {
-                accessTokenFactory: () => {
-                const token = localStorage.getItem("jwt_token");
-                return token || "";
-            }
+            .withUrl(`${apiBaseUrl}/hub/fleet`, {
+                accessTokenFactory: () => localStorage.getItem("accessToken") || ""
             })
             .withAutomaticReconnect()
-            .configureLogging(signalR.LogLevel.Warning)
             .build();
 
-        connection.on("ReceiveAdminStats", (data: AdminStats) => {
+        connection.on("ReceiveAdminStats", (data) => {
             setStats(data);
         });
 
-        const startConnection = async () => {
-            try {
-                await connection.start();
-                setConnectionStatus('Connected');
-            } catch (err) {
-                console.error("Lỗi kết nối:", err);
-                setConnectionStatus('Lỗi kết nối');
-            }
-        };
+        try {
+            await connection.start();
+            setConnectionStatus("Connected");
+        } catch (err) {
+            console.error(err);
+            setConnectionStatus("Lỗi kết nối");
+        }
+    };
 
-        startConnection();
-        return () => { connection.stop(); };
-    }, []);
+    startConnection();
+
+    return () => {};
+}, []);
+
+
 
     const formattedTime = stats ? new Date(stats.lastUpdated).toLocaleTimeString('vi-VN') : '--:--:--';
 

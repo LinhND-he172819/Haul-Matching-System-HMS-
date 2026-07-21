@@ -1,6 +1,6 @@
 namespace HMS.Modules.Warehouse.Application.DTOs;
 
-public class ShipmentQrLookupResponse
+public sealed class ShipmentQrLookupResponse
 {
     public Guid Id { get; set; }
     public string QrCode { get; set; } = string.Empty;
@@ -12,10 +12,4 @@ public class ShipmentQrLookupResponse
     public string DestAddress { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? SpecialHandlingNote { get; set; }
-}
-
-public class ConfirmIntakeRequest
-{
-    public decimal ActualWeightKg { get; set; }
-    public decimal ActualVolumeCbm { get; set; }
 }
