@@ -24,7 +24,6 @@ public class ShipmentTransitionGuardTests
     }
 
     [Theory]
-    [InlineData(ShipmentStatus.Matched)]
     [InlineData(ShipmentStatus.In_Transit)]
     [InlineData(ShipmentStatus.Delivered)]
     [InlineData(ShipmentStatus.Delivery_Failed)]
@@ -252,6 +251,7 @@ public class ShipmentTransitionGuardTests
     [Theory]
     [InlineData(ShipmentStatus.Draft, ShipmentStatus.In_Warehouse)]
     [InlineData(ShipmentStatus.Draft, ShipmentStatus.Cancelled)]
+    [InlineData(ShipmentStatus.Draft, ShipmentStatus.Matched)]
     [InlineData(ShipmentStatus.In_Warehouse, ShipmentStatus.Matched)]
     [InlineData(ShipmentStatus.In_Warehouse, ShipmentStatus.Cancelled)]
     [InlineData(ShipmentStatus.Matched, ShipmentStatus.In_Transit)]
@@ -278,7 +278,6 @@ public class ShipmentTransitionGuardTests
     #region EnsureCanTransition — invalid transitions throw
 
     [Theory]
-    [InlineData(ShipmentStatus.Draft, ShipmentStatus.Matched)]
     [InlineData(ShipmentStatus.Draft, ShipmentStatus.In_Transit)]
     [InlineData(ShipmentStatus.Draft, ShipmentStatus.Delivered)]
     [InlineData(ShipmentStatus.In_Warehouse, ShipmentStatus.Draft)]
@@ -320,12 +319,13 @@ public class ShipmentTransitionGuardTests
     #region GetAllowedTransitions
 
     [Fact]
-    public void GetAllowedTransitions_Draft_ReturnsTwo()
+    public void GetAllowedTransitions_Draft_ReturnsThree()
     {
         var allowed = ShipmentTransitionGuard.GetAllowedTransitions(ShipmentStatus.Draft);
-        Assert.Equal(2, allowed.Count);
+        Assert.Equal(3, allowed.Count);
         Assert.Contains(ShipmentStatus.In_Warehouse, allowed);
         Assert.Contains(ShipmentStatus.Cancelled, allowed);
+        Assert.Contains(ShipmentStatus.Matched, allowed);
     }
 
     [Fact]

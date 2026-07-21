@@ -60,6 +60,7 @@ export interface TripPostListItem {
     acceptUntil: string;
     publishedAt: string | null;
     createdByName: string;
+    pickupMode: string; // "Hub" | "DirectPickup"
 }
 
 export interface TripPostDetail {
@@ -115,6 +116,7 @@ export interface CreateTripPostPayload {
     tripId: string;
     description?: string;
     acceptUntil: string;
+    pickupMode?: string; // "Hub" | "DirectPickup"
 }
 
 export interface UpdateTripPostPayload {
@@ -141,6 +143,36 @@ export interface TripPostFilterParams {
 export interface Hub {
     id: string;
     name: string;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Public API types (for Customer-facing marketplace)                 */
+/* ------------------------------------------------------------------ */
+
+export interface PublicTripPost {
+    id: string;
+    title: string;
+    description: string | null;
+    originHubName: string;
+    destinationHubName: string;
+    departureTime: string | null;
+    acceptUntil: string;
+    remainingWeightKg: number;
+    remainingVolumeCbm: number;
+    truckType: string;
+    licensePlate: string;
+    driverName: string;
+    pickupMode: string; // "Hub" | "DirectPickup"
+}
+
+export interface PublicTripPostFilterParams {
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+    originHubId?: string;
+    destinationHubId?: string;
+    departureFrom?: string;
+    departureTo?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -224,5 +256,24 @@ export async function fetchTripPostKpi(): Promise<TripPostKpi> {
 export async function fetchHubs(): Promise<Hub[]> {
     const res = await authFetch(`${API_BASE}/api/hubs`);
     if (!res.ok) throw new Error(await readApiError(res, 'Không thể tải danh sách Hub.'));
+    return res.json();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Public API (Customer-facing marketplace)                           */
+/* ------------------------------------------------------------------ */
+
+export async function fetchPublicTripPosts(params: PublicTripPostFilterParams = {}): Promise<PagedResult<PublicTripPost>> {
+    const url = new URL(`${API_BASE}/api/trip-posts/public`);
+    if (params.page) url.searchParams.set('page', String(params.page));
+    if (params.pageSize) url.searchParams.set('pageSize', String(params.pageSize));
+    if (params.keyword) url.searchParams.set('keyword', params.keyword);
+    if (params.originHubId) url.searchParams.set('originHubId', params.originHubId);
+    if (params.destinationHubId) url.searchParams.set('destinationHubId', params.destinationHubId);
+    if (params.departureFrom) url.searchParams.set('departureFrom', params.departureFrom);
+    if (params.departureTo) url.searchParams.set('departureTo', params.departureTo);
+
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error(await readApiError(res, 'Không thể tải danh sách chuyến xe.'));
     return res.json();
 }

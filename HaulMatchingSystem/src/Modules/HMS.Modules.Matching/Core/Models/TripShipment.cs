@@ -22,6 +22,9 @@ namespace HMS.Modules.Matching.Core.Models
         [Column("status")]
         public string? Status { get; set; }
 
+        [Column("message")]
+        public string? Message { get; set; }
+
         [Column("suggested_at")]
         public DateTime? SuggestedAt { get; set; }
 
@@ -30,5 +33,30 @@ namespace HMS.Modules.Matching.Core.Models
 
         [Column("responded_by")]
         public Guid? RespondedBy { get; set; }
+
+        // ── Proposal lifecycle fields ──
+        [Column("accepted_at")]
+        public DateTime? AcceptedAt { get; set; }
+
+        [Column("accepted_by")]
+        public Guid? AcceptedBy { get; set; }
+
+        [Column("rejected_at")]
+        public DateTime? RejectedAt { get; set; }
+
+        [Column("rejected_by")]
+        public Guid? RejectedBy { get; set; }
+
+        [Column("reject_reason")]
+        public string? RejectReason { get; set; }
+
+        [Column("cancelled_at")]
+        public DateTime? CancelledAt { get; set; }
+
+        [Column("cancelled_by")]
+        public Guid? CancelledBy { get; set; }
+
+        [Column("expired_at")]
+        public DateTime? ExpiredAt { get; set; }
     }
 }

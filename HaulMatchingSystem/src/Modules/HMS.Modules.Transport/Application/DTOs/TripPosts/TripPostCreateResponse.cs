@@ -5,4 +5,5 @@ public sealed record TripPostCreateResponse(
     Guid TripId,
     string Title,
     string Status,
+    string PickupMode,
     string Message);

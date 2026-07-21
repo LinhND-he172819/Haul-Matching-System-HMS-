@@ -14,6 +14,7 @@ public static class ShipmentTransitionGuard
             [ShipmentStatus.Draft] = new HashSet<ShipmentStatus>
             {
                 ShipmentStatus.In_Warehouse,
+                ShipmentStatus.Matched,   // DirectPickup: Draft → Matched
                 ShipmentStatus.Cancelled
             },
             [ShipmentStatus.In_Warehouse] = new HashSet<ShipmentStatus>

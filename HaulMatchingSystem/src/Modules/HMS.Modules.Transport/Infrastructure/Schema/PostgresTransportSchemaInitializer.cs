@@ -166,11 +166,21 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
                 transferred_from_trip_id uuid NULL REFERENCES transport.trips(id),
                 delivery_sequence integer NOT NULL,
                 status text NOT NULL,
+                message text NULL,
                 suggested_at timestamptz NOT NULL DEFAULT now(),
+                accepted_at timestamptz NULL,
+                accepted_by uuid NULL REFERENCES identity.users(id),
+                rejected_at timestamptz NULL,
+                rejected_by uuid NULL REFERENCES identity.users(id),
+                reject_reason text NULL,
+                cancelled_at timestamptz NULL,
+                cancelled_by uuid NULL REFERENCES identity.users(id),
+                expired_at timestamptz NULL,
                 responded_at timestamptz NULL,
                 responded_by uuid NULL REFERENCES identity.users(id),
                 created_at timestamptz NOT NULL DEFAULT now(),
-                updated_at timestamptz NOT NULL DEFAULT now()
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                is_deleted boolean NOT NULL DEFAULT FALSE
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS ux_transport_active_trip_shipment
@@ -215,12 +225,14 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
                 description text NULL,
                 accept_until timestamptz NOT NULL,
                 status varchar(30) NOT NULL DEFAULT 'Open',
+                pickup_mode varchar(20) NOT NULL DEFAULT 'DirectPickup',
                 published_at timestamptz NULL,
                 closed_at timestamptz NULL,
                 created_at timestamptz NOT NULL DEFAULT now(),
                 updated_at timestamptz NOT NULL DEFAULT now(),
                 is_deleted boolean NOT NULL DEFAULT FALSE,
-                CONSTRAINT ck_transport_trip_posts_status CHECK (status IN ('Open', 'Closed', 'Expired', 'Cancelled'))
+                CONSTRAINT ck_transport_trip_posts_status CHECK (status IN ('Open', 'Closed', 'Expired', 'Cancelled')),
+                CONSTRAINT ck_transport_trip_posts_pickup_mode CHECK (pickup_mode IN ('Hub', 'DirectPickup'))
             );
 
             CREATE INDEX IF NOT EXISTS ix_transport_trip_posts_trip_id
@@ -238,6 +250,40 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
             CREATE UNIQUE INDEX IF NOT EXISTS ux_transport_trip_posts_open_per_trip
                 ON transport.trip_posts (trip_id)
                 WHERE status = 'Open' AND is_deleted = FALSE;
+
+            -- ── Migration: add columns to existing tables ──
+            ALTER TABLE transport.trip_posts
+                ADD COLUMN IF NOT EXISTS pickup_mode varchar(20) NOT NULL DEFAULT 'DirectPickup';
+
+            ALTER TABLE transport.trip_shipments
+                ADD COLUMN IF NOT EXISTS message text NULL;
+
+            ALTER TABLE transport.trip_shipments
+                ADD COLUMN IF NOT EXISTS accepted_at timestamptz NULL;
+
+            ALTER TABLE transport.trip_shipments
+                ADD COLUMN IF NOT EXISTS accepted_by uuid NULL REFERENCES identity.users(id);
+
+            ALTER TABLE transport.trip_shipments
+                ADD COLUMN IF NOT EXISTS rejected_at timestamptz NULL;
+
+            ALTER TABLE transport.trip_shipments
+                ADD COLUMN IF NOT EXISTS rejected_by uuid NULL REFERENCES identity.users(id);
+
+            ALTER TABLE transport.trip_shipments
+                ADD COLUMN IF NOT EXISTS reject_reason text NULL;
+
+            ALTER TABLE transport.trip_shipments
+                ADD COLUMN IF NOT EXISTS cancelled_at timestamptz NULL;
+
+            ALTER TABLE transport.trip_shipments
+                ADD COLUMN IF NOT EXISTS cancelled_by uuid NULL REFERENCES identity.users(id);
+
+            ALTER TABLE transport.trip_shipments
+                ADD COLUMN IF NOT EXISTS expired_at timestamptz NULL;
+
+            ALTER TABLE transport.trip_shipments
+                ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT FALSE;
             """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);

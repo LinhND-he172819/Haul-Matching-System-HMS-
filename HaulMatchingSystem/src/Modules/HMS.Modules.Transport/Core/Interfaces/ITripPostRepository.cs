@@ -25,6 +25,7 @@ public sealed class TripPostRecord
     public string? Description { get; set; }
     public DateTimeOffset AcceptUntil { get; set; }
     public string Status { get; set; } = null!;
+    public string PickupMode { get; set; } = "Hub";  // "Hub" or "DirectPickup"
     public DateTimeOffset? PublishedAt { get; set; }
     public DateTimeOffset? ClosedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

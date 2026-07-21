@@ -155,6 +155,7 @@ public sealed class TripPostService : ITripPostService
         var title = GenerateTitle(originHub.Name, destHub.Name, vehicle.LicensePlate, remainingWeight, remainingVolume);
 
         var now = DateTimeOffset.UtcNow;
+        var pickupMode = string.Equals(request.PickupMode, "Hub", StringComparison.OrdinalIgnoreCase) ? "Hub" : "DirectPickup";
         var post = new TripPostRecord
         {
             Id = Guid.NewGuid(),
@@ -164,6 +165,7 @@ public sealed class TripPostService : ITripPostService
             Description = request.Description,
             AcceptUntil = request.AcceptUntil,
             Status = "Open",
+            PickupMode = pickupMode,
             PublishedAt = now,
             CreatedAt = now,
             UpdatedAt = now,
@@ -176,6 +178,7 @@ public sealed class TripPostService : ITripPostService
             TripId: request.TripId,
             Title: title,
             Status: "Open",
+            PickupMode: post.PickupMode,
             Message: "Đăng bài chuyến xe thành công.");
     }
 

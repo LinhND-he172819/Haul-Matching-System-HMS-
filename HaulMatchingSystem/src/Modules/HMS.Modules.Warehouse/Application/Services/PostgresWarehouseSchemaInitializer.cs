@@ -37,6 +37,12 @@ public sealed class PostgresWarehouseSchemaInitializer
                 id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                 qr_code                 text NOT NULL,
                 customer_id             uuid,
+                sender_name             text,
+                sender_phone            text,
+                pickup_address          text,
+                pickup_latitude         double precision,
+                pickup_longitude        double precision,
+                pickup_note             text,
                 receiver_name           text,
                 receiver_phone          text,
                 dest_address            text,
@@ -51,6 +57,8 @@ public sealed class PostgresWarehouseSchemaInitializer
                 current_hub_id          uuid,
                 intake_confirmed_by     uuid,
                 intake_confirmed_at     timestamptz,
+                picked_up_by            uuid,
+                picked_up_at            timestamptz,
                 created_at              timestamptz NOT NULL DEFAULT now(),
                 updated_at              timestamptz NOT NULL DEFAULT now(),
                 is_deleted              boolean NOT NULL DEFAULT FALSE
@@ -103,6 +111,37 @@ public sealed class PostgresWarehouseSchemaInitializer
         await using (var cmd = new NpgsqlCommand(createHistoryTable, conn))
         {
             await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        // ── Migration: add columns to existing shipments table ──
+        const string migrationSql = """
+            ALTER TABLE warehouse.shipments
+                ADD COLUMN IF NOT EXISTS sender_name text;
+
+            ALTER TABLE warehouse.shipments
+                ADD COLUMN IF NOT EXISTS sender_phone text;
+
+            ALTER TABLE warehouse.shipments
+                ADD COLUMN IF NOT EXISTS pickup_address text;
+
+            ALTER TABLE warehouse.shipments
+                ADD COLUMN IF NOT EXISTS pickup_latitude double precision;
+
+            ALTER TABLE warehouse.shipments
+                ADD COLUMN IF NOT EXISTS pickup_longitude double precision;
+
+            ALTER TABLE warehouse.shipments
+                ADD COLUMN IF NOT EXISTS pickup_note text;
+
+            ALTER TABLE warehouse.shipments
+                ADD COLUMN IF NOT EXISTS picked_up_by uuid;
+
+            ALTER TABLE warehouse.shipments
+                ADD COLUMN IF NOT EXISTS picked_up_at timestamptz;
+        """;
+        await using (var migCmd = new NpgsqlCommand(migrationSql, conn))
+        {
+            await migCmd.ExecuteNonQueryAsync(ct);
         }
 
         _logger.LogInformation("Warehouse schema and shipment_status_history initialized.");
