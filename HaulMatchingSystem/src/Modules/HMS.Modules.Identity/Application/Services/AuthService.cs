@@ -123,6 +123,7 @@ namespace HMS.Modules.Identity.Application.Services
             var otp = GenerateOtp();
             _cache.Set("OTP_LOGIN_" + request.Phone, otp, TimeSpan.FromMinutes(3));
             Console.WriteLine($"[OTP LOGIN] Gửi OTP {otp} đến số điện thoại {request.Phone}");
+            // await _smsService.SendSmsAsync(request.Phone, $"Ma OTP dang nhap cua ban la: {otp}. Ma co hieu luc trong 3 phut.");
         }
 
         public async Task<AuthResponse?> VerifyLoginOtpAsync(VerifyLoginOtpRequest request)

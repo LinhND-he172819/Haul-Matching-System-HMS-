@@ -12,6 +12,8 @@ import AdminLiveMapPage from './pages/AdminLiveMapPage';
 import AdminHubsPage from './pages/AdminHubsPage';
 import AdminTripsPage from './pages/AdminTripsPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
+import HubIntakePage from './pages/HubIntakePage';
+import ProfilePage from './pages/ProfilePage';
 import HubInventoryPage from './pages/HubInventoryPage';
 import TripPostManagementPage from './pages/TripPostManagementPage';
 
@@ -22,7 +24,8 @@ type Page =
   | 'create-shipment'
   | 'driver-portal'
   | 'driver-trips'
-  | 'admin';
+  | 'admin'
+  | 'profile';
 type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hub-inventory' | 'hubs' | 'trip-posts';
 
 function App() {
@@ -30,12 +33,15 @@ function App() {
     const token = localStorage.getItem('accessToken');
     if (!token) return 'login';
     const role = localStorage.getItem('role');
-    if (role === 'Admin') return 'admin';
+    if (role === 'Admin' || role === 'Warehouse_Staff') return 'admin';
     if (role === 'Driver') return 'driver-portal';
     return 'home';
   });
 
-  const [adminTab, setAdminTab] = useState<AdminTab>('dashboard');
+  const [adminTab, setAdminTab] = useState<AdminTab>(() => {
+    const role = localStorage.getItem('role');
+    return role === 'Warehouse_Staff' ? 'hub-intake' : 'dashboard';
+  });
 
   // Proposal mode state (when creating proposal from Trip Marketplace)
   const [proposalTripPostId, setProposalTripPostId] = useState<string | null>(null);
@@ -54,7 +60,7 @@ function App() {
     } else {
       // Role checking and redirection
       if (currentPage === 'login' || currentPage === 'register') {
-        if (role === 'Admin') {
+        if (role === 'Admin' || role === 'Warehouse_Staff') {
           setCurrentPage('admin');
         } else if (role === 'Driver') {
           setCurrentPage('driver-portal');
@@ -65,7 +71,9 @@ function App() {
     }
   }, [currentPage]);
 
-  const handleNavigate = (targetPage: 'login' | 'register' | 'home' | 'create-shipment') => {
+  const handleNavigate = (
+    targetPage: 'login' | 'register' | 'home' | 'create-shipment' | 'profile'
+  ) => {
     if (targetPage === 'login') {
       setCurrentPage('login');
     } else if (targetPage === 'register') {
@@ -88,10 +96,20 @@ function App() {
       } else if (role === 'Admin') {
         setCurrentPage('admin');
         setAdminTab('dashboard');
+      } else if (role === 'Warehouse_Staff') {
+        setCurrentPage('admin');
+        setAdminTab('hub-intake');
       } else if (role === 'Driver') {
         setCurrentPage('driver-portal');
       } else {
         setCurrentPage('home');
+      }
+    } else if (targetPage === 'profile') {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setCurrentPage('login');
+      } else {
+        setCurrentPage('profile');
       }
     }
   };
@@ -219,6 +237,18 @@ function App() {
           <span className="text-label-lg font-bold">Quản lý Xe</span>
         </button>
 
+        <button
+          onClick={() => setAdminTab('hub-intake')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+            adminTab === 'hub-intake'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">input</span>
+          <span className="text-label-lg font-bold">Nhập Hàng (Hub)</span>
+        </button>
+
         <button 
           onClick={() => setAdminTab('create-shipment')} 
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
@@ -336,6 +366,9 @@ function App() {
         />
       );
 
+    case 'profile':
+      return <ProfilePage onNavigate={handleNavigate} onLogout={handleLogout} />;
+
     case 'admin':
       if (role !== 'Admin') {
         // Enforce admin permission restriction
@@ -390,6 +423,8 @@ function App() {
               </div>
             </div>
           );
+        case 'hub-intake':
+          return <HubIntakePage sidebar={renderSidebar()} />;
         case 'create-shipment':
           return (
             <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
@@ -404,7 +439,7 @@ function App() {
         case 'admin-trips':
           return <AdminTripsPage sidebar={renderSidebar()} />;
         case 'trip-posts':
-          return <TripPostManagementPage sidebar={renderSidebar()} />;
+          return <TripPostManagementPage />;
         case 'hub-inventory':
           return <HubInventoryPage sidebar={renderSidebar()} />;
         case 'driver-portal':

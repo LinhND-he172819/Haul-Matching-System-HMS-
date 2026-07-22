@@ -11,6 +11,7 @@ namespace HMS.Modules.Identity.Infrastructure
 
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Hub> Hubs { get; set; } = null!;
+        public DbSet<Vehicle> Vehicles { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -39,14 +39,28 @@ export default function HomePage({ onNavigate, onNewProposal, onLogout }: HomePa
 
     // Load user name
     useEffect(() => {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-            const payload = decodeJWT(token);
-            if (payload) {
-                const name = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
-                if (name) setFullName(name);
+        const loadName = () => {
+            const localName = localStorage.getItem('fullName');
+            if (localName) {
+                setFullName(localName);
+                return;
             }
-        }
+
+            const token = localStorage.getItem('accessToken');
+            if (token) {
+                const payload = decodeJWT(token);
+                if (payload) {
+                    const name = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
+                    if (name) {
+                        setFullName(name);
+                    }
+                }
+            }
+        };
+
+        loadName();
+        window.addEventListener('profileUpdated', loadName);
+        return () => window.removeEventListener('profileUpdated', loadName);
     }, []);
 
     // Fetch trips from public API
@@ -147,9 +161,13 @@ export default function HomePage({ onNavigate, onNewProposal, onLogout }: HomePa
                             <span className="material-symbols-outlined text-[24px]">logout</span>
                         </button>
                     )}
-                    <div className="flex items-center gap-2 bg-gray-50 pl-2 pr-4 py-1.5 rounded-full border border-gray-200 cursor-pointer">
-                        <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm">
-                            {fullName.charAt(0).toUpperCase()}
+                    <div 
+                        className="flex items-center gap-2 bg-gray-50 pl-2 pr-4 py-1.5 rounded-full border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => _onNavigate('profile' as any)}
+                        title="Hồ sơ cá nhân"
+                    >
+                        <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm uppercase">
+                            {fullName.charAt(0)}
                         </div>
                         <span className="text-gray-700 font-medium text-sm hidden sm:block">{fullName}</span>
                     </div>

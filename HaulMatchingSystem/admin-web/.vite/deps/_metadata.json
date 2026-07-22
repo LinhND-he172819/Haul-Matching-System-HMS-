@@ -2,7 +2,49 @@
   "hash": "dd409941",
   "configHash": "20684ff1",
   "lockfileHash": "ad29c1bd",
-  "browserHash": "b64ce142",
-  "optimized": {},
-  "chunks": {}
+  "browserHash": "e48d3450",
+  "optimized": {
+    "@microsoft/signalr": {
+      "src": "../../node_modules/@microsoft/signalr/dist/esm/index.js",
+      "file": "@microsoft_signalr.js",
+      "fileHash": "24d61c04",
+      "needsInterop": false
+    },
+    "leaflet": {
+      "src": "../../node_modules/leaflet/dist/leaflet-src.js",
+      "file": "leaflet.js",
+      "fileHash": "0ca48c29",
+      "needsInterop": true
+    },
+    "qrcode.react": {
+      "src": "../../node_modules/qrcode.react/lib/esm/index.js",
+      "file": "qrcode__react.js",
+      "fileHash": "a478eb82",
+      "needsInterop": false
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "e0f7549e",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "870b5462",
+      "needsInterop": true
+    },
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "a0213343",
+      "needsInterop": true
+    }
+  },
+  "chunks": {
+    "chunk-DEy6nfl2": {
+      "file": "chunk-DEy6nfl2.js",
+      "isDynamicEntry": false
+    }
+  }
 }

@@ -52,11 +52,7 @@ function formatDateTime(value: string) {
     });
 }
 
-interface AdminHubsPageProps {
-    sidebar?: React.ReactNode;
-}
-
-export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
+export default function AdminHubsPage() {
     const [hubs, setHubs] = useState<Hub[]>([]);
     const [search, setSearch] = useState('');
     const [form, setForm] = useState<HubFormState>(emptyForm);

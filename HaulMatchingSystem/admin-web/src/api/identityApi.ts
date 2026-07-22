@@ -75,6 +75,14 @@ export async function fetchUsers(): Promise<UserDto[]> {
     return await res.json();
 }
 
+export async function fetchUserById(id: string): Promise<UserDto> {
+    const res = await fetch(`${API_BASE}/api/identity/users/${id}`, { credentials: 'include' });
+    if (!res.ok) {
+        throw new Error(`Tải thông tin tài khoản thất bại: ${res.status}`);
+    }
+    return await res.json();
+}
+
 export async function updateUser(id: string, payload: UpdateUserPayload): Promise<any> {
     const res = await fetch(`${API_BASE}/api/identity/users/${id}`, {
         method: 'PUT',

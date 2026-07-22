@@ -15,7 +15,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [role, setRole] = useState<'Customer' | 'Driver' | 'Admin'>('Customer');
+    const [role, setRole] = useState<'Customer' | 'Driver' | 'Admin' | 'Warehouse_Staff'>('Customer');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -124,6 +124,13 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
                         className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Admin' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
                     >
                         Admin
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { setRole('Warehouse_Staff'); setError(''); setSuccess(''); }}
+                        className={`flex-1 py-2 text-label-md font-label-md rounded-md transition-colors ${role === 'Warehouse_Staff' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
+                    >
+                        NV Hub
                     </button>
                 </div>
 
