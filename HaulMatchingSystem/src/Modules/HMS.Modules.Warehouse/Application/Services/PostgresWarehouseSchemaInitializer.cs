@@ -144,6 +144,61 @@ public sealed class PostgresWarehouseSchemaInitializer
             await migCmd.ExecuteNonQueryAsync(ct);
         }
 
+        // ── Create shipment_proposals table (Matching module) ──
+        const string createProposalsTable = """
+            CREATE TABLE IF NOT EXISTS warehouse.shipment_proposals
+            (
+                id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                shipment_id     UUID NOT NULL,
+                trip_post_id    UUID NOT NULL,
+                customer_id     UUID NOT NULL,
+
+                -- Sender / Pickup fields (per-proposal)
+                sender_name     VARCHAR(200) NOT NULL DEFAULT '',
+                sender_phone    VARCHAR(20) NOT NULL DEFAULT '',
+                pickup_address  VARCHAR(500) NOT NULL DEFAULT '',
+                pickup_latitude DOUBLE PRECISION,
+                pickup_longitude DOUBLE PRECISION,
+                pickup_note     VARCHAR(500),
+
+                -- Status
+                status          VARCHAR(20) NOT NULL DEFAULT 'Pending',
+
+                -- Timestamps
+                created_at      TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+                cancelled_at    TIMESTAMPTZ,
+                accepted_at     TIMESTAMPTZ,
+                accepted_by     UUID,
+                rejected_at     TIMESTAMPTZ,
+                rejected_by     UUID,
+                reject_reason   TEXT,
+
+                -- Foreign key to shipments
+                CONSTRAINT fk_shipment_proposals_shipment
+                    FOREIGN KEY (shipment_id) REFERENCES warehouse.shipments(id)
+                    ON DELETE RESTRICT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_shipment_proposals_shipment_id
+                ON warehouse.shipment_proposals (shipment_id);
+
+            CREATE INDEX IF NOT EXISTS idx_shipment_proposals_trip_post_id
+                ON warehouse.shipment_proposals (trip_post_id);
+
+            CREATE INDEX IF NOT EXISTS idx_shipment_proposals_customer_id
+                ON warehouse.shipment_proposals (customer_id);
+
+            CREATE INDEX IF NOT EXISTS idx_shipment_proposals_status
+                ON warehouse.shipment_proposals (status);
+
+            ALTER TABLE warehouse.shipment_proposals
+                ADD COLUMN IF NOT EXISTS expired_at TIMESTAMPTZ;
+        """;
+        await using (var proposalsCmd = new NpgsqlCommand(createProposalsTable, conn))
+        {
+            await proposalsCmd.ExecuteNonQueryAsync(ct);
+        }
+
         _logger.LogInformation("Warehouse schema and shipment_status_history initialized.");
     }
 }

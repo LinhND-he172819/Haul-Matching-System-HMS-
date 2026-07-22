@@ -2,10 +2,10 @@ import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import {
     createDraftShipment,
-    createShipmentProposal,
     geocodeAddress,
     type DraftShipmentResponse,
 } from "../api/shipmentsApi";
+import { createProposal } from "../api/proposalApi";
 
 interface CreateShipmentPageProps {
     onNavigate: (page: 'login' | 'register' | 'home' | 'create-shipment') => void;
@@ -151,15 +151,19 @@ export default function CreateShipmentPage({ onNavigate, proposalTripPostId, pro
                 specialHandlingNote: form.specialHandlingNote,
             });
 
-            // Step 2: If proposal mode, try to link shipment to trip post
+            // Step 2: If proposal mode, use the new proposalApi
             // Even if this fails, we still show the QR code — draft shipment is valid
             let proposalWarning: string | null = null;
             if (isProposalMode && proposalTripPostId) {
                 try {
-                    await createShipmentProposal({
+                    await createProposal(proposalTripPostId, {
                         shipmentId: data.id,
-                        tripPostId: proposalTripPostId,
-                        message: form.specialHandlingNote || undefined,
+                        senderName: form.senderName || "",
+                        senderPhone: form.senderPhone || "",
+                        pickupAddress: form.pickupAddress || "",
+                        pickupLatitude: form.pickupLatitude ? Number(form.pickupLatitude) : undefined,
+                        pickupLongitude: form.pickupLongitude ? Number(form.pickupLongitude) : undefined,
+                        pickupNote: form.pickupNote || undefined,
                     });
                 } catch (proposalErr: any) {
                     proposalWarning = proposalErr.message ?? "Không thể gửi đề xuất ghép chuyến. Đơn hàng vẫn được tạo.";

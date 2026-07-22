@@ -3,6 +3,7 @@ using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace HMS.Modules.Matching.Controllers
 {
@@ -15,17 +16,19 @@ namespace HMS.Modules.Matching.Controllers
     public class DriverProposalController : ControllerBase
     {
         private readonly IProposalService _proposalService;
+        private readonly ILogger<DriverProposalController> _logger;
 
-        public DriverProposalController(IProposalService proposalService)
+        public DriverProposalController(IProposalService proposalService, ILogger<DriverProposalController> logger)
         {
             _proposalService = proposalService;
+            _logger = logger;
         }
 
         private Guid GetCurrentUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
             if (claim == null || !Guid.TryParse(claim.Value, out var userId))
-                throw new UnauthorizedAccessException("KhÃ´ng thá»ƒ xÃ¡c Ä‘á»‹nh ngÆ°á»i dÃ¹ng hiá»‡n táº¡i.");
+                throw new UnauthorizedAccessException("Không thể xác định người dùng hiện tại.");
             return userId;
         }
 
@@ -35,13 +38,21 @@ namespace HMS.Modules.Matching.Controllers
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingProposals(CancellationToken ct)
         {
-            var driverId = GetCurrentUserId();
-            var result = await _proposalService.GetDriverPendingProposalsAsync(driverId, ct);
+            try
+            {
+                var driverId = GetCurrentUserId();
+                var result = await _proposalService.GetDriverPendingProposalsAsync(driverId, ct);
 
-            if (result == null)
-                return NotFound(new { message = "Báº¡n chÆ°a cÃ³ chuyáº¿n Ä‘ang hoáº¡t Ä‘á»™ng Ä‘á»ƒ nháº­n Ä‘á» xuáº¥t." });
+                if (result == null)
+                    return NotFound(new { message = "Bạn chưa có chuyến đang hoạt động để nhận đề xuất." });
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting pending proposals for driver");
+                return StatusCode(500, new { message = "Lỗi khi tải danh sách đề xuất: " + ex.Message });
+            }
         }
 
         /// <summary>
@@ -50,9 +61,25 @@ namespace HMS.Modules.Matching.Controllers
         [HttpPost("{proposalId:guid}/accept")]
         public async Task<IActionResult> AcceptProposal(Guid proposalId, CancellationToken ct)
         {
-            var driverId = GetCurrentUserId();
-            var result = await _proposalService.AcceptProposalAsync(proposalId, driverId, ct);
-            return Ok(result);
+            try
+            {
+                var driverId = GetCurrentUserId();
+                var result = await _proposalService.AcceptProposalAsync(proposalId, driverId, ct);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error accepting proposal {ProposalId}", proposalId);
+                return StatusCode(500, new { message = "Lỗi khi chấp nhận đề xuất: " + ex.Message });
+            }
         }
 
         /// <summary>
@@ -64,9 +91,25 @@ namespace HMS.Modules.Matching.Controllers
             [FromBody] RejectProposalRequest request,
             CancellationToken ct)
         {
-            var driverId = GetCurrentUserId();
-            var result = await _proposalService.RejectProposalAsync(proposalId, driverId, request, ct);
-            return Ok(result);
+            try
+            {
+                var driverId = GetCurrentUserId();
+                var result = await _proposalService.RejectProposalAsync(proposalId, driverId, request, ct);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rejecting proposal {ProposalId}", proposalId);
+                return StatusCode(500, new { message = "Lỗi khi từ chối đề xuất: " + ex.Message });
+            }
         }
 
         /// <summary>
@@ -77,9 +120,21 @@ namespace HMS.Modules.Matching.Controllers
             [FromBody] AcceptAllProposalsRequest request,
             CancellationToken ct)
         {
-            var driverId = GetCurrentUserId();
-            var result = await _proposalService.AcceptAllProposalsAsync(driverId, request, ct);
-            return Ok(result);
+            try
+            {
+                var driverId = GetCurrentUserId();
+                var result = await _proposalService.AcceptAllProposalsAsync(driverId, request, ct);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error accepting all proposals");
+                return StatusCode(500, new { message = "Lỗi khi chấp nhận tất cả đề xuất: " + ex.Message });
+            }
         }
     }
 }

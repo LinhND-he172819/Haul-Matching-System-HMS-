@@ -73,7 +73,7 @@ namespace HMS.Modules.Matching.Infrastructure
                     }
                     cmd.CommandText = """
                         SELECT id FROM transport.trip_posts
-                        WHERE trip_id = @trip_id AND status = 'Open';
+                        WHERE trip_id = @trip_id AND status = 'Open' AND is_deleted = FALSE;
                     """;
                     var p = cmd.CreateParameter();
                     p.ParameterName = "trip_id";
@@ -168,7 +168,7 @@ namespace HMS.Modules.Matching.Infrastructure
                     SELECT id, trip_id, created_by, title, description, accept_until,
                            status, pickup_mode, published_at, closed_at, created_at, updated_at
                     FROM transport.trip_posts
-                    WHERE id = @id;
+                    WHERE id = @id AND is_deleted = FALSE;
                 """;
                 var p = cmd.CreateParameter();
                 p.ParameterName = "id";

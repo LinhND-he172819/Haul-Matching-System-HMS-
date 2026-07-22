@@ -1,3 +1,5 @@
+import { authFetch } from '../utils/authFetch';
+
 // ── Types matching backend DTOs ──
 
 export interface ProposalDto {
@@ -63,57 +65,56 @@ const API_BASE =
     import.meta.env.VITE_API_URL ??
     'http://localhost:5104';
 
-function authHeaders(includeJson = false): HeadersInit {
-    const token = localStorage.getItem('accessToken');
-    return {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(includeJson ? { 'Content-Type': 'application/json' } : {})
-    };
-}
-
 // ── Driver API ──
 
 /** GET /api/driver/proposals/pending */
 export async function fetchDriverPendingProposals(): Promise<DriverProposalsResponse | null> {
-    const res = await fetch(`${API_BASE}/api/driver/proposals/pending`, {
-        credentials: 'include',
-        headers: authHeaders()
-    });
+    const res = await authFetch(`${API_BASE}/api/driver/proposals/pending`);
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`Fetch proposals failed: ${res.status}`);
+    if (!res.ok) {
+        let msg = `Fetch proposals failed: ${res.status}`;
+        try { const body = await res.json(); msg = body.detail || body.message || msg; } catch {}
+        throw new Error(msg);
+    }
     return await res.json();
 }
 
 /** POST /api/driver/proposals/{proposalId}/accept */
 export async function acceptProposal(proposalId: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/driver/proposals/${proposalId}/accept`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: authHeaders()
+    const res = await authFetch(`${API_BASE}/api/driver/proposals/${proposalId}/accept`, {
+        method: 'POST'
     });
-    if (!res.ok) throw new Error(`Accept proposal failed: ${res.status}`);
+    if (!res.ok) {
+        let msg = `Accept proposal failed: ${res.status}`;
+        try { const body = await res.json(); msg = body.detail || body.message || msg; } catch {}
+        throw new Error(msg);
+    }
 }
 
 /** POST /api/driver/proposals/{proposalId}/reject */
 export async function rejectProposal(proposalId: string, reason: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/driver/proposals/${proposalId}/reject`, {
+    const res = await authFetch(`${API_BASE}/api/driver/proposals/${proposalId}/reject`, {
         method: 'POST',
-        credentials: 'include',
-        headers: authHeaders(true),
         body: JSON.stringify({ reason })
-    });
-    if (!res.ok) throw new Error(`Reject proposal failed: ${res.status}`);
+    }, { includeJson: true });
+    if (!res.ok) {
+        let msg = `Reject proposal failed: ${res.status}`;
+        try { const body = await res.json(); msg = body.detail || body.message || msg; } catch {}
+        throw new Error(msg);
+    }
 }
 
 /** POST /api/driver/proposals/accept-all */
 export async function acceptAllProposals(tripId: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/driver/proposals/accept-all`, {
+    const res = await authFetch(`${API_BASE}/api/driver/proposals/accept-all`, {
         method: 'POST',
-        credentials: 'include',
-        headers: authHeaders(true),
         body: JSON.stringify({ tripId })
-    });
-    if (!res.ok) throw new Error(`Accept all proposals failed: ${res.status}`);
+    }, { includeJson: true });
+    if (!res.ok) {
+        let msg = `Accept all proposals failed: ${res.status}`;
+        try { const body = await res.json(); msg = body.detail || body.message || msg; } catch {}
+        throw new Error(msg);
+    }
 }
 
 // ── Customer API ──
@@ -123,22 +124,26 @@ export async function createProposal(
     tripPostId: string,
     request: CreateProposalRequest
 ): Promise<CreateProposalResponse> {
-    const res = await fetch(`${API_BASE}/api/trip-posts/${tripPostId}/proposals`, {
+    const res = await authFetch(`${API_BASE}/api/trip-posts/${tripPostId}/proposals`, {
         method: 'POST',
-        credentials: 'include',
-        headers: authHeaders(true),
         body: JSON.stringify(request)
-    });
-    if (!res.ok) throw new Error(`Create proposal failed: ${res.status}`);
+    }, { includeJson: true });
+    if (!res.ok) {
+        let msg = `Create proposal failed: ${res.status}`;
+        try { const body = await res.json(); msg = body.detail || body.message || msg; } catch {}
+        throw new Error(msg);
+    }
     return await res.json();
 }
 
 /** DELETE /api/trip-posts/{tripPostId}/proposals/{proposalId} */
 export async function cancelProposal(tripPostId: string, proposalId: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/trip-posts/${tripPostId}/proposals/${proposalId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: authHeaders()
+    const res = await authFetch(`${API_BASE}/api/trip-posts/${tripPostId}/proposals/${proposalId}`, {
+        method: 'DELETE'
     });
-    if (!res.ok) throw new Error(`Cancel proposal failed: ${res.status}`);
+    if (!res.ok) {
+        let msg = `Cancel proposal failed: ${res.status}`;
+        try { const body = await res.json(); msg = body.detail || body.message || msg; } catch {}
+        throw new Error(msg);
+    }
 }
