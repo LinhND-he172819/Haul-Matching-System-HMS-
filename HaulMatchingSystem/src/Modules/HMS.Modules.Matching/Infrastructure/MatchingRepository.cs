@@ -188,6 +188,22 @@ namespace HMS.Modules.Matching.Infrastructure
             }
         }
 
+        public System.Data.Common.DbConnection? GetUnderlyingConnection()
+        {
+            try
+            {
+                return _db.Database.GetDbConnection();
+            }
+            catch (InvalidOperationException)
+            {
+                // Non-relational provider (e.g. InMemory in tests) — return null
+                return null;
+            }
+        }
+
+        public System.Data.Common.DbTransaction? GetUnderlyingTransaction()
+            => _tx?.GetDbTransaction();
+
         private static string? ReadNullableString(System.Data.Common.DbDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);

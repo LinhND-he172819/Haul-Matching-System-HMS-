@@ -29,5 +29,17 @@ namespace HMS.Modules.Matching.Core.Interfaces
         Task CommitTransactionAsync(CancellationToken ct);
 
         Task RollbackTransactionAsync(CancellationToken ct);
+
+        /// <summary>
+        /// Returns the raw DbConnection for sharing with external services (e.g. ShipmentStateService).
+        /// Returns null when the provider is non-relational (e.g. InMemory in tests).
+        /// </summary>
+        System.Data.Common.DbConnection? GetUnderlyingConnection();
+
+        /// <summary>
+        /// Returns the raw DbTransaction for sharing with external services.
+        /// Returns null if no transaction is active.
+        /// </summary>
+        System.Data.Common.DbTransaction? GetUnderlyingTransaction();
     }
 }

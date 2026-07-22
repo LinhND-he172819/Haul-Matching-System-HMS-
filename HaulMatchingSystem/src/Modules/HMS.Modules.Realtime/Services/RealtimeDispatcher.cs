@@ -105,5 +105,35 @@ namespace HMS.Modules.Realtime.Services
                 await Task.WhenAll(tasks);
             }
         }
+
+        // ── Tầng 7: Shipment Proposal Events ──
+
+        public async Task SendNewProposalToDriverAsync(Guid driverId, ProposalEventPayload payload)
+        {
+            _logger.LogInformation($"[SignalR] New proposal for Driver {driverId}: TripPost {payload.TripPostId}, {payload.PendingProposalCount} pending");
+            string targetGroup = $"Driver_{driverId}";
+            await _hubContext.Clients.Group(targetGroup).SendAsync("NewShipmentProposal", payload);
+        }
+
+        public async Task SendProposalCancelledToDriverAsync(Guid driverId, ProposalEventPayload payload)
+        {
+            _logger.LogInformation($"[SignalR] Proposal cancelled for Driver {driverId}: Proposal {payload.ProposalId}");
+            string targetGroup = $"Driver_{driverId}";
+            await _hubContext.Clients.Group(targetGroup).SendAsync("ShipmentProposalCancelled", payload);
+        }
+
+        public async Task SendTripCapacityUpdatedToDriverAsync(Guid driverId, ProposalEventPayload payload)
+        {
+            _logger.LogInformation($"[SignalR] Trip capacity updated for Driver {driverId}: {payload.RemainingWeightKg}kg / {payload.RemainingVolumeCbm}m³ remaining");
+            string targetGroup = $"Driver_{driverId}";
+            await _hubContext.Clients.Group(targetGroup).SendAsync("TripCapacityUpdated", payload);
+        }
+
+        public async Task SendProposalStatusToCustomerAsync(Guid customerId, ProposalEventPayload payload)
+        {
+            _logger.LogInformation($"[SignalR] Proposal status for Customer {customerId}: {payload.EventType}, Proposal {payload.ProposalId}");
+            string targetGroup = $"Customer_{customerId}";
+            await _hubContext.Clients.Group(targetGroup).SendAsync("ProposalStatusUpdate", payload);
+        }
     }
 }

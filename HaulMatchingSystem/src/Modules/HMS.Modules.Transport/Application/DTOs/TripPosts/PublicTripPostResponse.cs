@@ -11,4 +11,6 @@ public sealed record PublicTripPostResponse(
     decimal RemainingWeightKg,
     decimal RemainingVolumeCbm,
     string TruckType,
-    string LicensePlate);
+    string LicensePlate,
+    string DriverName,
+    string PickupMode);

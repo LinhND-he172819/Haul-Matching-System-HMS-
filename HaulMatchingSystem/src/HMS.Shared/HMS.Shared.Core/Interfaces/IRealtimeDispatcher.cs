@@ -26,5 +26,10 @@ namespace HMS.Shared.Core.Interfaces
         // Tầng 6: Customer Notifications
         Task SendCustomerStatusNotificationAsync(CustomerStatusPayload payload);
 
+        // Tầng 7: Shipment Proposal Events (Customer→Driver flow)
+        Task SendNewProposalToDriverAsync(Guid driverId, ProposalEventPayload payload);
+        Task SendProposalCancelledToDriverAsync(Guid driverId, ProposalEventPayload payload);
+        Task SendTripCapacityUpdatedToDriverAsync(Guid driverId, ProposalEventPayload payload);
+        Task SendProposalStatusToCustomerAsync(Guid customerId, ProposalEventPayload payload);
     }
 }

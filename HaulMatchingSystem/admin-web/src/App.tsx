@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import DashboardPage from './pages/DashboardPage';
-import MatchingSuggestionPage from './pages/MatchingSuggestionPage';
+import DriverProposalPage from './pages/DriverProposalPage';
 import CreateCustomerPage from './pages/CreateCustomerPage';
 import CreateDriverPage from './pages/CreateDriverPage';
 import CreateShipmentPage from './pages/CreateShipmentPage';
@@ -43,6 +43,11 @@ function App() {
     return role === 'Warehouse_Staff' ? 'hub-intake' : 'dashboard';
   });
 
+  // Proposal mode state (when creating proposal from Trip Marketplace)
+  const [proposalTripPostId, setProposalTripPostId] = useState<string | null>(null);
+  const [proposalTripId, setProposalTripId] = useState<string | null>(null);
+  const [proposalPickupMode, setProposalPickupMode] = useState<string | null>(null);
+
   // Sync state if user changes localStorage directly or on mount
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -78,6 +83,9 @@ function App() {
       if (!token) {
         setCurrentPage('login');
       } else {
+        // Clear proposal mode when navigating to normal create-shipment
+        setProposalTripPostId(null);
+        setProposalTripId(null);
         setCurrentPage('create-shipment');
       }
     } else if (targetPage === 'home') {
@@ -111,7 +119,22 @@ function App() {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('fullName');
     localStorage.removeItem('role');
+    setProposalTripPostId(null);
+    setProposalTripId(null);
     setCurrentPage('login');
+  };
+
+  // Handle proposal creation from Trip Marketplace
+  const handleNewProposal = (tripPostId: string, tripId: string, pickupMode?: string) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setCurrentPage('login');
+      return;
+    }
+    setProposalTripPostId(tripPostId);
+    setProposalTripId(tripId);
+    setProposalPickupMode(pickupMode ?? 'Hub');
+    setCurrentPage('create-shipment');
   };
 
   const renderSidebar = () => (
@@ -325,17 +348,22 @@ function App() {
       );
 
     case 'home':
-      return <HomePage onNavigate={handleNavigate} onLogout={handleLogout} />;
+      return <HomePage onNavigate={handleNavigate} onNewProposal={handleNewProposal} onLogout={handleLogout} />;
 
     case 'driver-portal':
-      return <MatchingSuggestionPage onLogout={handleLogout} />;
+      return <DriverProposalPage onLogout={handleLogout} />;
 
     case 'driver-trips':
       return <DriverTripsPage onLogout={handleLogout} />;
 
     case 'create-shipment':
       return (
-        <CreateShipmentPage onNavigate={handleNavigate} />
+        <CreateShipmentPage
+          onNavigate={handleNavigate}
+          proposalTripPostId={proposalTripPostId}
+          proposalTripId={proposalTripId}
+          pickupMode={proposalPickupMode}
+        />
       );
 
     case 'profile':
@@ -415,7 +443,7 @@ function App() {
         case 'hub-inventory':
           return <HubInventoryPage sidebar={renderSidebar()} />;
         case 'driver-portal':
-          return <MatchingSuggestionPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
+          return <DriverProposalPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'live-map':
           return <AdminLiveMapPage sidebar={renderSidebar()} />;
         default:

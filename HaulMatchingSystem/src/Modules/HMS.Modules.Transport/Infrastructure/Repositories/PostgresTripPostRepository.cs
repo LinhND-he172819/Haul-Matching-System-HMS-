@@ -39,9 +39,9 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             INSERT INTO transport.trip_posts
-                (id, trip_id, created_by, title, description, accept_until, status, published_at, closed_at, created_at, updated_at, is_deleted)
+                (id, trip_id, created_by, title, description, accept_until, status, pickup_mode, published_at, closed_at, created_at, updated_at, is_deleted)
             VALUES
-                (@id, @trip_id, @created_by, @title, @description, @accept_until, @status, @published_at, @closed_at, @created_at, @updated_at, FALSE);
+                (@id, @trip_id, @created_by, @title, @description, @accept_until, @status, @pickup_mode, @published_at, @closed_at, @created_at, @updated_at, FALSE);
             """;
         cmd.Parameters.AddWithValue("id", id);
         cmd.Parameters.AddWithValue("trip_id", post.TripId);
@@ -50,6 +50,7 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
         cmd.Parameters.Add("description", NpgsqlDbType.Text).Value = (object?)post.Description ?? DBNull.Value;
         cmd.Parameters.Add("accept_until", NpgsqlDbType.TimestampTz).Value = post.AcceptUntil.ToUniversalTime();
         cmd.Parameters.AddWithValue("status", post.Status);
+        cmd.Parameters.AddWithValue("pickup_mode", post.PickupMode ?? "DirectPickup");
         cmd.Parameters.Add("published_at", NpgsqlDbType.TimestampTz).Value = post.PublishedAt.HasValue
             ? post.PublishedAt.Value.ToUniversalTime() : (object)DBNull.Value;
         cmd.Parameters.Add("closed_at", NpgsqlDbType.TimestampTz).Value = post.ClosedAt.HasValue
@@ -177,7 +178,8 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
                 (v.max_weight_kg - t.current_load_weight) AS remaining_weight,
                 (v.max_volume_cbm - t.current_load_volume) AS remaining_volume,
                 tp.status, tp.accept_until, tp.published_at,
-                cu.full_name AS created_by_name
+                cu.full_name AS created_by_name,
+                COALESCE(tp.pickup_mode, 'Hub') AS pickup_mode
             FROM transport.trip_posts tp
             JOIN transport.trips t ON t.id = tp.trip_id AND t.is_deleted = FALSE
             JOIN transport.vehicles v ON v.id = t.vehicle_id AND v.is_deleted = FALSE
@@ -211,7 +213,8 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
                 Status: reader.GetString(10),
                 AcceptUntil: reader.GetDateTime(11),
                 PublishedAt: reader.IsDBNull(12) ? null : reader.GetDateTime(12),
-                CreatedByName: reader.GetString(13)
+                CreatedByName: reader.GetString(13),
+                PickupMode: reader.GetString(14)
             ));
         }
 
@@ -272,12 +275,15 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
                 (v.max_weight_kg - t.current_load_weight) AS remaining_weight,
                 (v.max_volume_cbm - t.current_load_volume) AS remaining_volume,
                 v.vehicle_type,
-                v.license_plate
+                v.license_plate,
+                u.full_name AS driver_name,
+                COALESCE(tp.pickup_mode, 'Hub') AS pickup_mode
             FROM transport.trip_posts tp
             JOIN transport.trips t ON t.id = tp.trip_id AND t.is_deleted = FALSE AND t.status = 'Active'
             JOIN transport.vehicles v ON v.id = t.vehicle_id AND v.is_deleted = FALSE
             JOIN identity.hubs oh ON oh.id = t.origin_hub_id AND oh.is_deleted = FALSE
             JOIN identity.hubs dh ON dh.id = t.dest_hub_id AND dh.is_deleted = FALSE
+            JOIN identity.users u ON u.id = t.driver_id AND u.is_deleted = FALSE
             {whereClause}
             ORDER BY tp.published_at DESC
             OFFSET @offset LIMIT @limit;
@@ -307,7 +313,9 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
                 RemainingWeightKg: remainingWeight,
                 RemainingVolumeCbm: remainingVolume,
                 TruckType: reader.GetString(9),
-                LicensePlate: reader.GetString(10)
+                LicensePlate: reader.GetString(10),
+                DriverName: reader.GetString(11),
+                PickupMode: reader.GetString(12)
             ));
         }
 

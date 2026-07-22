@@ -12,6 +12,7 @@ namespace HMS.Modules.Matching.Infrastructure
         public DbSet<Vehicle> Vehicles { get; set; } = null!;
         public DbSet<Shipment> Shipments { get; set; } = null!;
         public DbSet<TripShipment> TripShipments { get; set; } = null!;
+        public DbSet<ShipmentProposal> ShipmentProposals { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -41,6 +42,22 @@ namespace HMS.Modules.Matching.Infrastructure
                     .WithMany()
                     .HasForeignKey(p => p.TripId)
                     .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<Shipment>()
+                    .WithMany()
+                    .HasForeignKey(p => p.ShipmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ShipmentProposal>(b =>
+            {
+                b.ToTable("shipment_proposals", "warehouse");
+                b.HasIndex(p => p.ShipmentId);
+                b.HasIndex(p => p.TripPostId);
+                b.HasIndex(p => p.CustomerId);
+                b.HasIndex(p => p.Status);
+                // Unique constraint: one pending proposal per shipment per trip post
+                b.HasIndex(p => new { p.ShipmentId, p.TripPostId }).IsUnique()
+                    .HasFilter("status = 'Pending'");
                 b.HasOne<Shipment>()
                     .WithMany()
                     .HasForeignKey(p => p.ShipmentId)
