@@ -13,8 +13,20 @@ public static class ShipmentTransitionGuard
         {
             [ShipmentStatus.Draft] = new HashSet<ShipmentStatus>
             {
-                ShipmentStatus.In_Warehouse,
-                ShipmentStatus.Matched,   // DirectPickup: Draft → Matched
+                ShipmentStatus.PendingReview,   // Customer submits proposal
+                ShipmentStatus.In_Warehouse,     // Staff intake
+                ShipmentStatus.Matched,          // DirectPickup: Draft → Matched
+                ShipmentStatus.Cancelled
+            },
+            [ShipmentStatus.PendingReview] = new HashSet<ShipmentStatus>
+            {
+                ShipmentStatus.PendingDeposit,   // Staff approves proposal + sends quotation
+                ShipmentStatus.Cancelled
+            },
+            [ShipmentStatus.PendingDeposit] = new HashSet<ShipmentStatus>
+            {
+                ShipmentStatus.Matched,          // Customer pays deposit
+                ShipmentStatus.PendingReview,    // Quotation cancelled, revert to review
                 ShipmentStatus.Cancelled
             },
             [ShipmentStatus.In_Warehouse] = new HashSet<ShipmentStatus>
@@ -57,7 +69,10 @@ public static class ShipmentTransitionGuard
                 ShipmentStatus.Delivered
             },
             [ShipmentStatus.Cancelled] = new HashSet<ShipmentStatus>(),
-            [ShipmentStatus.Delivered] = new HashSet<ShipmentStatus>()
+            [ShipmentStatus.Delivered] = new HashSet<ShipmentStatus>
+            {
+                ShipmentStatus.Completed   // Final payment complete
+            }
         };
 
     /// <summary>

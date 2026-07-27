@@ -157,6 +157,8 @@ export interface PublicTripPost {
     destinationHubName: string;
     departureTime: string | null;
     acceptUntil: string;
+    maxWeightKg: number;
+    maxVolumeCbm: number;
     remainingWeightKg: number;
     remainingVolumeCbm: number;
     truckType: string;

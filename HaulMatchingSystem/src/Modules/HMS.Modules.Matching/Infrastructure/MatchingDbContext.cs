@@ -13,6 +13,8 @@ namespace HMS.Modules.Matching.Infrastructure
         public DbSet<Shipment> Shipments { get; set; } = null!;
         public DbSet<TripShipment> TripShipments { get; set; } = null!;
         public DbSet<ShipmentProposal> ShipmentProposals { get; set; } = null!;
+        public DbSet<Quotation> Quotations { get; set; } = null!;
+        public DbSet<Payment> Payments { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -55,13 +57,26 @@ namespace HMS.Modules.Matching.Infrastructure
                 b.HasIndex(p => p.TripPostId);
                 b.HasIndex(p => p.CustomerId);
                 b.HasIndex(p => p.Status);
-                // Unique constraint: one pending proposal per shipment per trip post
+                // Unique constraint: one pending/approved proposal per shipment per trip post
                 b.HasIndex(p => new { p.ShipmentId, p.TripPostId }).IsUnique()
-                    .HasFilter("status = 'Pending'");
-                b.HasOne<Shipment>()
-                    .WithMany()
-                    .HasForeignKey(p => p.ShipmentId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .HasFilter("status IN ('PendingReview', 'Approved')");
+            });
+
+            modelBuilder.Entity<Quotation>(b =>
+            {
+                b.ToTable("quotations", "warehouse");
+                b.HasIndex(p => p.ProposalId);
+                b.HasIndex(p => p.Status);
+            });
+
+            modelBuilder.Entity<Payment>(b =>
+            {
+                b.ToTable("payments", "warehouse");
+                b.HasIndex(p => p.QuotationId);
+                b.HasIndex(p => p.ShipmentId);
+                b.HasIndex(p => p.CustomerId);
+                b.HasIndex(p => p.TransactionReference).IsUnique();
+                b.HasIndex(p => p.IdempotencyKey).IsUnique();
             });
         }
     }

@@ -104,7 +104,7 @@ namespace HMS.Modules.Matching.Application.Services
                 PickupLatitude = request.PickupLatitude,
                 PickupLongitude = request.PickupLongitude,
                 PickupNote = request.PickupNote,
-                Status = ProposalStatusConstants.Pending,
+                Status = ProposalStatusConstants.PendingReview,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -161,8 +161,8 @@ namespace HMS.Modules.Matching.Application.Services
             if (proposal.CustomerId != customerId)
                 throw new UnauthorizedAccessException("Báº¡n khÃ´ng cÃ³ quyá»n há»§y Ä‘á» xuáº¥t nÃ y.");
 
-            if (proposal.Status != ProposalStatusConstants.Pending)
-                throw new InvalidOperationException($"Proposal Ä‘ang á»Ÿ tráº¡ng thÃ¡i {proposal.Status}. Chá»‰ cÃ³ thá»ƒ há»§y Proposal Pending.");
+            if (proposal.Status != ProposalStatusConstants.PendingReview)
+                throw new InvalidOperationException($"Proposal Ä‘ang á»Ÿ tráº¡ng thÃ¡i {proposal.Status}. Chá»‰ cÃ³ thá»ƒ há»§y Proposal PendingReview.");
 
             proposal.Status = ProposalStatusConstants.Cancelled;
             proposal.CancelledAt = DateTime.UtcNow;
@@ -245,8 +245,8 @@ namespace HMS.Modules.Matching.Application.Services
                 var proposal = await _repo.GetByIdAsync(proposalId, ct)
                     ?? throw new InvalidOperationException("Proposal khÃ´ng tá»“n táº¡i.");
 
-                // 2. Check proposal is Pending
-                if (proposal.Status != ProposalStatusConstants.Pending)
+                // 2. Check proposal is PendingReview
+                if (proposal.Status != ProposalStatusConstants.PendingReview)
                     throw new InvalidOperationException($"Proposal Ä‘ang á»Ÿ tráº¡ng thÃ¡i {proposal.Status}. KhÃ´ng thá»ƒ cháº¥p nháº­n.");
 
                 // 3. Get driver's active trip
@@ -288,7 +288,7 @@ namespace HMS.Modules.Matching.Application.Services
                     throw new InvalidOperationException("Xe khÃ´ng cÃ²n Ä‘á»§ thá»ƒ tÃ­ch.");
 
                 // 9. Accept the proposal
-                proposal.Status = ProposalStatusConstants.Accepted;
+                proposal.Status = ProposalStatusConstants.Approved;
                 proposal.AcceptedAt = DateTime.UtcNow;
                 proposal.AcceptedBy = driverId;
                 await _repo.UpdateAsync(proposal, ct);
@@ -390,7 +390,7 @@ namespace HMS.Modules.Matching.Application.Services
                 var proposal = await _repo.GetByIdAsync(proposalId, ct)
                     ?? throw new InvalidOperationException("Proposal khÃ´ng tá»“n táº¡i.");
 
-                if (proposal.Status != ProposalStatusConstants.Pending)
+                if (proposal.Status != ProposalStatusConstants.PendingReview)
                     throw new InvalidOperationException($"Proposal Ä‘ang á»Ÿ tráº¡ng thÃ¡i {proposal.Status}. KhÃ´ng thá»ƒ tá»« chá»‘i.");
 
                 // Verify driver owns the trip
@@ -514,7 +514,7 @@ namespace HMS.Modules.Matching.Application.Services
                     var shipment = shipmentMap[proposal.ShipmentId];
 
                     // Accept proposal
-                    proposal.Status = ProposalStatusConstants.Accepted;
+                    proposal.Status = ProposalStatusConstants.Approved;
                     proposal.AcceptedAt = DateTime.UtcNow;
                     proposal.AcceptedBy = driverId;
                     await _repo.UpdateAsync(proposal, ct);

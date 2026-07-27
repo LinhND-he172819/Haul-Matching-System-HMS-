@@ -13,6 +13,7 @@
     <Folder Include="Core\Models\" />
     <Folder Include="Core\Interfaces\" />
     <Folder Include="Infrastructure\Queries\" />
+    <Folder Include="Workers\" />
   </ItemGroup>
 
   <PropertyGroup>

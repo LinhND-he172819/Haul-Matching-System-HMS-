@@ -1,4 +1,4 @@
-﻿using HMS.Modules.Matching.Core.Interfaces;
+using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -20,7 +20,7 @@ namespace HMS.Modules.Matching.Infrastructure
             _db = db;
         }
 
-        // â”€â”€ Proposal Queries â”€â”€
+        // ── Proposal Queries ──
 
         public async Task<ShipmentProposal?> GetByIdAsync(Guid proposalId, CancellationToken ct)
         {
@@ -33,14 +33,14 @@ namespace HMS.Modules.Matching.Infrastructure
             return await _db.ShipmentProposals.FirstOrDefaultAsync(
                 p => p.ShipmentId == shipmentId
                     && p.TripPostId == tripPostId
-                    && p.Status == ProposalStatusConstants.Pending,
+                    && p.Status == ProposalStatusConstants.PendingReview,
                 ct);
         }
 
         public async Task<List<ShipmentProposal>> GetPendingByTripPostAsync(Guid tripPostId, CancellationToken ct)
         {
             return await _db.ShipmentProposals
-                .Where(p => p.TripPostId == tripPostId && p.Status == ProposalStatusConstants.Pending)
+                .Where(p => p.TripPostId == tripPostId && p.Status == ProposalStatusConstants.PendingReview)
                 .OrderBy(p => p.CreatedAt)
                 .ToListAsync(ct);
         }
@@ -96,7 +96,7 @@ namespace HMS.Modules.Matching.Infrastructure
                 return new List<ShipmentProposal>();
 
             return await _db.ShipmentProposals
-                .Where(p => tripPostIds.Contains(p.TripPostId) && p.Status == ProposalStatusConstants.Pending)
+                .Where(p => tripPostIds.Contains(p.TripPostId) && p.Status == ProposalStatusConstants.PendingReview)
                 .OrderBy(p => p.CreatedAt)
                 .ToListAsync(ct);
         }
@@ -104,14 +104,14 @@ namespace HMS.Modules.Matching.Infrastructure
         public async Task<List<ShipmentProposal>> GetPendingByShipmentAsync(Guid shipmentId, CancellationToken ct)
         {
             return await _db.ShipmentProposals
-                .Where(p => p.ShipmentId == shipmentId && p.Status == ProposalStatusConstants.Pending)
+                .Where(p => p.ShipmentId == shipmentId && p.Status == ProposalStatusConstants.PendingReview)
                 .ToListAsync(ct);
         }
 
         public async Task<bool> HasAcceptedProposalForShipmentAsync(Guid shipmentId, CancellationToken ct)
         {
             return await _db.ShipmentProposals.AnyAsync(
-                p => p.ShipmentId == shipmentId && p.Status == ProposalStatusConstants.Accepted,
+                p => p.ShipmentId == shipmentId && p.Status == ProposalStatusConstants.Approved,
                 ct);
         }
 
@@ -121,11 +121,11 @@ namespace HMS.Modules.Matching.Infrastructure
             return await _db.ShipmentProposals.AnyAsync(
                 p => p.ShipmentId == shipmentId
                     && p.TripPostId == tripPostId
-                    && p.Status == ProposalStatusConstants.Pending,
+                    && p.Status == ProposalStatusConstants.PendingReview,
                 ct);
         }
 
-        // â”€â”€ Trip / Vehicle / Shipment Queries â”€â”€
+        // ── Trip / Vehicle / Shipment Queries ──
 
         public async Task<Trip?> GetActiveTripForDriverAsync(Guid driverId, CancellationToken ct)
         {
@@ -206,7 +206,7 @@ namespace HMS.Modules.Matching.Infrastructure
             }
         }
 
-        // â”€â”€ Mutations â”€â”€
+        // ── Mutations ──
 
         public async Task AddAsync(ShipmentProposal proposal, CancellationToken ct)
         {
@@ -240,7 +240,7 @@ namespace HMS.Modules.Matching.Infrastructure
             await _db.SaveChangesAsync(ct);
         }
 
-        // â”€â”€ Transaction â”€â”€
+        // ── Transaction ──
 
         public Task BeginTransactionAsync(CancellationToken ct)
         {

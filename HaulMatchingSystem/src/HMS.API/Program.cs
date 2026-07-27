@@ -57,6 +57,7 @@ builder.Services.AddSignalR();
 // Add controllers
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(HMS.Modules.Transport.Controllers.TripPostsController).Assembly)
+    .AddApplicationPart(typeof(HMS.Modules.Matching.Controllers.CustomerProposalController).Assembly)
     .AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -94,6 +95,7 @@ builder.Services.AddScoped<IHubInventoryService, HubInventoryService>();
 // Shipment State Machine
 builder.Services.AddScoped<IShipmentStateService, ShipmentStateService>();
 builder.Services.AddScoped<HMS.Modules.Warehouse.Application.Services.PostgresWarehouseSchemaInitializer>();
+builder.Services.AddScoped<HMS.Modules.Warehouse.Application.Services.CustomerDriverSchemaInitializer>();
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(HMS.Shared.Core.Events.ShipmentStatusChangedEvent).Assembly));
 builder.Services.AddMediatR(cfg =>
@@ -113,6 +115,12 @@ builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
 builder.Services.AddScoped<IProposalRepository, ProposalRepository>();
 builder.Services.AddScoped<IProposalService, ProposalService>();
+
+// Quotation & Payment Services (new Staff Proposal → Quotation → Payment flow)
+builder.Services.AddScoped<IStaffProposalService, StaffProposalService>();
+builder.Services.AddScoped<IQuotationService, QuotationService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddHostedService<HMS.Modules.Matching.Workers.QuotationExpirationWorker>();
 //builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
 builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
 builder.Services.AddScoped<
@@ -181,6 +189,14 @@ await using (var whScope = app.Services.CreateAsyncScope())
     var whInitializer = whScope.ServiceProvider
         .GetRequiredService<HMS.Modules.Warehouse.Application.Services.PostgresWarehouseSchemaInitializer>();
     await whInitializer.InitializeAsync();
+}
+
+// Initialize Customer/Driver schema (quotations, payments, trip_incidents, audit_log)
+await using (var cdScope = app.Services.CreateAsyncScope())
+{
+    var cdInitializer = cdScope.ServiceProvider
+        .GetRequiredService<HMS.Modules.Warehouse.Application.Services.CustomerDriverSchemaInitializer>();
+    await cdInitializer.InitializeAsync();
 }
 
 // Configure the HTTP request pipeline.

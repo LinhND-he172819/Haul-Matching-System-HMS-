@@ -133,7 +133,7 @@ export default function TripDetailDrawer({ trip, open, onClose, onNewProposal }:
                                     <span className="font-bold text-primary">{trip.remainingWeightKg.toLocaleString()} kg</span>
                                 </div>
                                 <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary rounded-full" style={{ width: '60%' }} />
+                                    <div className="h-full bg-primary rounded-full" style={{ width: `${trip.maxWeightKg > 0 ? Math.round((trip.remainingWeightKg / trip.maxWeightKg) * 100) : 0}%` }} />
                                 </div>
                             </div>
                             <div>
@@ -142,7 +142,7 @@ export default function TripDetailDrawer({ trip, open, onClose, onNewProposal }:
                                     <span className="font-bold text-secondary">{trip.remainingVolumeCbm} CBM</span>
                                 </div>
                                 <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div className="h-full bg-secondary rounded-full" style={{ width: '50%' }} />
+                                    <div className="h-full bg-secondary rounded-full" style={{ width: `${trip.maxVolumeCbm > 0 ? Math.round((trip.remainingVolumeCbm / trip.maxVolumeCbm) * 100) : 0}%` }} />
                                 </div>
                             </div>
                         </div>

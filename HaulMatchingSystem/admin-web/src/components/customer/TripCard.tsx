@@ -95,7 +95,7 @@ export default function TripCard({ trip, onViewDetail, onNewProposal }: TripCard
                     <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-primary rounded-full transition-all"
-                            style={{ width: '60%' }}
+                            style={{ width: `${trip.maxWeightKg > 0 ? Math.round((trip.remainingWeightKg / trip.maxWeightKg) * 100) : 0}%` }}
                         />
                     </div>
                 </div>
@@ -109,7 +109,7 @@ export default function TripCard({ trip, onViewDetail, onNewProposal }: TripCard
                     <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-secondary rounded-full transition-all"
-                            style={{ width: '50%' }}
+                            style={{ width: `${trip.maxVolumeCbm > 0 ? Math.round((trip.remainingVolumeCbm / trip.maxVolumeCbm) * 100) : 0}%` }}
                         />
                     </div>
                 </div>

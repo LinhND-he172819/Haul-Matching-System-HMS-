@@ -230,6 +230,82 @@ public class ShipmentTransitionGuardTests
 
     #endregion
 
+    #region PendingReview transitions (new Customer flow)
+
+    [Fact]
+    public void PendingReview_CanTransition_To_PendingDeposit()
+    {
+        Assert.True(ShipmentTransitionGuard.CanTransition(ShipmentStatus.PendingReview, ShipmentStatus.PendingDeposit));
+    }
+
+    [Fact]
+    public void PendingReview_CanTransition_To_Cancelled()
+    {
+        Assert.True(ShipmentTransitionGuard.CanTransition(ShipmentStatus.PendingReview, ShipmentStatus.Cancelled));
+    }
+
+    [Theory]
+    [InlineData(ShipmentStatus.Draft)]
+    [InlineData(ShipmentStatus.Matched)]
+    [InlineData(ShipmentStatus.In_Transit)]
+    [InlineData(ShipmentStatus.Delivered)]
+    public void PendingReview_CannotTransition_To_Unallowed(ShipmentStatus target)
+    {
+        Assert.False(ShipmentTransitionGuard.CanTransition(ShipmentStatus.PendingReview, target));
+    }
+
+    #endregion
+
+    #region PendingDeposit transitions (new Customer flow)
+
+    [Fact]
+    public void PendingDeposit_CanTransition_To_Matched()
+    {
+        Assert.True(ShipmentTransitionGuard.CanTransition(ShipmentStatus.PendingDeposit, ShipmentStatus.Matched));
+    }
+
+    [Fact]
+    public void PendingDeposit_CanTransition_To_Cancelled()
+    {
+        Assert.True(ShipmentTransitionGuard.CanTransition(ShipmentStatus.PendingDeposit, ShipmentStatus.Cancelled));
+    }
+
+    [Theory]
+    [InlineData(ShipmentStatus.Draft)]
+    [InlineData(ShipmentStatus.In_Warehouse)]
+    [InlineData(ShipmentStatus.In_Transit)]
+    [InlineData(ShipmentStatus.Delivered)]
+    public void PendingDeposit_CannotTransition_To_Unallowed(ShipmentStatus target)
+    {
+        Assert.False(ShipmentTransitionGuard.CanTransition(ShipmentStatus.PendingDeposit, target));
+    }
+
+    #endregion
+
+    #region Draft → PendingReview (new Customer flow)
+
+    [Fact]
+    public void Draft_CanTransition_To_PendingReview()
+    {
+        Assert.True(ShipmentTransitionGuard.CanTransition(ShipmentStatus.Draft, ShipmentStatus.PendingReview));
+    }
+
+    #endregion
+
+    #region Completed state (terminal, no outgoing transitions)
+
+    [Fact]
+    public void Completed_CannotTransition_To_Any()
+    {
+        foreach (var target in Enum.GetValues<ShipmentStatus>())
+        {
+            Assert.False(ShipmentTransitionGuard.CanTransition(ShipmentStatus.Completed, target),
+                $"Completed should not transition to {target}");
+        }
+    }
+
+    #endregion
+
     #region Terminal states (Cancelled, Delivered) — no outgoing transitions
 
     [Theory]
@@ -252,6 +328,11 @@ public class ShipmentTransitionGuardTests
     [InlineData(ShipmentStatus.Draft, ShipmentStatus.In_Warehouse)]
     [InlineData(ShipmentStatus.Draft, ShipmentStatus.Cancelled)]
     [InlineData(ShipmentStatus.Draft, ShipmentStatus.Matched)]
+    [InlineData(ShipmentStatus.Draft, ShipmentStatus.PendingReview)]
+    [InlineData(ShipmentStatus.PendingReview, ShipmentStatus.PendingDeposit)]
+    [InlineData(ShipmentStatus.PendingReview, ShipmentStatus.Cancelled)]
+    [InlineData(ShipmentStatus.PendingDeposit, ShipmentStatus.Matched)]
+    [InlineData(ShipmentStatus.PendingDeposit, ShipmentStatus.Cancelled)]
     [InlineData(ShipmentStatus.In_Warehouse, ShipmentStatus.Matched)]
     [InlineData(ShipmentStatus.In_Warehouse, ShipmentStatus.Cancelled)]
     [InlineData(ShipmentStatus.Matched, ShipmentStatus.In_Transit)]
@@ -319,10 +400,11 @@ public class ShipmentTransitionGuardTests
     #region GetAllowedTransitions
 
     [Fact]
-    public void GetAllowedTransitions_Draft_ReturnsThree()
+    public void GetAllowedTransitions_Draft_ReturnsFour()
     {
         var allowed = ShipmentTransitionGuard.GetAllowedTransitions(ShipmentStatus.Draft);
-        Assert.Equal(3, allowed.Count);
+        Assert.Equal(4, allowed.Count);
+        Assert.Contains(ShipmentStatus.PendingReview, allowed);
         Assert.Contains(ShipmentStatus.In_Warehouse, allowed);
         Assert.Contains(ShipmentStatus.Cancelled, allowed);
         Assert.Contains(ShipmentStatus.Matched, allowed);
