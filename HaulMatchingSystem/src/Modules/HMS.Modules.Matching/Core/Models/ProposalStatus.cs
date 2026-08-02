@@ -6,8 +6,9 @@ namespace HMS.Modules.Matching.Core.Models
     /// </summary>
     public static class ProposalStatusConstants
     {
-        public const string Pending = "Pending";
-        public const string Accepted = "Accepted";
+        public const string PendingReview = "PendingReview";
+        public const string Approved = "Approved";
+        public const string Confirmed = "Confirmed";
         public const string Rejected = "Rejected";
         public const string Cancelled = "Cancelled";
         public const string Expired = "Expired";

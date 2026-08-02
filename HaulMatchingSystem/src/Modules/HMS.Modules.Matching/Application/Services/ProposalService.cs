@@ -1,8 +1,9 @@
-﻿using HMS.Modules.Matching.Application.DTOs;
+using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Modules.Matching.Infrastructure.Redis;
 using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Exceptions;
 using HMS.Shared.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -13,13 +14,13 @@ namespace HMS.Modules.Matching.Application.Services
     /// 
     /// Flow:
     ///   Staff/Admin creates TripPost (existing)
-    ///   Customer views TripPost marketplace â†’ creates Proposal for existing Shipment
-    ///   Driver views pending Proposals â†’ Accept/Reject
+    ///   Customer views TripPost marketplace → creates Proposal for existing Shipment
+    ///   Driver views pending Proposals → Accept/Reject
     ///   
     /// Key invariants:
     ///   - A Shipment can have multiple Pending proposals for different TripPosts
     ///   - At most one Accepted proposal per Shipment at any time
-    ///   - Accept triggers: Proposalâ†’Accepted, Shipmentâ†’Matched, cancel other Pending proposals
+    ///   - Accept triggers: Proposal→Accepted, Shipment→Matched, cancel other Pending proposals
     ///   - Accept All validates total capacity before accepting any
     /// </summary>
     public class ProposalService : IProposalService
@@ -49,47 +50,50 @@ namespace HMS.Modules.Matching.Application.Services
         {
             // 1. Validate Shipment exists and belongs to customer
             var shipment = await _repo.GetShipmentAsync(request.ShipmentId, ct)
-                ?? throw new InvalidOperationException("Shipment khÃ´ng tá»“n táº¡i.");
+                ?? throw new InvalidOperationException("Shipment không tồn tại.");
+            if (shipment.CustomerId != customerId)
+                throw new ForbiddenException("Shipment nÃ y khÃ´ng thuá»™c báº¡n.");
 
             // 2. Validate Shipment is Draft
             if (shipment.Status != ShipmentStatus.Draft.ToString())
                 throw new InvalidOperationException(
-                    $"Shipment Ä‘ang á»Ÿ tráº¡ng thÃ¡i {shipment.Status}. Chá»‰ Shipment á»Ÿ tráº¡ng thÃ¡i Draft má»›i cÃ³ thá»ƒ Ä‘á» xuáº¥t.");
+                    $"Shipment đang ở trạng thái {shipment.Status}. Chỉ Shipment ở trạng thái Draft mới có thể đề xuất.");
+
 
             // 3. Validate Weight and Volume > 0
             if (shipment.WeightKg <= 0)
-                throw new InvalidOperationException("Weight cá»§a Shipment pháº£i lá»›n hÆ¡n 0.");
+                throw new InvalidOperationException("Weight của Shipment phải lớn hơn 0.");
             if (shipment.VolumeCbm <= 0)
-                throw new InvalidOperationException("Volume cá»§a Shipment pháº£i lá»›n hÆ¡n 0.");
+                throw new InvalidOperationException("Volume của Shipment phải lớn hơn 0.");
 
             // 4. Validate TripPost exists and is Open
             var tripPost = await _repo.GetTripPostAsync(tripPostId, ct)
-                ?? throw new InvalidOperationException("Trip Post khÃ´ng tá»“n táº¡i.");
+                ?? throw new InvalidOperationException("Trip Post không tồn tại.");
 
             if (tripPost.Status != "Open")
-                throw new InvalidOperationException("Trip Post khÃ´ng cÃ²n má»Ÿ. KhÃ´ng thá»ƒ táº¡o Ä‘á» xuáº¥t.");
+                throw new InvalidOperationException("Trip Post không còn mở. Không thể tạo đề xuất.");
 
             // 5. Check acceptUntil hasn't passed
             if (tripPost.AcceptUntil < DateTimeOffset.UtcNow)
-                throw new InvalidOperationException("Trip Post Ä‘Ã£ háº¿t háº¡n nháº­n Ä‘á» xuáº¥t.");
+                throw new InvalidOperationException("Trip Post đã hết hạn nhận đề xuất.");
 
             // 6. Validate PickupMode is DirectPickup
             if (!string.Equals(tripPost.PickupMode, "DirectPickup", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Chá»‰ há»— trá»£ Pickup Mode DirectPickup cho Ä‘á» xuáº¥t.");
+                throw new InvalidOperationException("Chỉ hỗ trợ Pickup Mode DirectPickup cho đề xuất.");
 
             // 7. Validate required fields
             if (string.IsNullOrWhiteSpace(request.SenderName))
-                throw new InvalidOperationException("Sender Name khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.");
+                throw new InvalidOperationException("Sender Name không được để trống.");
             if (string.IsNullOrWhiteSpace(request.SenderPhone))
-                throw new InvalidOperationException("Sender Phone khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.");
+                throw new InvalidOperationException("Sender Phone không được để trống.");
             if (string.IsNullOrWhiteSpace(request.PickupAddress))
-                throw new InvalidOperationException("Pickup Address khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.");
+                throw new InvalidOperationException("Pickup Address không được để trống.");
 
             // 8. Check no duplicate Pending proposal for same Shipment + TripPost
             var existing = await _repo.GetPendingByShipmentAndTripPostAsync(request.ShipmentId, tripPostId, ct);
             if (existing != null)
                 throw new InvalidOperationException(
-                    "Shipment nÃ y Ä‘Ã£ cÃ³ Ä‘á» xuáº¥t Ä‘ang chá» xá»­ lÃ½ cho chuyáº¿n nÃ y.");
+                    "Shipment này đã có đề xuất đang chờ xử lý cho chuyến này.");
 
             // 9. Create the proposal
             var proposal = new ShipmentProposal
@@ -104,7 +108,7 @@ namespace HMS.Modules.Matching.Application.Services
                 PickupLatitude = request.PickupLatitude,
                 PickupLongitude = request.PickupLongitude,
                 PickupNote = request.PickupNote,
-                Status = ProposalStatusConstants.Pending,
+                Status = ProposalStatusConstants.PendingReview,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -114,7 +118,7 @@ namespace HMS.Modules.Matching.Application.Services
             // 10. Notify driver via SignalR (NewShipmentProposal event)
             try
             {
-                // Resolve DriverId from TripPost â†’ Trip
+                // Resolve DriverId from TripPost → Trip
                 var trip = await _repo.GetTripByIdAsync(tripPost.TripId, ct);
                 if (trip != null)
                 {
@@ -137,7 +141,7 @@ namespace HMS.Modules.Matching.Application.Services
             }
 
             _logger.LogInformation(
-                "Proposal {ProposalId} created: Shipment {ShipmentId} â†’ TripPost {TripPostId} by Customer {CustomerId}",
+                "Proposal {ProposalId} created: Shipment {ShipmentId} → TripPost {TripPostId} by Customer {CustomerId}",
                 proposal.Id, request.ShipmentId, tripPostId, customerId);
 
             return new CreateProposalResponse
@@ -156,13 +160,13 @@ namespace HMS.Modules.Matching.Application.Services
         public async Task CancelProposalAsync(Guid proposalId, Guid customerId, CancellationToken ct)
         {
             var proposal = await _repo.GetByIdAsync(proposalId, ct)
-                ?? throw new InvalidOperationException("Proposal khÃ´ng tá»“n táº¡i.");
+                ?? throw new InvalidOperationException("Proposal không tồn tại.");
 
             if (proposal.CustomerId != customerId)
-                throw new UnauthorizedAccessException("Báº¡n khÃ´ng cÃ³ quyá»n há»§y Ä‘á» xuáº¥t nÃ y.");
+                throw new ForbiddenException("Bạn không có quyền hủy đề xuất này.");
 
-            if (proposal.Status != ProposalStatusConstants.Pending)
-                throw new InvalidOperationException($"Proposal Ä‘ang á»Ÿ tráº¡ng thÃ¡i {proposal.Status}. Chá»‰ cÃ³ thá»ƒ há»§y Proposal Pending.");
+            if (proposal.Status != ProposalStatusConstants.PendingReview)
+                throw new InvalidOperationException($"Proposal đang ở trạng thái {proposal.Status}. Chỉ có thể hủy Proposal PendingReview.");
 
             proposal.Status = ProposalStatusConstants.Cancelled;
             proposal.CancelledAt = DateTime.UtcNow;
@@ -243,57 +247,57 @@ namespace HMS.Modules.Matching.Application.Services
             {
                 // 1. Load proposal
                 var proposal = await _repo.GetByIdAsync(proposalId, ct)
-                    ?? throw new InvalidOperationException("Proposal khÃ´ng tá»“n táº¡i.");
+                    ?? throw new InvalidOperationException("Proposal không tồn tại.");
 
-                // 2. Check proposal is Pending
-                if (proposal.Status != ProposalStatusConstants.Pending)
-                    throw new InvalidOperationException($"Proposal Ä‘ang á»Ÿ tráº¡ng thÃ¡i {proposal.Status}. KhÃ´ng thá»ƒ cháº¥p nháº­n.");
+                // 2. Check proposal is PendingReview
+                if (proposal.Status != ProposalStatusConstants.PendingReview)
+                    throw new InvalidOperationException($"Proposal đang ở trạng thái {proposal.Status}. Không thể chấp nhận.");
 
                 // 3. Get driver's active trip
                 var trip = await _repo.GetActiveTripForDriverAsync(driverId, ct)
-                    ?? throw new InvalidOperationException("KhÃ´ng cÃ³ chuyáº¿n Ä‘ang hoáº¡t Ä‘á»™ng.");
+                    ?? throw new InvalidOperationException("Không có chuyến đang hoạt động.");
 
                 // 4. Get trip post to verify it's still open and belongs to this trip
                 var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId, ct);
                 if (tripPost == null || tripPost.Status != "Open")
-                    throw new InvalidOperationException("Trip Post khÃ´ng cÃ²n mÃ¡ÅŸ.");
+                    throw new InvalidOperationException("Trip Post không còn mở.");
 
                 if (tripPost.TripId != trip.Id)
-                    throw new UnauthorizedAccessException("Proposal nÃ y khÃ´ng thuá»™c chuyáº¿n cÃ»a báº¡n.");
+                    throw new ForbiddenException("Proposal này không thuộc chuyến của bạn.");
 
                 // 5. Check acceptUntil
                 if (tripPost.AcceptUntil < DateTimeOffset.UtcNow)
-                    throw new InvalidOperationException("Trip Post Ä‘Ã£ hÃ¡Æ¡t hÃ¡n nhÃ¡ÅŸn Ä‘Ã¡Â» xuáº¥t.");
+                    throw new InvalidOperationException("Trip Post đã hết hạn nhận đề xuất.");
 
                 // 6. Get shipment and verify it's Draft
                 var shipment = await _repo.GetShipmentAsync(proposal.ShipmentId, ct)
-                    ?? throw new InvalidOperationException("Shipment khÃ´ng tá»“n táº¡i.");
+                    ?? throw new InvalidOperationException("Shipment không tồn tại.");
 
                 if (shipment.Status != ShipmentStatus.Draft.ToString())
                     throw new InvalidOperationException(
-                        $"Shipment Ä‘ang á»Ÿ tráº¡ng thÃ¡i {shipment.Status}. Chá»‰ Shipment Draft má»›i cÃ³ thá»ƒ cháº¥p nháº­n.");
+                        $"Shipment đang ở trạng thái {shipment.Status}. Chỉ Shipment Draft mới có thể chấp nhận.");
 
                 // 7. Check shipment doesn't already have an Accepted proposal
                 if (await _repo.HasAcceptedProposalForShipmentAsync(proposal.ShipmentId, ct))
-                    throw new InvalidOperationException("Shipment Ä‘Ã£ cÃ³ Ä‘á» xuáº¥t Ä‘Æ°á»£c cháº¥p nháº­n á»Ÿ chuyáº¿n khÃ¡c.");
+                    throw new InvalidOperationException("Shipment đã có đề xuất được chấp nhận ở chuyến khác.");
 
                 // 8. Check capacity
                 var vehicle = await _repo.GetVehicleAsync(trip.VehicleId, ct)
-                    ?? throw new InvalidOperationException("Vehicle khÃ´ng tá»“n táº¡i.");
+                    ?? throw new InvalidOperationException("Vehicle không tồn tại.");
 
                 if (trip.CurrentLoadWeight + shipment.WeightKg > vehicle.MaxWeightKg)
-                    throw new InvalidOperationException("Xe khÃ´ng cÃ²n Ä‘á»§ táº£i trá»ng.");
+                    throw new InvalidOperationException("Xe không còn đủ tải trọng.");
 
                 if (trip.CurrentLoadVolume + shipment.VolumeCbm > vehicle.MaxVolumeCbm)
-                    throw new InvalidOperationException("Xe khÃ´ng cÃ²n Ä‘á»§ thá»ƒ tÃ­ch.");
+                    throw new InvalidOperationException("Xe không còn đủ thể tích.");
 
                 // 9. Accept the proposal
-                proposal.Status = ProposalStatusConstants.Accepted;
+                proposal.Status = ProposalStatusConstants.Approved;
                 proposal.AcceptedAt = DateTime.UtcNow;
                 proposal.AcceptedBy = driverId;
                 await _repo.UpdateAsync(proposal, ct);
 
-                // 10. Transition Shipment: Draft â†’ Matched
+                // 10. Transition Shipment: Draft → Matched
                 var dbConn = _repo.GetUnderlyingConnection();
                 var dbTxn = _repo.GetUnderlyingTransaction();
 
@@ -365,7 +369,7 @@ namespace HMS.Modules.Matching.Application.Services
                 await _repo.CommitTransactionAsync(ct);
 
                 _logger.LogInformation(
-                    "Proposal {ProposalId} accepted by Driver {DriverId}. Shipment {ShipmentId} â†’ Matched",
+                    "Proposal {ProposalId} accepted by Driver {DriverId}. Shipment {ShipmentId} → Matched",
                     proposalId, driverId, proposal.ShipmentId);
 
                 var shipmentAfter = await _repo.GetShipmentAsync(proposal.ShipmentId, ct);
@@ -388,20 +392,20 @@ namespace HMS.Modules.Matching.Application.Services
             try
             {
                 var proposal = await _repo.GetByIdAsync(proposalId, ct)
-                    ?? throw new InvalidOperationException("Proposal khÃ´ng tá»“n táº¡i.");
+                    ?? throw new InvalidOperationException("Proposal không tồn tại.");
 
-                if (proposal.Status != ProposalStatusConstants.Pending)
-                    throw new InvalidOperationException($"Proposal Ä‘ang á»Ÿ tráº¡ng thÃ¡i {proposal.Status}. KhÃ´ng thá»ƒ tá»« chá»‘i.");
+                if (proposal.Status != ProposalStatusConstants.PendingReview)
+                    throw new InvalidOperationException($"Proposal đang ở trạng thái {proposal.Status}. Không thể từ chối.");
 
                 // Verify driver owns the trip
                 var trip = await _repo.GetActiveTripForDriverAsync(driverId, ct);
                 if (trip == null)
-                    throw new InvalidOperationException("KhÃ´ng cÃ³ chuyáº¿n Ä‘ang hoáº¡t Ä‘á»™ng.");
+                    throw new InvalidOperationException("Không có chuyến đang hoạt động.");
 
                 // Verify the proposal is for a trip post linked to this driver's trip
                 var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId, ct);
                 if (tripPost == null || tripPost.TripId != trip.Id)
-                    throw new UnauthorizedAccessException("Proposal khÃ´ng thuá»™c chuyáº¿n cá»§a báº¡n.");
+                    throw new ForbiddenException("Proposal không thuộc chuyến của bạn.");
 
                 // 1. Reject the proposal
                 proposal.Status = ProposalStatusConstants.Rejected;
@@ -455,15 +459,15 @@ namespace HMS.Modules.Matching.Application.Services
             try
             {
                 var trip = await _repo.GetActiveTripForDriverAsync(driverId, ct)
-                    ?? throw new InvalidOperationException("KhÃ´ng cÃ³ chuyáº¿n Ä‘ang hoáº¡t Ä‘á»™ng.");
+                    ?? throw new InvalidOperationException("Không có chuyến đang hoạt động.");
 
                 var vehicle = await _repo.GetVehicleAsync(trip.VehicleId, ct)
-                    ?? throw new InvalidOperationException("Vehicle khÃ´ng tá»“n táº¡i.");
+                    ?? throw new InvalidOperationException("Vehicle không tồn tại.");
 
                 // Get all pending proposals for this driver
                 var proposals = await _repo.GetPendingByDriverAsync(driverId, ct);
                 if (!proposals.Any())
-                    throw new InvalidOperationException("KhÃ´ng cÃ³ Ä‘á» xuáº¥t nÃ o Ä‘á»ƒ cháº¥p nháº­n.");
+                    throw new InvalidOperationException("Không có đề xuất nào để chấp nhận.");
 
                 // Load all shipments and validate
                 var shipmentMap = new Dictionary<Guid, Shipment>();
@@ -474,19 +478,19 @@ namespace HMS.Modules.Matching.Application.Services
                 {
                     var shipment = await _repo.GetShipmentAsync(p.ShipmentId, ct);
                     if (shipment == null)
-                        throw new InvalidOperationException($"Shipment {p.ShipmentId} khÃ´ng tá»“n táº¡i.");
+                        throw new InvalidOperationException($"Shipment {p.ShipmentId} không tồn tại.");
 
                     if (shipment.Status != ShipmentStatus.Draft.ToString())
                         throw new InvalidOperationException(
-                            $"Shipment {shipment.Id} Ä‘ang á»Ÿ tráº¡ng thÃ¡i {shipment.Status}. Chá»‰ Shipment Draft má»›i cÃ³ thá»ƒ cháº¥p nháº­n.");
+                            $"Shipment {shipment.Id} đang ở trạng thái {shipment.Status}. Chỉ Shipment Draft mới có thể chấp nhận.");
 
                     if (shipment.WeightKg <= 0 || shipment.VolumeCbm <= 0)
                         throw new InvalidOperationException(
-                            $"Shipment {shipment.Id} cÃ³ Weight hoáº·c Volume khÃ´ng há»£p lá»‡.");
+                            $"Shipment {shipment.Id} có Weight hoặc Volume không hợp lệ.");
 
                     if (await _repo.HasAcceptedProposalForShipmentAsync(shipment.Id, ct))
                         throw new InvalidOperationException(
-                            $"Shipment {shipment.Id} Ä‘Ã£ cÃ³ Ä‘á» xuáº¥t Ä‘Æ°á»£c cháº¥p nháº­n á»Ÿ chuyáº¿n khÃ¡c.");
+                            $"Shipment {shipment.Id} đã có đề xuất được chấp nhận ở chuyến khác.");
 
                     totalWeight += shipment.WeightKg;
                     totalVolume += shipment.VolumeCbm;
@@ -496,11 +500,11 @@ namespace HMS.Modules.Matching.Application.Services
                 // Check total capacity
                 if (trip.CurrentLoadWeight + totalWeight > vehicle.MaxWeightKg)
                     throw new InvalidOperationException(
-                        "Xe khÃ´ng cÃ²n Ä‘á»§ táº£i trá»ng hoáº·c thá»ƒ tÃ­ch Ä‘á»ƒ nháº­n toÃ n bá»™ Ä‘á» xuáº¥t.");
+                        "Xe không còn đủ tải trọng hoặc thể tích để nhận toàn bộ đề xuất.");
 
                 if (trip.CurrentLoadVolume + totalVolume > vehicle.MaxVolumeCbm)
                     throw new InvalidOperationException(
-                        "Xe khÃ´ng cÃ²n Ä‘á»§ táº£i trá»ng hoáº·c thá»ƒ tÃ­ch Ä‘á»ƒ nháº­n toÃ n bá»™ Ä‘á» xuáº¥t.");
+                        "Xe không còn đủ tải trọng hoặc thể tích để nhận toàn bộ đề xuất.");
 
                 var dbConn = _repo.GetUnderlyingConnection();
                 var dbTxn = _repo.GetUnderlyingTransaction();
@@ -514,7 +518,7 @@ namespace HMS.Modules.Matching.Application.Services
                     var shipment = shipmentMap[proposal.ShipmentId];
 
                     // Accept proposal
-                    proposal.Status = ProposalStatusConstants.Accepted;
+                    proposal.Status = ProposalStatusConstants.Approved;
                     proposal.AcceptedAt = DateTime.UtcNow;
                     proposal.AcceptedBy = driverId;
                     await _repo.UpdateAsync(proposal, ct);

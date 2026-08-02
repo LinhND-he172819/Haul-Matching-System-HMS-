@@ -8,6 +8,8 @@ public sealed record PublicTripPostResponse(
     string DestinationHubName,
     DateTimeOffset? DepartureTime,
     DateTimeOffset AcceptUntil,
+    decimal MaxWeightKg,
+    decimal MaxVolumeCbm,
     decimal RemainingWeightKg,
     decimal RemainingVolumeCbm,
     string TruckType,

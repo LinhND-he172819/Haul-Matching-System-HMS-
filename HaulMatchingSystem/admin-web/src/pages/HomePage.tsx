@@ -1,18 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { decodeJWT } from '../utils/jwt';
 import { fetchPublicTripPosts, type PublicTripPost } from '../api/tripPostApi';
 import TripSearchBar from '../components/customer/TripSearchBar';
 import TripMarketplace from '../components/customer/TripMarketplace';
 import TripDetailDrawer from '../components/customer/TripDetailDrawer';
+import AppHeader from '../components/AppHeader';
 
 interface HomePageProps {
-    onNavigate: (page: 'login' | 'register' | 'home' | 'create-shipment') => void;
-    onNewProposal?: (tripPostId: string, tripId: string, pickupMode?: string) => void;
+    onNavigate: (page: string) => void;
+    onNewProposal?: (tripPostId: string, tripId: string, pickupMode?: string, trip?: PublicTripPost) => void;
     onLogout?: () => void;
 }
 
 export default function HomePage({ onNavigate, onNewProposal, onLogout }: HomePageProps) {
-    const [fullName, setFullName] = useState('Khách');
+    const [role, setRole] = useState<string | null>(null);
 
     // Trips state
     const [trips, setTrips] = useState<PublicTripPost[]>([]);
@@ -37,30 +37,12 @@ export default function HomePage({ onNavigate, onNewProposal, onLogout }: HomePa
     // Detail drawer
     const [drawerTrip, setDrawerTrip] = useState<PublicTripPost | null>(null);
 
-    // Load user name
+    // Load user role
     useEffect(() => {
-        const loadName = () => {
-            const localName = localStorage.getItem('fullName');
-            if (localName) {
-                setFullName(localName);
-                return;
-            }
-
-            const token = localStorage.getItem('accessToken');
-            if (token) {
-                const payload = decodeJWT(token);
-                if (payload) {
-                    const name = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
-                    if (name) {
-                        setFullName(name);
-                    }
-                }
-            }
-        };
-
-        loadName();
-        window.addEventListener('profileUpdated', loadName);
-        return () => window.removeEventListener('profileUpdated', loadName);
+        const storedRole = localStorage.getItem('role');
+        if (storedRole) {
+            setRole(storedRole);
+        }
     }, []);
 
     // Fetch trips from public API
@@ -111,68 +93,29 @@ export default function HomePage({ onNavigate, onNewProposal, onLogout }: HomePa
         setPage(1);
     };
 
-    // Proposal navigation — open DraftShipment in Proposal Mode
+    // Proposal navigation — open CreateProposalPage with trip data
     const handleNewProposal = (trip: PublicTripPost) => {
         if (onNewProposal) {
-            onNewProposal(trip.id, trip.id, trip.pickupMode);
+            onNewProposal(trip.id, trip.id, trip.pickupMode, trip);
         }
     };
 
     return (
         <div className="bg-[#f2f4f7] min-h-screen font-sans flex flex-col">
-            {/* ── Full Web Header ─────────────────────────────────── */}
-            <header className="bg-white shadow-sm border-b border-gray-100 px-6 xl:px-12 py-4 flex justify-between items-center z-50">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center p-1 text-white shadow-sm">
-                        <span className="material-symbols-outlined text-[20px]">local_shipping</span>
-                    </div>
-                    <span className="text-gray-800 font-bold text-lg hidden sm:block">Hệ thống ghép chuyến</span>
-                </div>
-
-                <nav className="hidden md:flex items-center gap-8 text-gray-500 font-medium text-sm">
-                    <a href="#" className="text-primary border-b-2 border-primary pb-1">Trang chủ</a>
-                    <button
-                        onClick={() => onNavigate('create-shipment')}
-                        className="hover:text-primary transition-colors pb-1"
-                    >
-                        Tạo đơn gửi hàng
-                    </button>
-                </nav>
-
-                <div className="flex items-center gap-4">
-                    {/* Tạo đơn gửi hàng – mobile */}
-                    <button
-                        onClick={() => onNavigate('create-shipment')}
-                        className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors"
-                    >
-                        <span className="material-symbols-outlined text-[16px]">add</span>
-                        Tạo đơn
-                    </button>
-
-                    <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors">
-                        <span className="material-symbols-outlined text-[24px]">notifications</span>
-                    </button>
-                    {onLogout && (
-                        <button
-                            onClick={onLogout}
-                            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-50 text-red-600 hover:text-red-800 transition-colors"
-                            title="Đăng xuất"
-                        >
-                            <span className="material-symbols-outlined text-[24px]">logout</span>
-                        </button>
-                    )}
-                    <div 
-                        className="flex items-center gap-2 bg-gray-50 pl-2 pr-4 py-1.5 rounded-full border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => _onNavigate('profile' as any)}
-                        title="Hồ sơ cá nhân"
-                    >
-                        <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm uppercase">
-                            {fullName.charAt(0)}
-                        </div>
-                        <span className="text-gray-700 font-medium text-sm hidden sm:block">{fullName}</span>
-                    </div>
-                </div>
-            </header>
+            {/* ── Shared App Header ──────────────────────────────── */}
+            <AppHeader
+                onLogout={onLogout}
+                pages={[
+                    { label: 'Trang chủ', onClick: () => {}, active: true },
+                    ...(role === 'Customer' ? [
+                        { label: 'Tạo đơn gửi hàng', onClick: () => onNavigate('create-shipment') },
+                        { label: 'Đơn hàng của tôi', onClick: () => onNavigate('my-shipments') },
+                    ] : []),
+                    ...(role === 'Driver' ? [
+                        { label: 'Chuyến đi của tôi', onClick: () => onNavigate('driver-trips-v2') },
+                    ] : []),
+                ]}
+            />
 
             {/* ── Hero Section ────────────────────────────────────── */}
             <div className="bg-primary h-[350px] relative w-full flex flex-col items-center pt-16">

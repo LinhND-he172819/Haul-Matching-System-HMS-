@@ -272,6 +272,7 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
                 oh.name, dh.name,
                 t.started_at,
                 tp.accept_until,
+                v.max_weight_kg, v.max_volume_cbm,
                 (v.max_weight_kg - t.current_load_weight) AS remaining_weight,
                 (v.max_volume_cbm - t.current_load_volume) AS remaining_volume,
                 v.vehicle_type,
@@ -296,8 +297,8 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
         {
-            var remainingWeight = reader.GetDecimal(7);
-            var remainingVolume = reader.GetDecimal(8);
+            var remainingWeight = reader.GetDecimal(9);
+            var remainingVolume = reader.GetDecimal(10);
 
             // Skip posts with zero remaining capacity
             if (remainingWeight <= 0 || remainingVolume <= 0) continue;
@@ -310,12 +311,14 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
                 DestinationHubName: reader.GetString(4),
                 DepartureTime: reader.IsDBNull(5) ? null : reader.GetDateTime(5),
                 AcceptUntil: reader.GetDateTime(6),
+                MaxWeightKg: reader.GetDecimal(7),
+                MaxVolumeCbm: reader.GetDecimal(8),
                 RemainingWeightKg: remainingWeight,
                 RemainingVolumeCbm: remainingVolume,
-                TruckType: reader.GetString(9),
-                LicensePlate: reader.GetString(10),
-                DriverName: reader.GetString(11),
-                PickupMode: reader.GetString(12)
+                TruckType: reader.GetString(11),
+                LicensePlate: reader.GetString(12),
+                DriverName: reader.GetString(13),
+                PickupMode: reader.GetString(14)
             ));
         }
 

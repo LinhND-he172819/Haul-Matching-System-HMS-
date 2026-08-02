@@ -3,7 +3,11 @@
     public enum TripStatus
     {
         Active,
+        Scheduled,
+        Ready,
+        InProgress,
         Completed,
-        Breakdown
+        Breakdown,
+        Cancelled
     }
 }

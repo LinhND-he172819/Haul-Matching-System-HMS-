@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\HMS.Shared\HMS.Shared.Core\HMS.Shared.Core.csproj" />
     <ProjectReference Include="..\..\HMS.Shared\HMS.Shared.Infrastructure\HMS.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\HMS.Modules.Transport\HMS.Modules.Transport.csproj" />
   </ItemGroup>
 
   <ItemGroup>

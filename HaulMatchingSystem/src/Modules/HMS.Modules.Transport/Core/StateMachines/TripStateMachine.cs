@@ -7,9 +7,15 @@ public static class TripStateMachine
     private static readonly IReadOnlyDictionary<TripStatus, TripStatus[]> AllowedTransitions =
         new Dictionary<TripStatus, TripStatus[]>
         {
+            // Legacy statuses (backward compatible)
             [TripStatus.Active] = [TripStatus.Completed, TripStatus.Breakdown],
+            // New Driver Trip Management statuses
+            [TripStatus.Scheduled] = [TripStatus.Ready, TripStatus.Cancelled],
+            [TripStatus.Ready] = [TripStatus.InProgress, TripStatus.Cancelled],
+            [TripStatus.InProgress] = [TripStatus.Completed],
             [TripStatus.Completed] = [],
-            [TripStatus.Breakdown] = []
+            [TripStatus.Breakdown] = [],
+            [TripStatus.Cancelled] = []
         };
 
     public static bool CanTransition(TripStatus currentStatus, TripStatus targetStatus)

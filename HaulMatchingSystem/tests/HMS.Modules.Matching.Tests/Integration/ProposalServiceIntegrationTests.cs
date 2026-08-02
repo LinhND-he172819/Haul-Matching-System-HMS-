@@ -1,8 +1,9 @@
-using HMS.Modules.Matching.Application.DTOs;
+﻿using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Exceptions;
 using HMS.Shared.Core.Interfaces;
 using HMS.Shared.Core.Models.Realtime;
 using Moq;
@@ -72,14 +73,14 @@ namespace HMS.Modules.Matching.Tests.Integration
             _sut = new ProposalService(_repo.Object, _stateService.Object, _dispatcher.Object, _logger.Object);
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  FLOW 1: Full happy-path: Create -> View -> Accept -> Verify state
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
         [Fact]
         public async Task FullFlow_CreateThenAccept_ShipmentTransitionsToMatched()
         {
-            // ── Arrange ──
+            // â”€â”€ Arrange â”€â”€
             var customerId = Guid.NewGuid();
             var driverId = Guid.NewGuid();
             var tripPostId = Guid.NewGuid();
@@ -102,6 +103,7 @@ namespace HMS.Modules.Matching.Tests.Integration
                 Status = ShipmentStatus.Draft.ToString(),
                 WeightKg = 100,
                 VolumeCbm = 5,
+                CustomerId = customerId,
                 ReceiverName = "Nguyen Van A",
                 ReceiverPhone = "0901234567",
                 DestAddress = "Ha Noi"
@@ -119,7 +121,7 @@ namespace HMS.Modules.Matching.Tests.Integration
                 UpdatedAt = DateTime.UtcNow
             };
 
-            // ── Step 1: Create Proposal ──
+            // â”€â”€ Step 1: Create Proposal â”€â”€
             _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(shipment);
             _repo.Setup(r => r.GetTripPostAsync(tripPostId, It.IsAny<CancellationToken>()))
@@ -149,12 +151,12 @@ namespace HMS.Modules.Matching.Tests.Integration
                 CancellationToken.None);
 
             Assert.NotNull(createResult);
-            Assert.Equal(ProposalStatusConstants.Pending, createResult.Status);
+            Assert.Equal(ProposalStatusConstants.PendingReview, createResult.Status);
             Assert.NotNull(savedProposal);
             Assert.Equal(shipmentId, savedProposal.ShipmentId);
             Assert.Equal(customerId, savedProposal.CustomerId);
 
-            // ── Step 2: Accept Proposal (as driver) ──
+            // â”€â”€ Step 2: Accept Proposal (as driver) â”€â”€
             var proposalId = savedProposal.Id;
 
             _repo.Setup(r => r.GetByIdAsync(proposalId, It.IsAny<CancellationToken>()))
@@ -173,7 +175,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             var acceptResult = await _sut.AcceptProposalAsync(proposalId, driverId, CancellationToken.None);
 
             Assert.NotNull(acceptResult);
-            Assert.Equal(ProposalStatusConstants.Accepted, acceptResult.Status);
+            Assert.Equal(ProposalStatusConstants.Approved, acceptResult.Status);
             Assert.Equal(shipmentId, acceptResult.ShipmentId);
 
             // Verify shipment transitioned to Matched
@@ -193,13 +195,13 @@ namespace HMS.Modules.Matching.Tests.Integration
                 Times.Once);
 
             // Verify proposal was updated to Accepted
-            Assert.Equal(ProposalStatusConstants.Accepted, savedProposal.Status);
+            Assert.Equal(ProposalStatusConstants.Approved, savedProposal.Status);
             Assert.Equal(driverId, savedProposal.AcceptedBy);
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  FLOW 2: Accept one proposal -> other proposals auto-cancelled
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
         [Fact]
         public async Task AcceptProposal_CancelsOtherPendingProposalsForSameShipment()
@@ -233,13 +235,13 @@ namespace HMS.Modules.Matching.Tests.Integration
             var proposal1 = new ShipmentProposal
             {
                 Id = Guid.NewGuid(), ShipmentId = shipmentId, TripPostId = tripPostId1,
-                CustomerId = customerId1, Status = ProposalStatusConstants.Pending,
+                CustomerId = customerId1, Status = ProposalStatusConstants.PendingReview,
                 CreatedAt = DateTime.UtcNow, SenderName = "C1", SenderPhone = "0", PickupAddress = "A"
             };
             var proposal2 = new ShipmentProposal
             {
                 Id = Guid.NewGuid(), ShipmentId = shipmentId, TripPostId = tripPostId2,
-                CustomerId = customerId2, Status = ProposalStatusConstants.Pending,
+                CustomerId = customerId2, Status = ProposalStatusConstants.PendingReview,
                 CreatedAt = DateTime.UtcNow, SenderName = "C2", SenderPhone = "0", PickupAddress = "B"
             };
 
@@ -262,7 +264,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             await _sut.AcceptProposalAsync(proposal1.Id, driverId, CancellationToken.None);
 
             // Verify proposal1 is Accepted
-            Assert.Equal(ProposalStatusConstants.Accepted, proposal1.Status);
+            Assert.Equal(ProposalStatusConstants.Approved, proposal1.Status);
 
             // Verify proposal2 was auto-cancelled
             Assert.Equal(ProposalStatusConstants.Cancelled, proposal2.Status);
@@ -276,9 +278,9 @@ namespace HMS.Modules.Matching.Tests.Integration
                 Times.Once);
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  FLOW 3: Create -> Cancel -> verify proposal cancelled
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
         [Fact]
         public async Task CreateThenCancel_ProposalCancelledAndDriverNotified()
@@ -293,6 +295,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             {
                 Id = shipmentId, Status = ShipmentStatus.Draft.ToString(),
                 WeightKg = 10, VolumeCbm = 1,
+                CustomerId = customerId,
                 ReceiverName = "A", ReceiverPhone = "0", DestAddress = "X"
             };
             var tripPost = new TripPostRecord
@@ -329,7 +332,7 @@ namespace HMS.Modules.Matching.Tests.Integration
                 CancellationToken.None);
 
             Assert.NotNull(savedProposal);
-            Assert.Equal(ProposalStatusConstants.Pending, savedProposal.Status);
+            Assert.Equal(ProposalStatusConstants.PendingReview, savedProposal.Status);
 
             // Step 2: Cancel
             _repo.Setup(r => r.GetByIdAsync(savedProposal.Id, It.IsAny<CancellationToken>()))
@@ -349,9 +352,9 @@ namespace HMS.Modules.Matching.Tests.Integration
                 Times.Once);
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  FLOW 4: Duplicate proposal rejected
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
         [Fact]
         public async Task CreateProposal_DuplicatePending_Throws()
@@ -365,6 +368,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             {
                 Id = shipmentId, Status = ShipmentStatus.Draft.ToString(),
                 WeightKg = 10, VolumeCbm = 1,
+                CustomerId = customerId,
                 ReceiverName = "A", ReceiverPhone = "0", DestAddress = "X"
             };
             var tripPost = new TripPostRecord
@@ -376,7 +380,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             var existingProposal = new ShipmentProposal
             {
                 Id = Guid.NewGuid(), ShipmentId = shipmentId, TripPostId = tripPostId,
-                CustomerId = Guid.NewGuid(), Status = ProposalStatusConstants.Pending
+                CustomerId = Guid.NewGuid(), Status = ProposalStatusConstants.PendingReview
             };
 
             _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
@@ -397,9 +401,9 @@ namespace HMS.Modules.Matching.Tests.Integration
                     CancellationToken.None));
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  FLOW 5: Accept proposal for shipment already accepted -> throw
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
         [Fact]
         public async Task AcceptProposal_ShipmentAlreadyAccepted_ThrowsInvalidOperation()
@@ -411,7 +415,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             var proposal = new ShipmentProposal
             {
                 Id = proposalId, ShipmentId = shipmentId, TripPostId = Guid.NewGuid(),
-                Status = ProposalStatusConstants.Pending
+                Status = ProposalStatusConstants.PendingReview
             };
             var trip = new Trip { Id = Guid.NewGuid(), DriverId = driverId, VehicleId = Guid.NewGuid(), Status = "Active" };
             var tripPost = new TripPostRecord
@@ -448,9 +452,9 @@ namespace HMS.Modules.Matching.Tests.Integration
                 Times.Never);
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  FLOW 6: Cancel proposal by wrong customer -> unauthorized
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
         [Fact]
         public async Task CancelProposal_WrongCustomer_ThrowsUnauthorized()
@@ -461,21 +465,21 @@ namespace HMS.Modules.Matching.Tests.Integration
             var proposal = new ShipmentProposal
             {
                 Id = Guid.NewGuid(), CustomerId = realCustomerId,
-                Status = ProposalStatusConstants.Pending
+                Status = ProposalStatusConstants.PendingReview
             };
 
             _repo.Setup(r => r.GetByIdAsync(proposal.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(proposal);
 
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            await Assert.ThrowsAsync<ForbiddenException>(() =>
                 _sut.CancelProposalAsync(proposal.Id, wrongCustomerId, CancellationToken.None));
 
-            Assert.Equal(ProposalStatusConstants.Pending, proposal.Status);
+            Assert.Equal(ProposalStatusConstants.PendingReview, proposal.Status);
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  FLOW 7: Accept proposal -> capacity exceeded -> throw, no changes
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
         [Fact]
         public async Task AcceptProposal_CapacityExceeded_ThrowsAndRollsBack()
@@ -493,7 +497,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             var proposal = new ShipmentProposal
             {
                 Id = proposalId, ShipmentId = shipmentId, TripPostId = Guid.NewGuid(),
-                Status = ProposalStatusConstants.Pending
+                Status = ProposalStatusConstants.PendingReview
             };
             var tripPost = new TripPostRecord
             {
@@ -531,9 +535,9 @@ namespace HMS.Modules.Matching.Tests.Integration
                 Times.Never);
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  FLOW 8: Reject proposal -> proposal rejected, no state change
-        // ══════════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
         [Fact]
         public async Task RejectProposal_SetsRejectedAndNotifiesCustomer()
@@ -545,7 +549,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             var proposal = new ShipmentProposal
             {
                 Id = proposalId, CustomerId = customerId, TripPostId = Guid.NewGuid(),
-                Status = ProposalStatusConstants.Pending, ShipmentId = Guid.NewGuid()
+                Status = ProposalStatusConstants.PendingReview, ShipmentId = Guid.NewGuid()
             };
             var trip = new Trip { Id = Guid.NewGuid(), DriverId = driverId, VehicleId = Guid.NewGuid(), Status = "Active" };
 
@@ -589,5 +593,101 @@ namespace HMS.Modules.Matching.Tests.Integration
             Assert.Equal(driverId, proposal.RejectedBy);
             Assert.Equal("Shipment too heavy", proposal.RejectReason);
         }
+
+        // ─────────────────────────────────────────────────────────────
+        //  FLOW 9: Customer creates proposal for another customer's shipment -> Forbidden
+        // ─────────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task CreateProposal_WrongCustomer_ThrowsForbidden()
+        {
+            var realCustomerId = Guid.NewGuid();
+            var wrongCustomerId = Guid.NewGuid();
+            var tripPostId = Guid.NewGuid();
+            var shipmentId = Guid.NewGuid();
+
+            var shipment = new Shipment
+            {
+                Id = shipmentId, Status = ShipmentStatus.Draft.ToString(),
+                WeightKg = 10, VolumeCbm = 1,
+                CustomerId = realCustomerId,
+                ReceiverName = "A", ReceiverPhone = "0", DestAddress = "X"
+            };
+            var tripPost = new TripPostRecord
+            {
+                Id = tripPostId, TripId = Guid.NewGuid(), Status = "Open",
+                PickupMode = "DirectPickup", AcceptUntil = DateTimeOffset.UtcNow.AddHours(2),
+                CreatedBy = Guid.NewGuid(), Title = "Post", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            };
+
+            _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(shipment);
+            _repo.Setup(r => r.GetTripPostAsync(tripPostId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(tripPost);
+
+            var ex = await Assert.ThrowsAsync<ForbiddenException>(() =>
+                _sut.CreateProposalAsync(
+                    tripPostId, wrongCustomerId,
+                    new CreateProposalRequest
+                    {
+                        ShipmentId = shipmentId,
+                        SenderName = "Wrong Customer", SenderPhone = "0", PickupAddress = "Addr"
+                    },
+                    CancellationToken.None));
+
+            // Verify proposal was NOT created
+            _repo.Verify(r => r.AddAsync(It.IsAny<ShipmentProposal>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  FLOW 10: Accept proposal - proposal not for this driver -> Forbidden
+        // ─────────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task AcceptProposal_NotForThisDriver_ThrowsForbidden()
+        {
+            var driverId = Guid.NewGuid();
+            var proposalId = Guid.NewGuid();
+
+            // TripPost belongs to a DIFFERENT driver
+            var otherDriverId = Guid.NewGuid();
+            var tripPost = new TripPostRecord
+            {
+                Id = Guid.NewGuid(), TripId = Guid.NewGuid(), Status = "Open",
+                PickupMode = "DirectPickup", AcceptUntil = DateTimeOffset.UtcNow.AddHours(2),
+                CreatedBy = otherDriverId, Title = "Post", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            };
+
+            var proposal = new ShipmentProposal
+            {
+                Id = proposalId, ShipmentId = Guid.NewGuid(), TripPostId = tripPost.Id,
+                Status = ProposalStatusConstants.PendingReview
+            };
+
+            // Driver's active trip
+            var trip = new Trip
+            {
+                Id = Guid.NewGuid(), DriverId = driverId, VehicleId = Guid.NewGuid(),
+                Status = "Active", Version = 1
+            };
+
+            _repo.Setup(r => r.GetByIdAsync(proposalId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(proposal);
+            _repo.Setup(r => r.GetActiveTripForDriverAsync(driverId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(trip);
+            _repo.Setup(r => r.GetTripPostAsync(tripPost.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(tripPost);
+
+            await Assert.ThrowsAsync<ForbiddenException>(() =>
+                _sut.AcceptProposalAsync(proposalId, driverId, CancellationToken.None));
+
+            // Verify no state transition
+            _stateService.Verify(s => s.TransitionAsync(
+                It.IsAny<Guid>(), It.IsAny<ShipmentStatus>(),
+                It.IsAny<object?>(), It.IsAny<object?>(),
+                It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
     }
 }
+

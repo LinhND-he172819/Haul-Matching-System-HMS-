@@ -29,7 +29,7 @@ namespace HMS.Modules.Matching.Application.DTOs
         public string? PickupNote { get; set; }
 
         // â”€â”€ Proposal meta â”€â”€
-        public string Status { get; set; } = ProposalStatusConstants.Pending;
+        public string Status { get; set; } = ProposalStatusConstants.PendingReview;
         public DateTime CreatedAt { get; set; }
     }
 
@@ -68,7 +68,7 @@ namespace HMS.Modules.Matching.Application.DTOs
         public Guid ProposalId { get; set; }
         public Guid ShipmentId { get; set; }
         public Guid TripPostId { get; set; }
-        public string Status { get; set; } = ProposalStatusConstants.Pending;
+        public string Status { get; set; } = ProposalStatusConstants.PendingReview;
         public DateTime CreatedAt { get; set; }
     }
 

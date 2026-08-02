@@ -152,7 +152,7 @@ public sealed class TripPostService : ITripPostService
             throw new InvalidOperationException("Chuyến này đã có một bài đăng đang mở.");
 
         // 6. Generate title
-        var title = GenerateTitle(originHub.Name, destHub.Name, vehicle.LicensePlate, remainingWeight, remainingVolume);
+        var title = GenerateTitle(originHub.Name, destHub.Name, vehicle.LicensePlate);
 
         var now = DateTimeOffset.UtcNow;
         var pickupMode = string.Equals(request.PickupMode, "Hub", StringComparison.OrdinalIgnoreCase) ? "Hub" : "DirectPickup";
@@ -286,11 +286,8 @@ public sealed class TripPostService : ITripPostService
         if (role == "Warehouse_Staff" && trip.OriginHubId != jwtHubId)
             throw new UnauthorizedAccessException("Bạn không có quyền cập nhật bài đăng thuộc Hub khác.");
 
-        // Recalculate capacity and regenerate title
-        var remainingWeight = vehicle.MaxWeightKg - trip.CurrentLoadWeight;
-        var remainingVolume = vehicle.MaxVolumeCbm - trip.CurrentLoadVolume;
-
-        post.Title = GenerateTitle(originHub.Name, destHub.Name, vehicle.LicensePlate, remainingWeight, remainingVolume);
+        // Regenerate title (no longer includes capacity — capacity is dynamic via API)
+        post.Title = GenerateTitle(originHub.Name, destHub.Name, vehicle.LicensePlate);
 
         if (request.Description is not null)
             post.Description = request.Description;
@@ -396,10 +393,9 @@ public sealed class TripPostService : ITripPostService
     // ── Private helpers ──────────────────────────────────────────────
 
     private static string GenerateTitle(
-        string originHubName, string destHubName, string licensePlate,
-        decimal remainingWeightKg, decimal remainingVolumeCbm)
+        string originHubName, string destHubName, string licensePlate)
     {
-        return $"{originHubName} → {destHubName} | Xe {licensePlate} | Còn {remainingWeightKg:N0} kg • {remainingVolumeCbm:N1} CBM";
+        return $"{originHubName} → {destHubName} | Xe {licensePlate}";
     }
 
     private async Task<Guid?> GetStaffHubIdAsync(Guid userId, CancellationToken ct)

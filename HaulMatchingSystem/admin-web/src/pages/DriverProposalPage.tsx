@@ -39,7 +39,6 @@ export default function DriverProposalPage({ onBackToAdmin, onLogout }: DriverPr
     // Toast state
     const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastType }>>([]);
 
-    const accessToken = localStorage.getItem('accessToken');
     const currentRole = localStorage.getItem('role');
     const proposalCount = data?.proposals?.length ?? 0;
 
@@ -66,38 +65,58 @@ export default function DriverProposalPage({ onBackToAdmin, onLogout }: DriverPr
 
     // SignalR connection for real-time updates
     useEffect(() => {
-        void load();
+        let cancelled = false;
+        let conn: signalR.HubConnection | null = null;
 
-        if (!accessToken || currentRole !== 'Driver') return;
+        async function init() {
+            // First, load data (this triggers authFetch which refreshes expired token)
+            await load();
+            if (cancelled) return;
 
-        const conn = new signalR.HubConnectionBuilder()
-            .withUrl(apiBaseUrl + '/hub/fleet', {
-                accessTokenFactory: () => localStorage.getItem('accessToken') || ''
-            })
-            .withAutomaticReconnect()
-            .configureLogging(signalR.LogLevel.Warning)
-            .build();
+            // Read the (possibly refreshed) token from localStorage AFTER load
+            const freshToken = localStorage.getItem('accessToken');
+            if (!freshToken || currentRole !== 'Driver') return;
 
-        // When a new proposal arrives for this driver
-        conn.on('NewShipmentProposal', () => {
-            void load();
-            pushToast('📦 Có đề xuất lô hàng mới', 'info');
-        });
+            conn = new signalR.HubConnectionBuilder()
+                .withUrl(apiBaseUrl + '/hub/fleet', {
+                    // Always read the freshest token from localStorage
+                    accessTokenFactory: () => localStorage.getItem('accessToken') || ''
+                })
+                .withAutomaticReconnect()
+                .configureLogging(signalR.LogLevel.Warning)
+                .build();
 
-        // When a proposal is cancelled by customer
-        conn.on('ShipmentProposalCancelled', () => {
-            void load();
-            pushToast('Đề xuất đã bị hủy bởi khách hàng', 'info');
-        });
+            // When a new proposal arrives for this driver
+            conn.on('NewShipmentProposal', () => {
+                void load();
+                pushToast('📦 Có đề xuất lô hàng mới', 'info');
+            });
 
-        // When trip capacity changes (another proposal accepted)
-        conn.on('TripCapacityUpdated', () => {
-            void load();
-        });
+            // When a proposal is cancelled by customer
+            conn.on('ShipmentProposalCancelled', () => {
+                void load();
+                pushToast('Đề xuất đã bị hủy bởi khách hàng', 'info');
+            });
 
-        conn.start().catch(err => console.error('Hub start error', err));
-        return () => { conn.stop(); };
-    }, [accessToken, currentRole]);
+            // When trip capacity changes (another proposal accepted)
+            conn.on('TripCapacityUpdated', () => {
+                void load();
+            });
+
+            try {
+                await conn.start();
+            } catch (err) {
+                console.error('Hub start error', err);
+            }
+        }
+
+        void init();
+
+        return () => {
+            cancelled = true;
+            conn?.stop();
+        };
+    }, [currentRole]);
 
     // ── Accept a single proposal ──
     async function handleAcceptOne(proposalId: string) {

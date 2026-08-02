@@ -3,10 +3,13 @@
     public enum ShipmentStatus
     {
         Draft,
+        PendingReview,
+        PendingDeposit,
         In_Warehouse,
         Matched,
         In_Transit,
         Delivered,
+        Completed,
         Cancelled,
         Pending_Rescue,
         Delivery_Failed,
