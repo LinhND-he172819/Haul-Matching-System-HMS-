@@ -245,7 +245,7 @@ export default function StaffQuotationDetailPage({
                 </div>
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Người báo giá</p>
-                  <p className="text-body-md">{detail.quotedBy}</p>
+                  <p className="text-body-md">{detail.quotedByName || detail.quotedBy}</p>
                 </div>
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Ngày báo giá</p>

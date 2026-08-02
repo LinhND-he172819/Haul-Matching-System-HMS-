@@ -30,7 +30,7 @@ namespace HMS.Modules.Matching.Controllers
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
             if (claim == null || !Guid.TryParse(claim.Value, out var userId))
-                throw new UnauthorizedAccessException("KhÃ´ng thá»ƒ xÃ¡c Ä‘á»‹nh ngÆ°á»i dÃ¹ng hiá»‡n táº¡i.");
+                throw new UnauthorizedAccessException("Không thể xác định người dùng hiện tại.");
             return userId;
         }
 

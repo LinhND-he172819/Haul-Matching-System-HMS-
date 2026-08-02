@@ -3,6 +3,7 @@ using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Exceptions;
 using HMS.Shared.Core.Interfaces;
 using HMS.Shared.Core.Models.Realtime;
 using Moq;
@@ -102,6 +103,7 @@ namespace HMS.Modules.Matching.Tests.Integration
                 Status = ShipmentStatus.Draft.ToString(),
                 WeightKg = 100,
                 VolumeCbm = 5,
+                CustomerId = customerId,
                 ReceiverName = "Nguyen Van A",
                 ReceiverPhone = "0901234567",
                 DestAddress = "Ha Noi"
@@ -293,6 +295,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             {
                 Id = shipmentId, Status = ShipmentStatus.Draft.ToString(),
                 WeightKg = 10, VolumeCbm = 1,
+                CustomerId = customerId,
                 ReceiverName = "A", ReceiverPhone = "0", DestAddress = "X"
             };
             var tripPost = new TripPostRecord
@@ -365,6 +368,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             {
                 Id = shipmentId, Status = ShipmentStatus.Draft.ToString(),
                 WeightKg = 10, VolumeCbm = 1,
+                CustomerId = customerId,
                 ReceiverName = "A", ReceiverPhone = "0", DestAddress = "X"
             };
             var tripPost = new TripPostRecord
@@ -467,7 +471,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             _repo.Setup(r => r.GetByIdAsync(proposal.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(proposal);
 
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            await Assert.ThrowsAsync<ForbiddenException>(() =>
                 _sut.CancelProposalAsync(proposal.Id, wrongCustomerId, CancellationToken.None));
 
             Assert.Equal(ProposalStatusConstants.PendingReview, proposal.Status);
@@ -588,6 +592,101 @@ namespace HMS.Modules.Matching.Tests.Integration
             Assert.NotNull(proposal.RejectedAt);
             Assert.Equal(driverId, proposal.RejectedBy);
             Assert.Equal("Shipment too heavy", proposal.RejectReason);
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  FLOW 9: Customer creates proposal for another customer's shipment -> Forbidden
+        // ─────────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task CreateProposal_WrongCustomer_ThrowsForbidden()
+        {
+            var realCustomerId = Guid.NewGuid();
+            var wrongCustomerId = Guid.NewGuid();
+            var tripPostId = Guid.NewGuid();
+            var shipmentId = Guid.NewGuid();
+
+            var shipment = new Shipment
+            {
+                Id = shipmentId, Status = ShipmentStatus.Draft.ToString(),
+                WeightKg = 10, VolumeCbm = 1,
+                CustomerId = realCustomerId,
+                ReceiverName = "A", ReceiverPhone = "0", DestAddress = "X"
+            };
+            var tripPost = new TripPostRecord
+            {
+                Id = tripPostId, TripId = Guid.NewGuid(), Status = "Open",
+                PickupMode = "DirectPickup", AcceptUntil = DateTimeOffset.UtcNow.AddHours(2),
+                CreatedBy = Guid.NewGuid(), Title = "Post", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            };
+
+            _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(shipment);
+            _repo.Setup(r => r.GetTripPostAsync(tripPostId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(tripPost);
+
+            var ex = await Assert.ThrowsAsync<ForbiddenException>(() =>
+                _sut.CreateProposalAsync(
+                    tripPostId, wrongCustomerId,
+                    new CreateProposalRequest
+                    {
+                        ShipmentId = shipmentId,
+                        SenderName = "Wrong Customer", SenderPhone = "0", PickupAddress = "Addr"
+                    },
+                    CancellationToken.None));
+
+            // Verify proposal was NOT created
+            _repo.Verify(r => r.AddAsync(It.IsAny<ShipmentProposal>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  FLOW 10: Accept proposal - proposal not for this driver -> Forbidden
+        // ─────────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task AcceptProposal_NotForThisDriver_ThrowsForbidden()
+        {
+            var driverId = Guid.NewGuid();
+            var proposalId = Guid.NewGuid();
+
+            // TripPost belongs to a DIFFERENT driver
+            var otherDriverId = Guid.NewGuid();
+            var tripPost = new TripPostRecord
+            {
+                Id = Guid.NewGuid(), TripId = Guid.NewGuid(), Status = "Open",
+                PickupMode = "DirectPickup", AcceptUntil = DateTimeOffset.UtcNow.AddHours(2),
+                CreatedBy = otherDriverId, Title = "Post", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            };
+
+            var proposal = new ShipmentProposal
+            {
+                Id = proposalId, ShipmentId = Guid.NewGuid(), TripPostId = tripPost.Id,
+                Status = ProposalStatusConstants.PendingReview
+            };
+
+            // Driver's active trip
+            var trip = new Trip
+            {
+                Id = Guid.NewGuid(), DriverId = driverId, VehicleId = Guid.NewGuid(),
+                Status = "Active", Version = 1
+            };
+
+            _repo.Setup(r => r.GetByIdAsync(proposalId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(proposal);
+            _repo.Setup(r => r.GetActiveTripForDriverAsync(driverId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(trip);
+            _repo.Setup(r => r.GetTripPostAsync(tripPost.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(tripPost);
+
+            await Assert.ThrowsAsync<ForbiddenException>(() =>
+                _sut.AcceptProposalAsync(proposalId, driverId, CancellationToken.None));
+
+            // Verify no state transition
+            _stateService.Verify(s => s.TransitionAsync(
+                It.IsAny<Guid>(), It.IsAny<ShipmentStatus>(),
+                It.IsAny<object?>(), It.IsAny<object?>(),
+                It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+                Times.Never);
         }
     }
 }

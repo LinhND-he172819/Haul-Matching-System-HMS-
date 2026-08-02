@@ -77,6 +77,16 @@ public sealed record DriverShipmentListItem
     public string? ReceiverPhone { get; init; }
     public string? DeliveryAddress { get; init; }
 
+    /// <summary>When status is Delivered and a pending FinalPayment (COD) exists, this is its ID.</summary>
+    public Guid? PendingCodPaymentId { get; init; }
+
+    /// <summary>COD amount to collect from receiver (null if no pending COD).</summary>
+    public decimal? PendingCodAmount { get; init; }
+    /// <summary>Currency of the COD payment.</summary>
+    public string? PendingCodCurrency { get; init; }
+    /// <summary>Payment code for the pending COD payment.</summary>
+    public string? PendingCodPaymentCode { get; init; }
+
     public DriverShipmentAllowedActions AllowedActions { get; init; } = new();
 }
 
@@ -86,6 +96,7 @@ public sealed record DriverShipmentAllowedActions
     public bool CanConfirmPickup { get; init; }
     public bool CanStartTransport { get; init; }
     public bool CanConfirmDelivery { get; init; }
+    public bool CanConfirmCod { get; init; }
 }
 
 // ─── Driver Shipment Detail ────────────────────────────────────────────
@@ -115,6 +126,16 @@ public sealed record DriverShipmentDetail
 
     // Timeline
     public List<TimelineEntry> Timeline { get; init; } = new();
+
+    /// <summary>When status is Delivered and a pending FinalPayment (COD) exists, this is its ID.</summary>
+    public Guid? PendingCodPaymentId { get; init; }
+
+    /// <summary>COD amount to collect from receiver (null if no pending COD).</summary>
+    public decimal? PendingCodAmount { get; init; }
+    /// <summary>Currency of the COD payment.</summary>
+    public string? PendingCodCurrency { get; init; }
+    /// <summary>Payment code for the pending COD payment.</summary>
+    public string? PendingCodPaymentCode { get; init; }
 
     // Actions
     public DriverShipmentAllowedActions AllowedActions { get; init; } = new();

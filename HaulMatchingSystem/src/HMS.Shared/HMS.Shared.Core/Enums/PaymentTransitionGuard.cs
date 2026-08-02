@@ -19,7 +19,10 @@ public static class PaymentTransitionGuard
             {
                 PaymentStatus.PendingRefund
             },
-            [PaymentStatus.Failed] = new HashSet<PaymentStatus>(),
+            [PaymentStatus.Failed] = new HashSet<PaymentStatus>
+            {
+                PaymentStatus.Pending   // Retry: Failed → Pending
+            },
             [PaymentStatus.Cancelled] = new HashSet<PaymentStatus>(),
             [PaymentStatus.PendingRefund] = new HashSet<PaymentStatus>
             {

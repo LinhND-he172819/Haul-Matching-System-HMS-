@@ -1,4 +1,7 @@
+using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Models.Realtime;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -14,13 +17,16 @@ namespace HMS.Modules.Matching.Workers;
 public sealed class QuotationExpirationWorker : BackgroundService
 {
     private readonly string _connectionString;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<QuotationExpirationWorker> _logger;
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(2);
 
-    public QuotationExpirationWorker(IConfiguration configuration, ILogger<QuotationExpirationWorker> logger)
+    public QuotationExpirationWorker(IConfiguration configuration, IServiceProvider serviceProvider,
+        ILogger<QuotationExpirationWorker> logger)
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+        _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
@@ -89,13 +95,30 @@ public sealed class QuotationExpirationWorker : BackgroundService
             return 0;
 
         // For each expired quotation, we need to:
-        // 1. Insert audit log
-        // 2. Optionally notify the customer
+        // 1. Revert shipment PendingDeposit → PendingReview (Part 4)
+        // 2. Insert audit log
+        // 3. Notify the customer
+        // 4. SignalR quotation expired event
         foreach (var (quotationId, proposalId, code) in expiredQuotations)
         {
             try
             {
-                // Audit
+                // 1. Revert shipment status if it's in PendingDeposit
+                const string revertSql = """
+                    UPDATE warehouse.shipments
+                    SET status = 'PendingReview', updated_at = NOW()
+                    WHERE id = (
+                        SELECT shipment_id FROM warehouse.shipment_proposals
+                        WHERE id = @proposal_id AND is_deleted = FALSE
+                    )
+                    AND status = 'PendingDeposit'
+                    AND is_deleted = FALSE;
+                """;
+                await using var revertCmd = new NpgsqlCommand(revertSql, conn);
+                revertCmd.Parameters.AddWithValue("proposal_id", proposalId);
+                await revertCmd.ExecuteNonQueryAsync(ct);
+
+                // 2. Audit
                 const string auditSql = """
                     INSERT INTO shared.audit_log (entity_type, entity_id, action, performed_by, details, created_at)
                     VALUES ('Quotation', @quotation_id, 'Expired', NULL, @details::jsonb, NOW());
@@ -103,10 +126,10 @@ public sealed class QuotationExpirationWorker : BackgroundService
                 await using var auditCmd = new NpgsqlCommand(auditSql, conn);
                 auditCmd.Parameters.AddWithValue("quotation_id", quotationId);
                 auditCmd.Parameters.AddWithValue("details",
-                    $"{{\"message\": \"Quotation {code} expired automatically\"}}");
+                    $"{{\"message\": \"Quotation {code} expired automatically. Shipment reverted to PendingReview.\"}}");
                 await auditCmd.ExecuteNonQueryAsync(ct);
 
-                // Get customer for notification
+                // 3. Get customer for notification
                 const string notifSql = """
                     SELECT sp.customer_id
                     FROM warehouse.shipment_proposals sp
@@ -118,6 +141,7 @@ public sealed class QuotationExpirationWorker : BackgroundService
 
                 if (customerId.HasValue)
                 {
+                    // 3a. Database notification
                     const string insertNotifSql = """
                         INSERT INTO shared.notifications (user_id, title, message, entity_type, entity_id, created_at)
                         VALUES (@user_id, @title, @message, 'Quotation', @quotation_id, NOW());
@@ -126,12 +150,33 @@ public sealed class QuotationExpirationWorker : BackgroundService
                     notifCmd2.Parameters.AddWithValue("user_id", customerId.Value);
                     notifCmd2.Parameters.AddWithValue("title", "Báo giá đã hết hạn");
                     notifCmd2.Parameters.AddWithValue("message",
-                        $"Báo giá #{code} đã hết hạn. Vui lòng liên hệ nhân viên để được hỗ trợ.");
+                        $"Báo giá #{code} đã hết hạn. Đơn hàng đã được chuyển về trạng thái chờ duyệt. Vui lòng liên hệ nhân viên để được hỗ trợ.");
                     notifCmd2.Parameters.AddWithValue("quotation_id", quotationId);
                     await notifCmd2.ExecuteNonQueryAsync(ct);
                 }
 
-                _logger.LogInformation("Expired quotation {Code} (ID: {Id})", code, quotationId);
+                // 4. SignalR quotation expired event (via dispatcher in a scope)
+                try
+                {
+                    using var scope = _serviceProvider.CreateScope();
+                    var dispatcher = scope.ServiceProvider.GetRequiredService<HMS.Shared.Core.Interfaces.IRealtimeDispatcher>();
+                    if (customerId.HasValue)
+                    {
+                        await dispatcher.SendQuotationToCustomerAsync(customerId.Value, new QuotationEventPayload
+                        {
+                            EventType = "QuotationExpired",
+                            QuotationId = quotationId,
+                            ProposalId = proposalId,
+                            Timestamp = DateTime.UtcNow
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send SignalR for expired quotation {QuotationId}", quotationId);
+                }
+
+                _logger.LogInformation("Expired quotation {Code} (ID: {Id}), shipment reverted to PendingReview", code, quotationId);
             }
             catch (Exception ex)
             {

@@ -449,7 +449,8 @@ public class CustomerShipmentController : ControllerBase
     private static async Task<QuotationInfo?> LoadQuotationInfo(NpgsqlConnection conn, Guid shipmentId, CancellationToken ct)
     {
         const string sql = """
-            SELECT id, quotation_code, shipping_fee, deposit_amount, remaining_amount,
+            SELECT id, quotation_code, shipping_fee, deposit_amount,
+                   (shipping_fee - deposit_amount) AS remaining_amount,
                    sent_at, expires_at, status
             FROM warehouse.quotations
             WHERE shipment_id = @shipment_id AND is_deleted = FALSE
@@ -476,7 +477,7 @@ public class CustomerShipmentController : ControllerBase
     {
         const string sql = """
             SELECT COALESCE(SUM(CASE WHEN payment_type = 'Deposit' AND status = 'Paid' THEN amount ELSE 0 END), 0) AS deposit_paid,
-                   COALESCE(SUM(CASE WHEN payment_type = 'Final' AND status = 'Paid' THEN amount ELSE 0 END), 0) AS final_paid
+                   COALESCE(SUM(CASE WHEN payment_type = 'FinalPayment' AND status = 'Paid' THEN amount ELSE 0 END), 0) AS final_paid
             FROM warehouse.payments
             WHERE shipment_id = @shipment_id AND is_deleted = FALSE;
         """;
@@ -490,9 +491,32 @@ public class CustomerShipmentController : ControllerBase
         var finalPaid = reader.GetDecimal(1);
         var totalPaid = depositPaid + finalPaid;
 
-        // Get outstanding from quotation
+        // Get outstanding from quotation (shipping_fee - deposit_amount)
         decimal outstanding = 0;
-        string? paymentStatus = totalPaid > 0 ? "Partial" : "Unpaid";
+        try
+        {
+            const string quoteSql = """
+                SELECT (shipping_fee - deposit_amount) AS remaining
+                FROM warehouse.quotations
+                WHERE shipment_id = @shipment_id AND is_deleted = FALSE
+                ORDER BY created_at DESC LIMIT 1;
+            """;
+            await using var quoteCmd = new NpgsqlCommand(quoteSql, conn);
+            quoteCmd.Parameters.AddWithValue("shipment_id", shipmentId);
+            await using var quoteReader = await quoteCmd.ExecuteReaderAsync(ct);
+            if (await quoteReader.ReadAsync(ct))
+            {
+                var remaining = quoteReader.GetDecimal(0);
+                outstanding = remaining - finalPaid;
+                if (outstanding < 0) outstanding = 0;
+            }
+        }
+        catch { /* If quotation not found, outstanding stays 0 */ }
+
+        string? paymentStatus;
+        if (totalPaid <= 0) paymentStatus = "Unpaid";
+        else if (outstanding > 0) paymentStatus = "Partial";
+        else paymentStatus = "Completed";
 
         return new PaymentSummary
         {

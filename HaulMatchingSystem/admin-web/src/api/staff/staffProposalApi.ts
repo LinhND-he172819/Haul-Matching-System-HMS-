@@ -41,10 +41,12 @@ export interface StaffProposalSummary {
 export interface ShipmentInfoDto {
   id: string;
   shipmentCode: string;
-  commodity: string;
+  commodity?: string | null;
   weightKg: number;
   volumeCbm: number;
-  receiver: string;
+  receiver?: string;
+  receiverName?: string;
+  receiverPhone?: string;
   deliveryAddress: string;
   specialHandlingNote?: string;
   status: string;
@@ -53,10 +55,11 @@ export interface ShipmentInfoDto {
 export interface TripInfoDto {
   tripPostId: string;
   tripId: string;
-  tripCode: string;
-  origin: string;
-  destination: string;
-  departureTime: string;
+  tripCode?: string | null;
+  title?: string;
+  origin?: string | null;
+  destination?: string | null;
+  departureTime?: string | null;
   acceptUntil?: string;
   pickupMode: string;
   maxWeight: number;
@@ -103,15 +106,33 @@ export interface ProposalAuditEntry {
 
 export interface StaffProposalDetail {
   proposalId: string;
-  code: string;
+  proposalCode?: string | null;
+  code?: string; // frontend alias fallback
   status: string;
   createdAt: string;
+  reviewedAt?: string | null;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  rejectReason?: string | null;
   shipment: ShipmentInfoDto;
+  senderName?: string;
+  senderPhone?: string;
+  pickupAddress?: string;
+  pickupLatitude?: number | null;
+  pickupLongitude?: number | null;
+  pickupNote?: string;
   trip: TripInfoDto;
   tripCapacity: TripCapacityInfoDto;
   customer: CustomerInfoDto;
-  quotations: QuotationSummaryDto[];
-  audit: ProposalAuditEntry[];
+  /** API field name */
+  quotationHistory?: QuotationSummaryDto[];
+  currentQuotation?: QuotationSummaryDto | null;
+  /** Frontend alias — falls back to quotationHistory */
+  quotations?: QuotationSummaryDto[];
+  /** API field name */
+  auditTimeline?: ProposalAuditEntry[];
+  /** Frontend alias — falls back to auditTimeline */
+  audit?: ProposalAuditEntry[];
 }
 
 export interface PagedResult<T> {
@@ -148,7 +169,14 @@ export async function getStaffProposalDetail(proposalId: string): Promise<StaffP
     const text = await res.text();
     throw new Error(text || `Lỗi tải chi tiết đề xuất (${res.status})`);
   }
-  return res.json();
+  const raw = await res.json();
+  // Normalize: API uses quotationHistory/auditTimeline, frontend aliases quotations/audit
+  return {
+    ...raw,
+    code: raw.proposalCode || raw.code || '',
+    quotations: raw.quotations ?? raw.quotationHistory ?? [],
+    audit: raw.audit ?? raw.auditTimeline ?? [],
+  } as StaffProposalDetail;
 }
 
 export async function approveProposal(proposalId: string): Promise<void> {

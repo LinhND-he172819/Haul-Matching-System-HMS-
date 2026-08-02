@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Core.Interfaces;
+using HMS.Shared.Core.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -9,11 +10,15 @@ namespace HMS.Modules.Matching.Controllers
 {
     /// <summary>
     /// Customer quotation and payment controller.
-    /// GET  /api/customer/quotations/{quotationId}                   — view quotation
-    /// POST /api/customer/quotations/{quotationId}/deposit-payment   — create deposit payment
-    /// POST /api/customer/quotations/{quotationId}/final-payment     — create final payment
-    /// GET  /api/customer/shipments/{shipmentId}/payments            — payment summary
-    /// GET  /api/customer/quotations/{quotationId}/payment-history   — payment history
+    /// GET    /api/customer/quotations/{quotationId}                    — view quotation
+    /// POST   /api/customer/quotations/{quotationId}/deposit-payment    — create deposit payment
+    /// POST   /api/customer/quotations/{quotationId}/final-payment      — create final payment
+    /// GET    /api/customer/shipments/{shipmentId}/payments             — payment summary
+    /// GET    /api/customer/quotations/{quotationId}/payment-history    — payment history
+    /// POST   /api/customer/payments/{paymentId}/retry                  — retry failed payment (Part 1)
+    /// POST   /api/customer/payments/{paymentId}/cancel                 — cancel pending payment (Part 3)
+    /// GET    /api/customer/payments/{paymentId}                        — payment detail (Part 5)
+    /// GET    /api/customer/payments/{paymentId}/timeline               — payment timeline (Part 6)
     /// </summary>
     [ApiController]
     [Route("api/customer")]
@@ -126,7 +131,7 @@ namespace HMS.Modules.Matching.Controllers
         }
 
         /// <summary>
-        /// Get payment summary for a shipment.
+        /// Get payment summary for a shipment (ownership verified).
         /// </summary>
         [HttpGet("shipments/{shipmentId:guid}/payments")]
         public async Task<IActionResult> GetPaymentSummary(
@@ -135,8 +140,21 @@ namespace HMS.Modules.Matching.Controllers
         {
             try
             {
-                var result = await _paymentService.GetPaymentSummaryAsync(shipmentId, ct);
+                var customerId = GetCurrentUserId();
+                var result = await _paymentService.GetPaymentSummaryAsync(shipmentId, customerId, ct);
                 return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid();
+            }
+            catch (ForbiddenException ex)
+            {
+                return Forbid();
             }
             catch (Exception ex)
             {
@@ -146,7 +164,7 @@ namespace HMS.Modules.Matching.Controllers
         }
 
         /// <summary>
-        /// Get payment history for a quotation.
+        /// Get payment history for a quotation (ownership verified).
         /// </summary>
         [HttpGet("quotations/{quotationId:guid}/payment-history")]
         public async Task<IActionResult> GetPaymentHistory(
@@ -155,13 +173,139 @@ namespace HMS.Modules.Matching.Controllers
         {
             try
             {
-                var result = await _paymentService.GetPaymentHistoryAsync(quotationId, ct);
+                var customerId = GetCurrentUserId();
+                var result = await _paymentService.GetPaymentHistoryAsync(quotationId, customerId, ct);
                 return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid();
+            }
+            catch (ForbiddenException ex)
+            {
+                return Forbid();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting payment history for quotation {QuotationId}", quotationId);
                 return StatusCode(500, new { message = "Lỗi khi lấy lịch sử thanh toán." });
+            }
+        }
+
+        // ═══ Part 1: Retry Payment ═══
+
+        /// <summary>
+        /// Retry a failed payment: Failed → Pending. Keeps payment_code.
+        /// </summary>
+        [HttpPost("payments/{paymentId:guid}/retry")]
+        public async Task<IActionResult> RetryPayment(
+            Guid paymentId,
+            CancellationToken ct)
+        {
+            try
+            {
+                var customerId = GetCurrentUserId();
+                var result = await _paymentService.RetryPaymentAsync(paymentId, customerId, ct);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrying payment {PaymentId}", paymentId);
+                return StatusCode(500, new { message = "Lỗi khi thử lại thanh toán." });
+            }
+        }
+
+        // ═══ Part 3: Cancel Payment ═══
+
+        /// <summary>
+        /// Cancel a pending payment: Pending → Cancelled. Can retry later.
+        /// </summary>
+        [HttpPost("payments/{paymentId:guid}/cancel")]
+        public async Task<IActionResult> CancelPayment(
+            Guid paymentId,
+            CancellationToken ct)
+        {
+            try
+            {
+                var customerId = GetCurrentUserId();
+                var result = await _paymentService.CancelPaymentAsync(paymentId, customerId, ct);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling payment {PaymentId}", paymentId);
+                return StatusCode(500, new { message = "Lỗi khi hủy thanh toán." });
+            }
+        }
+
+        // ═══ Part 5: Payment Detail ═══
+
+        /// <summary>
+        /// Get full payment detail (customer ownership verified).
+        /// </summary>
+        [HttpGet("payments/{paymentId:guid}")]
+        public async Task<IActionResult> GetPaymentDetail(
+            Guid paymentId,
+            CancellationToken ct)
+        {
+            try
+            {
+                var customerId = GetCurrentUserId();
+                var result = await _paymentService.GetPaymentDetailAsync(paymentId, customerId, null, null, null, ct);
+                if (result == null)
+                    return NotFound(new { message = "Không tìm thấy thanh toán." });
+                return Ok(result);
+            }
+            catch (ForbiddenException ex)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting payment detail {PaymentId}", paymentId);
+                return StatusCode(500, new { message = "Lỗi khi lấy thông tin thanh toán." });
+            }
+        }
+
+        // ═══ Part 6: Payment Timeline ═══
+
+        /// <summary>
+        /// Get payment timeline (status history from audit log).
+        /// </summary>
+        [HttpGet("payments/{paymentId:guid}/timeline")]
+        public async Task<IActionResult> GetPaymentTimeline(
+            Guid paymentId,
+            CancellationToken ct)
+        {
+            try
+            {
+                var result = await _paymentService.GetPaymentTimelineAsync(paymentId, ct);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting payment timeline {PaymentId}", paymentId);
+                return StatusCode(500, new { message = "Lỗi khi lấy lịch sử trạng thái thanh toán." });
             }
         }
     }

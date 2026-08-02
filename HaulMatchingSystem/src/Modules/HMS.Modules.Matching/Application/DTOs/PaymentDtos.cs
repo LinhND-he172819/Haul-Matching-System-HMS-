@@ -76,4 +76,75 @@ namespace HMS.Modules.Matching.Application.DTOs
         public string? PaymentMethod { get; set; }
         public string? Signature { get; set; }
     }
+
+    /// <summary>
+    /// Full payment detail DTO for detail views.
+    /// </summary>
+    public class PaymentDetailDto
+    {
+        public Guid Id { get; set; }
+        public string PaymentCode { get; set; } = string.Empty;
+        public string? PaymentGateway { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string PaymentType { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string Currency { get; set; } = "VND";
+        public DateTime CreatedAt { get; set; }
+        public DateTime? PaidAt { get; set; }
+        public DateTime? CancelledAt { get; set; }
+        public DateTime? FailedAt { get; set; }
+        public string? TransactionReference { get; set; }
+        public string? FailureReason { get; set; }
+
+        // Quotation info
+        public Guid QuotationId { get; set; }
+        public string? QuotationCode { get; set; }
+        public decimal ShippingFee { get; set; }
+        public decimal DepositAmount { get; set; }
+
+        // Shipment info
+        public Guid ShipmentId { get; set; }
+        public string? ShipmentCode { get; set; }
+        public string? ShipmentStatus { get; set; }
+
+        // Customer info
+        public Guid CustomerId { get; set; }
+        public string? CustomerName { get; set; }
+    }
+
+    /// <summary>
+    /// Payment timeline entry built from audit log.
+    /// </summary>
+    public class PaymentTimelineEntry
+    {
+        public string Status { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
+        public string? Details { get; set; }
+        public DateTime OccurredAt { get; set; }
+    }
+
+    /// <summary>
+    /// Request to retry a failed payment.
+    /// </summary>
+    public class RetryPaymentRequest
+    {
+        public string? TransactionReference { get; set; }
+    }
+
+    /// <summary>
+    /// Request to cancel a pending payment.
+    /// </summary>
+    public class CancelPaymentRequest
+    {
+        public string? Reason { get; set; }
+    }
+
+    /// <summary>
+    /// Request to request a refund.
+    /// </summary>
+    public class RequestRefundRequest
+    {
+        public string Reason { get; set; } = string.Empty;
+    }
 }

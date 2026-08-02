@@ -194,7 +194,7 @@ export default function StaffProposalDetailPage({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Loại hàng</p>
-                  <p className="text-body-md font-semibold">{shipment.commodity}</p>
+                  <p className="text-body-md font-semibold">{shipment.commodity || 'Chưa cập nhật'}</p>
                 </div>
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Khối lượng</p>
@@ -252,11 +252,11 @@ export default function StaffProposalDetailPage({
                 </div>
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Điểm đi</p>
-                  <p className="text-body-md">{trip.origin}</p>
+                  <p className="text-body-md">{detail.pickupAddress || trip.origin || '—'}</p>
                 </div>
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Điểm đến</p>
-                  <p className="text-body-md">{trip.destination}</p>
+                  <p className="text-body-md">{shipment.deliveryAddress || trip.destination || '—'}</p>
                 </div>
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Thời gian khởi hành</p>

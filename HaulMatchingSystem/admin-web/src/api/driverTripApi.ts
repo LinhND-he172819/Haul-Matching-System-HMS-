@@ -18,6 +18,7 @@ export type DriverShipmentAllowedActions = {
   canConfirmPickup: boolean;
   canStartTransport: boolean;
   canConfirmDelivery: boolean;
+  canConfirmCod: boolean;
 };
 
 export type DriverTripListItem = {
@@ -49,6 +50,10 @@ export type DriverShipmentListItem = {
   receiverName?: string;
   receiverPhone?: string;
   deliveryAddress?: string;
+  pendingCodPaymentId?: string;
+  pendingCodAmount?: number;
+  pendingCodCurrency?: string;
+  pendingCodPaymentCode?: string;
   allowedActions: DriverShipmentAllowedActions;
 };
 
@@ -96,6 +101,10 @@ export type DriverShipmentDetail = {
   receiverPhone?: string;
   deliveryAddress?: string;
   timeline: { label: string; timestamp?: string; isCompleted: boolean; isCurrent: boolean }[];
+  pendingCodPaymentId?: string;
+  pendingCodAmount?: number;
+  pendingCodCurrency?: string;
+  pendingCodPaymentCode?: string;
   allowedActions: DriverShipmentAllowedActions;
 };
 

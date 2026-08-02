@@ -9,13 +9,20 @@ import {
   createDepositPayment,
   createFinalPayment,
   getPaymentHistory,
+  retryPayment,
+  cancelPayment,
+  getPaymentDetail,
+  getPaymentTimeline,
   type CustomerQuotationDetail,
   type PaymentResponseDto,
   type PaymentHistoryEntry,
+  type PaymentDetailDto,
+  type PaymentTimelineEntry,
 } from '../api/customer/customerQuotationApi';
 import QuotationCountdown from '../components/customer/quotations/QuotationCountdown';
 import PaymentStatusBadge from '../components/customer/payments/PaymentStatusBadge';
 import PaymentHistory from '../components/customer/payments/PaymentHistory';
+import PaymentTimeline from '../components/customer/payments/PaymentTimeline';
 import Toast from '../components/matching/Toast';
 
 /* ─── Status Badge ────────────────────────────────────────────────── */
@@ -70,6 +77,15 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
   const [showPayDialog, setShowPayDialog] = useState<'deposit' | 'final' | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Part 13: New payment states
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showPaymentDetail, setShowPaymentDetail] = useState(false);
+  const [paymentDetailData, setPaymentDetailData] = useState<PaymentDetailDto | null>(null);
+  const [paymentTimelineData, setPaymentTimelineData] = useState<PaymentTimelineEntry[]>([]);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
+  const [showCancelPaymentDialog, setShowCancelPaymentDialog] = useState<string | null>(null);
+  const [cancelPaymentReason, setCancelPaymentReason] = useState('');
+
   const loadDetail = async () => {
     setLoading(true);
     try {
@@ -86,8 +102,10 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
 
       // Load payment history
       try {
-        const history = await getPaymentHistory(shipmentId);
-        setPaymentHistory(history);
+        if (detail.quotation?.id) {
+          const history = await getPaymentHistory(detail.quotation.id);
+          setPaymentHistory(history);
+        }
       } catch { /* payment history not critical */ }
     } catch (err: any) {
       setToast({ message: err.message || 'Lỗi tải dữ liệu', type: 'error' });
@@ -103,7 +121,8 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
   const handlePayDeposit = async () => {
     setPayingDeposit(true);
     try {
-      const result = await createDepositPayment(shipmentId);
+      if (!detail.quotation?.id) throw new Error('Không tìm thấy báo giá.');
+      const result = await createDepositPayment(detail.quotation.id);
       setToast({ message: 'Đặt cọc thành công! Đơn hàng đã được xác nhận.', type: 'success' });
       setShowPayDialog(null);
       await loadDetail();
@@ -117,7 +136,8 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
   const handlePayFinal = async () => {
     setPayingFinal(true);
     try {
-      const result = await createFinalPayment(shipmentId);
+      if (!detail.quotation?.id) throw new Error('Không tìm thấy báo giá.');
+      const result = await createFinalPayment(detail.quotation.id);
       setToast({ message: 'Thanh toán cuối thành công! Đơn hàng đã hoàn tất.', type: 'success' });
       setShowPayDialog(null);
       await loadDetail();
@@ -141,6 +161,57 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
       setToast({ message: err.message || 'Lỗi hủy đơn hàng', type: 'error' });
     } finally {
       setCancelling(false);
+    }
+  };
+
+  // ─── Part 13: Retry Payment ───
+  const handleRetryPayment = async (paymentId: string) => {
+    setActionLoading(paymentId);
+    try {
+      await retryPayment(paymentId);
+      setToast({ message: 'Đã gửi lại thanh toán thành công.', type: 'success' });
+      await loadDetail();
+    } catch (err: any) {
+      setToast({ message: err.message || 'Lỗi thử lại thanh toán', type: 'error' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // ─── Part 13: Cancel Payment ───
+  const handleCancelPayment = async (paymentId: string) => {
+    setActionLoading(paymentId);
+    try {
+      await cancelPayment(paymentId, cancelPaymentReason);
+      setToast({ message: 'Đã hủy thanh toán thành công.', type: 'success' });
+      setShowCancelPaymentDialog(null);
+      setCancelPaymentReason('');
+      await loadDetail();
+    } catch (err: any) {
+      setToast({ message: err.message || 'Lỗi hủy thanh toán', type: 'error' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // ─── Part 13: Payment Detail ───
+  const handleShowPaymentDetail = async (paymentId: string) => {
+    setShowPaymentDetail(true);
+    setPaymentDetailData(null);
+    setPaymentTimelineData([]);
+    setLoadingTimeline(true);
+    try {
+      const [detail, timeline] = await Promise.all([
+        getPaymentDetail(paymentId),
+        getPaymentTimeline(paymentId),
+      ]);
+      setPaymentDetailData(detail);
+      setPaymentTimelineData(timeline);
+    } catch (err: any) {
+      setToast({ message: err.message || 'Lỗi tải chi tiết thanh toán', type: 'error' });
+      setShowPaymentDetail(false);
+    } finally {
+      setLoadingTimeline(false);
     }
   };
 
@@ -386,7 +457,13 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
                 </button>
                 {showHistory && (
                   <div className="mt-3">
-                    <PaymentHistory entries={paymentHistory} />
+                    <PaymentHistory
+                      payments={paymentHistory}
+                      onRetry={handleRetryPayment}
+                      onCancel={(id) => { setShowCancelPaymentDialog(id); setCancelPaymentReason(''); }}
+                      onDetail={handleShowPaymentDetail}
+                      actionLoading={actionLoading}
+                    />
                   </div>
                 )}
               </div>
@@ -502,6 +579,162 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* Cancel Payment Dialog */}
+      {showCancelPaymentDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 w-full max-w-md card-shadow">
+            <h3 className="text-title-lg font-bold text-on-surface mb-2">Xác nhận hủy thanh toán</h3>
+            <p className="text-body-md text-on-surface-variant mb-4">
+              Thanh toán này sẽ được hủy. Vui lòng nhập lý do hủy.
+            </p>
+            <textarea
+              value={cancelPaymentReason}
+              onChange={(e) => setCancelPaymentReason(e.target.value)}
+              placeholder="Nhập lý do hủy..."
+              className="w-full px-4 py-3 rounded-xl border border-outline-variant bg-surface text-on-surface text-body-md placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary resize-none"
+              rows={3}
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => { setShowCancelPaymentDialog(null); setCancelPaymentReason(''); }}
+                className="flex-1 px-4 py-3 rounded-xl border border-outline-variant text-on-surface hover:bg-surface-container-low transition-colors text-label-md font-bold"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={() => handleCancelPayment(showCancelPaymentDialog)}
+                disabled={actionLoading === showCancelPaymentDialog}
+                className="flex-1 px-4 py-3 rounded-xl bg-error text-on-error hover:bg-error/90 transition-colors text-label-md font-bold disabled:opacity-50"
+              >
+                {actionLoading === showCancelPaymentDialog ? 'Đang hủy...' : 'Xác nhận hủy'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Detail Modal */}
+      {showPaymentDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowPaymentDetail(false)}>
+          <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant w-full max-w-lg max-h-[85vh] overflow-y-auto card-shadow" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="sticky top-0 bg-surface-container-lowest border-b border-outline-variant px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+              <h3 className="text-headline-sm font-bold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">receipt_long</span>
+                Chi tiết thanh toán
+              </h3>
+              <button
+                onClick={() => setShowPaymentDetail(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-low transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {(!paymentDetailData && loadingTimeline) && (
+              <div className="p-6 space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            )}
+
+            {paymentDetailData && (
+              <div className="p-6 space-y-5">
+                {/* Payment Info */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-body-md text-on-surface-variant">Mã thanh toán</span>
+                    <span className="text-body-md font-semibold text-on-surface">{paymentDetailData.paymentCode}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-body-md text-on-surface-variant">Trạng thái</span>
+                    <PaymentStatusBadge status={paymentDetailData.status} />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-body-md text-on-surface-variant">Loại thanh toán</span>
+                    <span className="text-body-md font-medium text-on-surface">
+                      {paymentDetailData.paymentType === 'Deposit' ? 'Đặt cọc' : paymentDetailData.paymentType === 'FinalPayment' ? 'Thanh toán cuối' : paymentDetailData.paymentType}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-body-md text-on-surface-variant">Số tiền</span>
+                    <span className="text-body-lg font-bold text-primary">
+                      {paymentDetailData.amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                    </span>
+                  </div>
+                  {paymentDetailData.paymentMethod && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-body-md text-on-surface-variant">Phương thức</span>
+                      <span className="text-body-md text-on-surface">{paymentDetailData.paymentMethod}</span>
+                    </div>
+                  )}
+                  {paymentDetailData.transactionReference && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-body-md text-on-surface-variant">Mã giao dịch</span>
+                      <span className="text-body-md text-on-surface font-mono">{paymentDetailData.transactionReference}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-body-md text-on-surface-variant">Ngày tạo</span>
+                    <span className="text-body-md text-on-surface">{new Date(paymentDetailData.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  {paymentDetailData.paidAt && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-body-md text-on-surface-variant">Ngày thanh toán</span>
+                      <span className="text-body-md text-emerald-600 font-medium">{new Date(paymentDetailData.paidAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  )}
+                  {paymentDetailData.failureReason && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
+                      <p className="text-label-sm font-semibold text-rose-700">Lý do thất bại:</p>
+                      <p className="text-body-sm text-rose-600 mt-1">{paymentDetailData.failureReason}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Related Info */}
+                {(paymentDetailData.shipmentCode || paymentDetailData.quotationCode || paymentDetailData.customerName) && (
+                  <div className="border-t border-outline-variant/30 pt-4 space-y-3">
+                    <h4 className="text-label-lg font-bold text-on-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px] text-primary">link</span>
+                      Thông tin liên kết
+                    </h4>
+                    {paymentDetailData.shipmentCode && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-body-md text-on-surface-variant">Đơn hàng</span>
+                        <span className="text-body-md font-medium text-on-surface">{paymentDetailData.shipmentCode}</span>
+                      </div>
+                    )}
+                    {paymentDetailData.quotationCode && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-body-md text-on-surface-variant">Báo giá</span>
+                        <span className="text-body-md font-medium text-on-surface">{paymentDetailData.quotationCode}</span>
+                      </div>
+                    )}
+                    {paymentDetailData.customerName && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-body-md text-on-surface-variant">Khách hàng</span>
+                        <span className="text-body-md font-medium text-on-surface">{paymentDetailData.customerName}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Timeline */}
+                <div className="border-t border-outline-variant/30 pt-4">
+                  <h4 className="text-label-lg font-bold text-on-surface mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-primary">timeline</span>
+                    Lịch sử trạng thái
+                  </h4>
+                  <PaymentTimeline entries={paymentTimelineData} loading={loadingTimeline} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Payment Confirmation Dialog */}
       {showPayDialog && detail.quotation && (

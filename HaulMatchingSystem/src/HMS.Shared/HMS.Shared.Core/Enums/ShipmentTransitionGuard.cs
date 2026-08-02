@@ -14,6 +14,7 @@ public static class ShipmentTransitionGuard
             [ShipmentStatus.Draft] = new HashSet<ShipmentStatus>
             {
                 ShipmentStatus.PendingReview,   // Customer submits proposal
+                ShipmentStatus.PendingDeposit,  // Staff sends quotation directly
                 ShipmentStatus.In_Warehouse,     // Staff intake
                 ShipmentStatus.Matched,          // DirectPickup: Draft → Matched
                 ShipmentStatus.Cancelled

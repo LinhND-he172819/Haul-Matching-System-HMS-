@@ -116,7 +116,7 @@ export default function StaffCreateQuotationPage({
               </div>
               <div>
                 <p className="text-label-sm text-on-surface-variant">Loại hàng</p>
-                <p className="text-body-md">{proposal.shipment.commodity}</p>
+                <p className="text-body-md">{proposal.shipment.commodity || 'Chưa cập nhật'}</p>
               </div>
               <div>
                 <p className="text-label-sm text-on-surface-variant">Khối lượng</p>
@@ -128,11 +128,11 @@ export default function StaffCreateQuotationPage({
               </div>
               <div>
                 <p className="text-label-sm text-on-surface-variant">Điểm đi</p>
-                <p className="text-body-md">{proposal.trip.origin}</p>
+                <p className="text-body-md">{proposal.pickupAddress || proposal.trip.origin || '—'}</p>
               </div>
               <div>
                 <p className="text-label-sm text-on-surface-variant">Điểm đến</p>
-                <p className="text-body-md">{proposal.trip.destination}</p>
+                <p className="text-body-md">{proposal.shipment.deliveryAddress || proposal.trip.destination || '—'}</p>
               </div>
             </div>
           </div>

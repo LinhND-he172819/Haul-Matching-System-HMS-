@@ -1,7 +1,8 @@
-using HMS.Modules.Matching.Application.DTOs;
+﻿using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Exceptions;
 using HMS.Shared.Core.Interfaces;
 using HMS.Shared.Core.Models.Realtime;
 using Microsoft.Extensions.Configuration;
@@ -40,7 +41,7 @@ namespace HMS.Modules.Matching.Application.Services
         /// </summary>
         public async Task<QuotationResponseDto> CreateQuotationAsync(
             Guid proposalId, CreateQuotationRequest request,
-            Guid staffId, CancellationToken ct)
+            Guid staffId, string? role, Guid? hubId, CancellationToken ct)
         {
             if (request.ShippingFee <= 0)
                 throw new InvalidOperationException("Phí vận chuyển phải lớn hơn 0.");
@@ -70,16 +71,25 @@ namespace HMS.Modules.Matching.Application.Services
                 if (hasActive)
                     throw new InvalidOperationException("Proposal đã có một Báo giá chưa xử lý.");
 
+                // Hub ownership verification for Warehouse_Staff
+                if (role == "Warehouse_Staff")
+                {
+                    if (!hubId.HasValue)
+                        throw new ForbiddenException("Warehouse_Staff missing HubId — access denied.");
+                    if (!await VerifyProposalHubAsync(conn, tx, proposal.Id, hubId.Value, ct))
+                        throw new ForbiddenException("Proposal does not belong to your Hub — access denied.");
+                }
+
                 // Generate quotation code
                 var quotationCode = await GenerateQuotationCodeAsync(conn, ct);
 
                 // Insert quotation
                 const string sql = """
                     INSERT INTO warehouse.quotations
-                        (id, proposal_id, quotation_code, shipping_fee, deposit_amount, currency,
+                        (id, shipment_id, proposal_id, quotation_code, shipping_fee, deposit_amount, currency,
                          status, quoted_by, quoted_at, expires_at, created_at, updated_at, is_deleted)
                     VALUES
-                        (@id, @proposal_id, @quotation_code, @shipping_fee, @deposit_amount, @currency,
+                        (@id, @shipment_id, @proposal_id, @quotation_code, @shipping_fee, @deposit_amount, @currency,
                          'Draft', @quoted_by, NOW(), @expires_at, NOW(), NOW(), FALSE)
                     RETURNING id, created_at;
                 """;
@@ -88,6 +98,7 @@ namespace HMS.Modules.Matching.Application.Services
                 await using (var cmd = new NpgsqlCommand(sql, conn, tx))
                 {
                     cmd.Parameters.AddWithValue("id", id);
+                    cmd.Parameters.AddWithValue("shipment_id", proposal.ShipmentId);
                     cmd.Parameters.AddWithValue("proposal_id", proposalId);
                     cmd.Parameters.AddWithValue("quotation_code", quotationCode);
                     cmd.Parameters.AddWithValue("shipping_fee", request.ShippingFee);
@@ -115,6 +126,7 @@ namespace HMS.Modules.Matching.Application.Services
                     Currency = request.Currency,
                     Status = "Draft",
                     QuotedBy = staffId,
+                    QuotedByName = null, // Will be resolved on next GET detail
                     QuotedAt = DateTime.UtcNow,
                     ExpiresAt = request.ExpiresAt,
                     CreatedAt = DateTime.UtcNow
@@ -132,7 +144,7 @@ namespace HMS.Modules.Matching.Application.Services
         /// </summary>
         public async Task<QuotationResponseDto> UpdateQuotationAsync(
             Guid quotationId, UpdateQuotationRequest request,
-            Guid staffId, CancellationToken ct)
+            Guid staffId, string? role, Guid? hubId, CancellationToken ct)
         {
             if (request.ShippingFee <= 0)
                 throw new InvalidOperationException("Phí vận chuyển phải lớn hơn 0.");
@@ -155,6 +167,15 @@ namespace HMS.Modules.Matching.Application.Services
 
                 if (quotation.Status != "Draft")
                     throw new InvalidOperationException("Chỉ có thể chỉnh sửa Báo giá ở trạng thái Draft.");
+
+                // Hub ownership verification for Warehouse_Staff
+                if (role == "Warehouse_Staff")
+                {
+                    if (!hubId.HasValue)
+                        throw new ForbiddenException("Warehouse_Staff missing HubId — access denied.");
+                    if (!await VerifyProposalHubAsync(conn, tx, quotation.ProposalId, hubId.Value, ct))
+                        throw new ForbiddenException("Quotation does not belong to your Hub — access denied.");
+                }
 
                 const string sql = """
                     UPDATE warehouse.quotations
@@ -207,7 +228,7 @@ namespace HMS.Modules.Matching.Application.Services
         /// Also transitions Shipment: Approved → PendingDeposit.
         /// </summary>
         public async Task SendQuotationAsync(
-            Guid quotationId, Guid staffId, CancellationToken ct)
+            Guid quotationId, Guid staffId, string? role, Guid? hubId, CancellationToken ct)
         {
             await using var conn = new NpgsqlConnection(_connStr);
             await conn.OpenAsync(ct);
@@ -224,6 +245,15 @@ namespace HMS.Modules.Matching.Application.Services
                 if (quotation.Status != "Draft")
                     throw new InvalidOperationException("Chỉ có thể gửi Báo giá từ trạng thái Draft.");
 
+                // Hub ownership verification for Warehouse_Staff
+                if (role == "Warehouse_Staff")
+                {
+                    if (!hubId.HasValue)
+                        throw new ForbiddenException("Warehouse_Staff missing HubId — access denied.");
+                    if (!await VerifyProposalHubAsync(conn, tx, quotation.ProposalId, hubId.Value, ct))
+                        throw new ForbiddenException("Quotation does not belong to your Hub — access denied.");
+                }
+
                 // Update quotation: Draft → Sent
                 const string updateSql = """
                     UPDATE warehouse.quotations
@@ -238,18 +268,33 @@ namespace HMS.Modules.Matching.Application.Services
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
 
-                // Transition shipment to PendingDeposit
+                // Transition shipment to PendingDeposit (skip if already at PendingDeposit or later)
                 var proposal = await ReadProposalAsync(conn, tx, quotation.ProposalId, ct)
-                    ?? throw new InvalidOperationException("Proposal không tồn tại.");
+                    ?? throw new InvalidOperationException("Proposal khóng t\u1ed3n t\u1ea1i.");
 
-                await _shipmentStateService.TransitionAsync(
-                    proposal.ShipmentId,
-                    ShipmentStatus.PendingDeposit,
-                    connection: conn,
-                    transaction: tx,
-                    performedBy: staffId,
-                    reason: $"Quotation {quotation.QuotationCode} sent to customer",
-                    ct: ct);
+                // Read current shipment status to check if transition is needed
+                string? shipmentStatus = null;
+                const string readStatusSql = """
+                    SELECT status FROM warehouse.shipments WHERE id = @id;
+                """;
+                await using (var statusCmd = new NpgsqlCommand(readStatusSql, conn, tx))
+                {
+                    statusCmd.Parameters.AddWithValue("id", proposal.ShipmentId);
+                    shipmentStatus = await statusCmd.ExecuteScalarAsync(ct) as string;
+                }
+
+                // Only transition if shipment is not already at PendingDeposit or beyond
+                if (shipmentStatus == null || shipmentStatus == "Draft" || shipmentStatus == "PendingReview")
+                {
+                    await _shipmentStateService.TransitionAsync(
+                        proposal.ShipmentId,
+                        ShipmentStatus.PendingDeposit,
+                        connection: conn,
+                        transaction: tx,
+                        performedBy: staffId,
+                        reason: $"Quotation {quotation.QuotationCode} sent to customer",
+                        ct: ct);
+                }
 
                 // Audit
                 await InsertAuditAsync(conn, tx, "Quotation", quotationId, "Sent",
@@ -296,7 +341,7 @@ namespace HMS.Modules.Matching.Application.Services
         /// Cancel a quotation: Draft/Sent → Cancelled.
         /// </summary>
         public async Task CancelQuotationAsync(
-            Guid quotationId, Guid staffId, string? reason, CancellationToken ct)
+            Guid quotationId, Guid staffId, string? role, Guid? hubId, string? reason, CancellationToken ct)
         {
             await using var conn = new NpgsqlConnection(_connStr);
             await conn.OpenAsync(ct);
@@ -309,6 +354,15 @@ namespace HMS.Modules.Matching.Application.Services
 
                 var currentStatus = Enum.Parse<QuotationStatus>(quotation.Status);
                 QuotationTransitionGuard.EnsureCanTransition(currentStatus, QuotationStatus.Cancelled);
+
+                // Hub ownership verification for Warehouse_Staff
+                if (role == "Warehouse_Staff")
+                {
+                    if (!hubId.HasValue)
+                        throw new ForbiddenException("Warehouse_Staff missing HubId — access denied.");
+                    if (!await VerifyProposalHubAsync(conn, tx, quotation.ProposalId, hubId.Value, ct))
+                        throw new ForbiddenException("Quotation does not belong to your Hub — access denied.");
+                }
 
                 // Update status
                 const string updateSql = """
@@ -358,16 +412,37 @@ namespace HMS.Modules.Matching.Application.Services
         /// <summary>
         /// Get quotation details by ID.
         /// </summary>
-        public async Task<QuotationResponseDto?> GetQuotationAsync(Guid quotationId, CancellationToken ct)
+        public async Task<QuotationResponseDto?> GetQuotationAsync(Guid quotationId, string? role, Guid? hubId, CancellationToken ct)
         {
             await using var conn = new NpgsqlConnection(_connStr);
             await conn.OpenAsync(ct);
 
+            // Hub ownership verification for Warehouse_Staff
+            if (role == "Warehouse_Staff")
+            {
+                if (!hubId.HasValue)
+                    throw new ForbiddenException("Warehouse_Staff missing HubId — access denied.");
+                const string hubCheckSql = """
+                    SELECT tp.created_by_staff_hub
+                    FROM warehouse.quotations q
+                    JOIN warehouse.shipment_proposals sp ON sp.id = q.proposal_id AND sp.is_deleted = FALSE
+                    JOIN transport.trip_posts tp ON tp.id = sp.trip_post_id AND tp.is_deleted = FALSE
+                    WHERE q.id = @id AND q.is_deleted = FALSE;
+                """;
+                await using var hubCmd = new NpgsqlCommand(hubCheckSql, conn);
+                hubCmd.Parameters.AddWithValue("id", quotationId);
+                var actualHub = await hubCmd.ExecuteScalarAsync(ct);
+                if (actualHub == null || actualHub == DBNull.Value || (Guid)actualHub != hubId.Value)
+                    throw new ForbiddenException("Quotation does not belong to your Hub — access denied.");
+            }
+
             const string sql = """
-                SELECT id, proposal_id, quotation_code, shipping_fee, deposit_amount, currency,
-                       status, quoted_by, quoted_at, sent_at, expires_at, accepted_at, created_at
-                FROM warehouse.quotations
-                WHERE id = @id AND is_deleted = FALSE;
+                SELECT q.id, q.proposal_id, q.quotation_code, q.shipping_fee, q.deposit_amount, q.currency,
+                       q.status, q.quoted_by, q.quoted_at, q.sent_at, q.expires_at, q.accepted_at, q.created_at,
+                       u.full_name AS quoted_by_name
+                FROM warehouse.quotations q
+                LEFT JOIN identity.users u ON u.id = q.quoted_by
+                WHERE q.id = @id AND q.is_deleted = FALSE;
             """;
             await using var cmd = new NpgsqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("id", quotationId);
@@ -456,6 +531,22 @@ namespace HMS.Modules.Matching.Application.Services
         }
 
         // ── Private helpers ──
+
+        private static async Task<bool> VerifyProposalHubAsync(
+            NpgsqlConnection conn, NpgsqlTransaction tx,
+            Guid proposalId, Guid expectedHubId, CancellationToken ct)
+        {
+            const string sql = """
+                SELECT tp.created_by_staff_hub
+                FROM warehouse.shipment_proposals sp
+                JOIN transport.trip_posts tp ON tp.id = sp.trip_post_id AND tp.is_deleted = FALSE
+                WHERE sp.id = @proposalId AND sp.is_deleted = FALSE;
+            """;
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
+            cmd.Parameters.AddWithValue("proposalId", proposalId);
+            var actualHub = await cmd.ExecuteScalarAsync(ct);
+            return actualHub != null && actualHub != DBNull.Value && (Guid)actualHub == expectedHubId;
+        }
 
         private async Task<(Guid Id, string Status, string QuotationCode, decimal ShippingFee,
             decimal DepositAmount, string Currency, Guid? QuotedBy, DateTime? QuotedAt,
@@ -569,9 +660,11 @@ namespace HMS.Modules.Matching.Application.Services
                 Currency = reader.GetString(reader.GetOrdinal("currency")),
                 Status = reader.GetString(reader.GetOrdinal("status")),
                 QuotedBy = reader.IsDBNull(reader.GetOrdinal("quoted_by")) ? null : reader.GetGuid(reader.GetOrdinal("quoted_by")),
+                QuotedByName = reader.IsDBNull(reader.GetOrdinal("quoted_by_name")) ? null : reader.GetString(reader.GetOrdinal("quoted_by_name")),
                 QuotedAt = reader.IsDBNull(reader.GetOrdinal("quoted_at")) ? null : reader.GetDateTime(reader.GetOrdinal("quoted_at")),
                 SentAt = reader.IsDBNull(reader.GetOrdinal("sent_at")) ? null : reader.GetDateTime(reader.GetOrdinal("sent_at")),
                 ExpiresAt = reader.IsDBNull(reader.GetOrdinal("expires_at")) ? null : reader.GetDateTime(reader.GetOrdinal("expires_at")),
+                AcceptedAt = reader.IsDBNull(reader.GetOrdinal("accepted_at")) ? null : reader.GetDateTime(reader.GetOrdinal("accepted_at")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at"))
             };
         }
@@ -597,3 +690,5 @@ namespace HMS.Modules.Matching.Application.Services
         }
     }
 }
+
+

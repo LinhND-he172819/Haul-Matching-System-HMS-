@@ -35,9 +35,11 @@ namespace HMS.Modules.Matching.Application.DTOs
         public string Currency { get; set; } = "VND";
         public string Status { get; set; } = string.Empty;
         public Guid? QuotedBy { get; set; }
+        public string? QuotedByName { get; set; }
         public DateTime? QuotedAt { get; set; }
         public DateTime? SentAt { get; set; }
         public DateTime? ExpiresAt { get; set; }
+        public DateTime? AcceptedAt { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

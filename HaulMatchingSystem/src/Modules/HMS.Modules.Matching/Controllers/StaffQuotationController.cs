@@ -96,7 +96,7 @@ namespace HMS.Modules.Matching.Controllers
             try
             {
                 var staffId = GetCurrentUserId();
-                var result = await _quotationService.CreateQuotationAsync(proposalId, request, staffId, ct);
+                var result = await _quotationService.CreateQuotationAsync(proposalId, request, staffId, null, null, ct);
                 return CreatedAtAction(nameof(GetQuotation), new { quotationId = result.Id }, result);
             }
             catch (InvalidOperationException ex)
@@ -122,7 +122,7 @@ namespace HMS.Modules.Matching.Controllers
             try
             {
                 var staffId = GetCurrentUserId();
-                var result = await _quotationService.UpdateQuotationAsync(quotationId, request, staffId, ct);
+                var result = await _quotationService.UpdateQuotationAsync(quotationId, request, staffId, null, null, ct);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
@@ -147,7 +147,7 @@ namespace HMS.Modules.Matching.Controllers
             try
             {
                 var staffId = GetCurrentUserId();
-                await _quotationService.SendQuotationAsync(quotationId, staffId, ct);
+                await _quotationService.SendQuotationAsync(quotationId, staffId, null, null, ct);
                 return Ok(new { message = "Gửi báo giá thành công." });
             }
             catch (InvalidOperationException ex)
@@ -173,7 +173,7 @@ namespace HMS.Modules.Matching.Controllers
             try
             {
                 var staffId = GetCurrentUserId();
-                await _quotationService.CancelQuotationAsync(quotationId, staffId, request?.Reason, ct);
+                await _quotationService.CancelQuotationAsync(quotationId, staffId, null, null, request?.Reason, ct);
                 return Ok(new { message = "Hủy báo giá thành công." });
             }
             catch (InvalidOperationException ex)
@@ -197,7 +197,7 @@ namespace HMS.Modules.Matching.Controllers
         {
             try
             {
-                var result = await _quotationService.GetQuotationAsync(quotationId, ct);
+                var result = await _quotationService.GetQuotationAsync(quotationId, null, null, ct);
                 if (result == null)
                     return NotFound(new { message = "Không tìm thấy báo giá." });
                 return Ok(result);

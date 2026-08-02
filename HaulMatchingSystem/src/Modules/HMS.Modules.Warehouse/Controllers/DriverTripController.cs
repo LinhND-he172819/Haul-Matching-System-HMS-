@@ -248,6 +248,36 @@ public class DriverTripController : ControllerBase
         // Load timeline
         detail = detail with { Timeline = await LoadShipmentTimeline(conn, shipmentId, ct) };
 
+        // Populate pending COD payment if Delivered
+        if (status == "Delivered")
+        {
+            const string codSql = """
+                SELECT id, amount, currency, payment_code FROM warehouse.payments
+                WHERE shipment_id = @shipment_id
+                  AND payment_type = 'FinalPayment' AND payment_method = 'COD' AND status = 'Pending'
+                  AND is_deleted = FALSE
+                LIMIT 1;
+            """;
+            await using var codCmd = new NpgsqlCommand(codSql, conn);
+            codCmd.Parameters.AddWithValue("shipment_id", shipmentId);
+            await using var codReader = await codCmd.ExecuteReaderAsync(ct);
+            if (await codReader.ReadAsync(ct))
+            {
+                var codPaymentId = codReader.GetGuid(0);
+                var codAmount = codReader.GetDecimal(1);
+                var codCurrency = codReader.GetString(2);
+                var codPaymentCode = codReader.IsDBNull(3) ? null : codReader.GetString(3);
+                detail = detail with
+                {
+                    PendingCodPaymentId = codPaymentId,
+                    PendingCodAmount = codAmount,
+                    PendingCodCurrency = codCurrency,
+                    PendingCodPaymentCode = codPaymentCode,
+                    AllowedActions = detail.AllowedActions with { CanConfirmCod = true }
+                };
+            }
+        }
+
         return Ok(detail);
     }
 
@@ -705,12 +735,18 @@ public class DriverTripController : ControllerBase
         await using var reader = await cmd.ExecuteReaderAsync(ct);
 
         var items = new List<DriverShipmentListItem>();
+        var shipmentIds = new List<Guid>();
+        var shipmentsByStatus = new Dictionary<Guid, string>();
+
         while (await reader.ReadAsync(ct))
         {
+            var shipmentId = reader.GetGuid(0);
             var status = reader.GetString(5);
+            shipmentIds.Add(shipmentId);
+            shipmentsByStatus[shipmentId] = status;
             items.Add(new DriverShipmentListItem
             {
-                Id = reader.GetGuid(0),
+                Id = shipmentId,
                 ShipmentCode = reader.GetString(1),
                 Commodity = reader.IsDBNull(2) ? null : reader.GetString(2),
                 Weight = reader.GetDecimal(3),
@@ -725,6 +761,57 @@ public class DriverTripController : ControllerBase
                 AllowedActions = ComputeDriverShipmentAllowedActions(status)
             });
         }
+        await reader.CloseAsync();
+
+        // Batch-fetch pending FinalPayment (COD) IDs for Delivered shipments
+        if (shipmentIds.Count > 0)
+        {
+            var deliveredIds = shipmentIds.Where(id => shipmentsByStatus.GetValueOrDefault(id) == "Delivered").ToList();
+            if (deliveredIds.Count > 0)
+            {
+                var placeholders = string.Join(",", deliveredIds.Select((_, i) => $"@sid{i}"));
+                var codSql = $"""
+                    SELECT shipment_id, id, amount, currency, payment_code FROM warehouse.payments
+                    WHERE shipment_id IN ({placeholders})
+                      AND payment_type = 'FinalPayment' AND payment_method = 'COD' AND status = 'Pending'
+                      AND is_deleted = FALSE;
+                """;
+                await using var codCmd = new NpgsqlCommand(codSql, conn);
+                for (int i = 0; i < deliveredIds.Count; i++)
+                    codCmd.Parameters.AddWithValue($"@sid{i}", deliveredIds[i]);
+
+                await using var codReader = await codCmd.ExecuteReaderAsync(ct);
+                var codMap = new Dictionary<Guid, (Guid PaymentId, decimal Amount, string Currency, string PaymentCode)>();
+                while (await codReader.ReadAsync(ct))
+                {
+                    var shipId = codReader.GetGuid(0);
+                    var paymentId = codReader.GetGuid(1);
+                    var amount = codReader.GetDecimal(2);
+                    var currency = codReader.GetString(3);
+                    var paymentCode = codReader.IsDBNull(4) ? null : codReader.GetString(4);
+                    codMap[shipId] = (paymentId, amount, currency, paymentCode);
+                }
+                await codReader.CloseAsync();
+
+                // Update items with COD payment info
+                for (int i = 0; i < items.Count; i++)
+                {
+                    var item = items[i];
+                    if (codMap.TryGetValue(item.Id, out var cod))
+                    {
+                        items[i] = item with
+                        {
+                            PendingCodPaymentId = cod.PaymentId,
+                            PendingCodAmount = cod.Amount,
+                            PendingCodCurrency = cod.Currency,
+                            PendingCodPaymentCode = cod.PaymentCode,
+                            AllowedActions = item.AllowedActions with { CanConfirmCod = true }
+                        };
+                    }
+                }
+            }
+        }
+
         return items;
     }
 

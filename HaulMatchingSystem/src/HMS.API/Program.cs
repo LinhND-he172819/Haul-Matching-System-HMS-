@@ -121,6 +121,7 @@ builder.Services.AddScoped<IStaffProposalService, StaffProposalService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddHostedService<HMS.Modules.Matching.Workers.QuotationExpirationWorker>();
+builder.Services.AddHostedService<HMS.Modules.Matching.Workers.PaymentTimeoutWorker>();
 //builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
 builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
 builder.Services.AddScoped<

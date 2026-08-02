@@ -11,9 +11,13 @@ const TYPE_LABELS: Record<string, string> = {
 interface PaymentHistoryProps {
   payments: PaymentHistoryEntry[];
   loading?: boolean;
+  onRetry?: (paymentId: string) => void;
+  onCancel?: (paymentId: string) => void;
+  onDetail?: (paymentId: string) => void;
+  actionLoading?: string | null;
 }
 
-export default function PaymentHistory({ payments, loading }: PaymentHistoryProps) {
+export default function PaymentHistory({ payments, loading, onRetry, onCancel, onDetail, actionLoading }: PaymentHistoryProps) {
   const formatCurrency = (n: number) =>
     n.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 
@@ -70,9 +74,47 @@ export default function PaymentHistory({ payments, loading }: PaymentHistoryProp
               </p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-body-md font-bold text-on-surface">{formatCurrency(p.amount)}</p>
-            <PaymentStatusBadge status={p.status} />
+          <div className="flex items-center gap-2">
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1.5">
+              {p.status === 'Failed' && onRetry && (
+                <button
+                  onClick={() => onRetry(p.id)}
+                  disabled={actionLoading === p.id}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors text-label-sm font-semibold disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[14px]">
+                    {actionLoading === p.id ? 'sync' : 'refresh'}
+                  </span>
+                  Thử lại
+                </button>
+              )}
+              {p.status === 'Pending' && onCancel && (
+                <button
+                  onClick={() => onCancel(p.id)}
+                  disabled={actionLoading === p.id}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors text-label-sm font-semibold disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[14px]">
+                    {actionLoading === p.id ? 'sync' : 'cancel'}
+                  </span>
+                  Hủy
+                </button>
+              )}
+              {onDetail && (
+                <button
+                  onClick={() => onDetail(p.id)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface-container-low text-on-surface-variant border border-outline-variant hover:bg-surface-container transition-colors text-label-sm font-semibold"
+                >
+                  <span className="material-symbols-outlined text-[14px]">info</span>
+                  Chi tiết
+                </button>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-body-md font-bold text-on-surface">{formatCurrency(p.amount)}</p>
+              <PaymentStatusBadge status={p.status} />
+            </div>
           </div>
         </div>
       ))}

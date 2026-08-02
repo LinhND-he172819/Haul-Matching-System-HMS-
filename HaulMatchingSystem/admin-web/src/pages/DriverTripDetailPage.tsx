@@ -10,6 +10,7 @@ import {
   type DriverTripDetail,
   type DriverShipmentListItem,
 } from '../api/driverTripApi';
+import { confirmCodPayment } from '../api/driverPaymentApi';
 import Toast from '../components/matching/Toast';
 
 /* ─── Status Badge Mapping ────────────────────────────────────────── */
@@ -73,10 +74,15 @@ export default function DriverTripDetailPage({ tripId, onBack, onLogout }: Props
   const [showPickupDialog, setShowPickupDialog] = useState(false);
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
   const [showIncidentDialog, setShowIncidentDialog] = useState(false);
+  const [showCodDialog, setShowCodDialog] = useState(false);
   const [pickupNote, setPickupNote] = useState('');
   const [deliveryNote, setDeliveryNote] = useState('');
   const [incidentType, setIncidentType] = useState('Delay');
   const [incidentDescription, setIncidentDescription] = useState('');
+
+  // Part 13: COD state
+  const [codConfirming, setCodConfirming] = useState<string | null>(null);
+  const [selectedCodPaymentId, setSelectedCodPaymentId] = useState<string | null>(null);
 
   const loadDetail = async () => {
     setLoading(true);
@@ -180,6 +186,23 @@ export default function DriverTripDetailPage({ tripId, onBack, onLogout }: Props
       setToast({ message: err.message || 'Lỗi', type: 'error' });
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  // ─── Part 13: COD Confirmation ───
+  const handleConfirmCod = async () => {
+    if (!selectedCodPaymentId) return;
+    setCodConfirming(selectedCodPaymentId);
+    try {
+      await confirmCodPayment(selectedCodPaymentId);
+      setToast({ message: 'Xác nhận thanh toán COD thành công.', type: 'success' });
+      setShowCodDialog(false);
+      setSelectedCodPaymentId(null);
+      await loadDetail();
+    } catch (err: any) {
+      setToast({ message: err.message || 'Lỗi xác nhận COD', type: 'error' });
+    } finally {
+      setCodConfirming(null);
     }
   };
 
@@ -385,6 +408,19 @@ export default function DriverTripDetailPage({ tripId, onBack, onLogout }: Props
                         Giao hàng
                       </button>
                     )}
+                    {shipment.allowedActions.canConfirmCod && shipment.pendingCodPaymentId && (
+                      <button
+                        onClick={() => {
+                          setSelectedShipment(shipment);
+                          setSelectedCodPaymentId(shipment.pendingCodPaymentId!);
+                          setShowCodDialog(true);
+                        }}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-label-sm font-bold hover:bg-amber-100 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">payments</span>
+                        Xác nhận COD
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -534,6 +570,47 @@ export default function DriverTripDetailPage({ tripId, onBack, onLogout }: Props
                 className="flex-1 px-4 py-3 rounded-xl bg-error text-on-error hover:bg-error/90 transition-colors text-label-md font-bold disabled:opacity-50"
               >
                 {actionLoading ? 'Đang gửi...' : 'Gửi báo cáo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* COD Confirmation Dialog */}
+      {showCodDialog && selectedShipment && selectedCodPaymentId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 w-full max-w-md card-shadow">
+            <h3 className="text-title-lg font-bold text-on-surface mb-2">Xác nhận thu COD</h3>
+            <p className="text-body-md text-on-surface-variant mb-4">
+              Xác nhận đã thu tiền COD cho kiện hàng <strong>{selectedShipment.shipmentCode}</strong>?
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 space-y-2">
+              <div className="flex justify-between text-body-md">
+                <span className="text-on-surface-variant">Mã thanh toán:</span>
+                <span className="font-bold text-on-surface">{selectedShipment.pendingCodPaymentCode || '-'}</span>
+              </div>
+              <div className="flex justify-between text-body-md">
+                <span className="text-on-surface-variant">Số tiền COD:</span>
+                <span className="font-bold text-amber-700 text-title-md">
+                  {selectedShipment.pendingCodAmount != null
+                    ? `${selectedShipment.pendingCodAmount.toLocaleString('vi-VN')} ${selectedShipment.pendingCodCurrency || 'VND'}`
+                    : '-'}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => { setShowCodDialog(false); setSelectedCodPaymentId(null); setSelectedShipment(null); }}
+                className="flex-1 px-4 py-3 rounded-xl border border-outline-variant text-on-surface hover:bg-surface-container-low transition-colors text-label-md font-bold"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={handleConfirmCod}
+                disabled={codConfirming !== null}
+                className="flex-1 px-4 py-3 rounded-xl bg-amber-600 text-white hover:bg-amber-700 transition-colors text-label-md font-bold disabled:opacity-50"
+              >
+                {codConfirming ? 'Đang xác nhận...' : 'Xác nhận đã thu'}
               </button>
             </div>
           </div>

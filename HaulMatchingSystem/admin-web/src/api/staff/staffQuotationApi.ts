@@ -30,9 +30,11 @@ export interface QuotationResponseDto {
   currency: string;
   status: string;
   quotedBy: string;
+  quotedByName?: string;
   quotedAt: string;
   sentAt?: string;
   expiresAt?: string;
+  acceptedAt?: string;
   createdAt: string;
 }
 

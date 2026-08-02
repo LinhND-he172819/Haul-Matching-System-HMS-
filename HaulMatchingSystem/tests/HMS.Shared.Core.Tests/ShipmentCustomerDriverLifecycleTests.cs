@@ -129,8 +129,9 @@ public class ShipmentCustomerDriverLifecycleTests
     public void PendingDepositOnlyAllowsMatchedOrCancelled()
     {
         var allowed = ShipmentTransitionGuard.GetAllowedTransitions(ShipmentStatus.PendingDeposit);
-        Assert.Equal(2, allowed.Count);
+        Assert.Equal(3, allowed.Count);
         Assert.Contains(ShipmentStatus.Matched, allowed);
+        Assert.Contains(ShipmentStatus.PendingReview, allowed);
         Assert.Contains(ShipmentStatus.Cancelled, allowed);
     }
 

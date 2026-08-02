@@ -24,6 +24,46 @@ export interface PaymentListItem {
   createdAt: string;
 }
 
+export interface PaymentDetailDto {
+  id: string;
+  paymentCode: string;
+  paymentGateway?: string;
+  paymentMethod?: string;
+  status: string;
+  paymentType: string;
+  amount: number;
+  currency: string;
+  createdAt: string;
+  paidAt?: string;
+  cancelledAt?: string;
+  failedAt?: string;
+  transactionReference?: string;
+  failureReason?: string;
+  quotationId?: string;
+  quotationCode?: string;
+  shippingFee?: number;
+  depositAmount?: number;
+  shipmentId?: string;
+  shipmentCode?: string;
+  shipmentStatus?: string;
+  customerId?: string;
+  customerName?: string;
+}
+
+export interface PaymentTimelineEntry {
+  status: string;
+  action: string;
+  details?: string;
+  occurredAt: string;
+}
+
+export interface RequestRefundResponse {
+  id: string;
+  paymentCode: string;
+  status: string;
+  amount: number;
+}
+
 export interface PagedResult<T> {
   items: T[];
   page: number;
@@ -48,6 +88,52 @@ export async function getStaffPayments(params: {
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `Lỗi tải danh sách thanh toán (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function getStaffPaymentDetail(paymentId: string): Promise<PaymentDetailDto> {
+  const res = await authFetch(`${API_BASE}/api/staff/payments/${paymentId}`);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Lỗi tải chi tiết thanh toán (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function getStaffPaymentTimeline(paymentId: string): Promise<PaymentTimelineEntry[]> {
+  const res = await authFetch(`${API_BASE}/api/staff/payments/${paymentId}/timeline`);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Lỗi tải lịch sử trạng thái (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function requestRefund(
+  paymentId: string,
+  reason: string
+): Promise<RequestRefundResponse> {
+  const res = await authFetch(`${API_BASE}/api/staff/payments/${paymentId}/refund`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Lỗi yêu cầu hoàn tiền (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function approveRefund(paymentId: string): Promise<RequestRefundResponse> {
+  const res = await authFetch(`${API_BASE}/api/staff/payments/${paymentId}/refund/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Lỗi duyệt hoàn tiền (${res.status})`);
   }
   return res.json();
 }

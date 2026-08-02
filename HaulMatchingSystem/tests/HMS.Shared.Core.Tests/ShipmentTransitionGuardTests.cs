@@ -290,6 +290,12 @@ public class ShipmentTransitionGuardTests
         Assert.True(ShipmentTransitionGuard.CanTransition(ShipmentStatus.Draft, ShipmentStatus.PendingReview));
     }
 
+    [Fact]
+    public void Draft_CanTransition_To_PendingDeposit()
+    {
+        Assert.True(ShipmentTransitionGuard.CanTransition(ShipmentStatus.Draft, ShipmentStatus.PendingDeposit));
+    }
+
     #endregion
 
     #region Completed state (terminal, no outgoing transitions)
@@ -306,11 +312,10 @@ public class ShipmentTransitionGuardTests
 
     #endregion
 
-    #region Terminal states (Cancelled, Delivered) — no outgoing transitions
+    #region Terminal states (Cancelled) — no outgoing transitions
 
     [Theory]
     [InlineData(ShipmentStatus.Cancelled)]
-    [InlineData(ShipmentStatus.Delivered)]
     public void TerminalState_CannotTransition_To_Any(ShipmentStatus terminal)
     {
         foreach (var target in Enum.GetValues<ShipmentStatus>())
@@ -318,6 +323,27 @@ public class ShipmentTransitionGuardTests
             Assert.False(ShipmentTransitionGuard.CanTransition(terminal, target),
                 $"{terminal} should not transition to {target}");
         }
+    }
+
+    #endregion
+
+    #region Delivered state — only transitions to Completed
+
+    [Fact]
+    public void Delivered_CanTransition_To_Completed()
+    {
+        Assert.True(ShipmentTransitionGuard.CanTransition(ShipmentStatus.Delivered, ShipmentStatus.Completed));
+    }
+
+    [Theory]
+    [InlineData(ShipmentStatus.Draft)]
+    [InlineData(ShipmentStatus.In_Warehouse)]
+    [InlineData(ShipmentStatus.Matched)]
+    [InlineData(ShipmentStatus.In_Transit)]
+    [InlineData(ShipmentStatus.Cancelled)]
+    public void Delivered_CannotTransition_To_Unallowed(ShipmentStatus target)
+    {
+        Assert.False(ShipmentTransitionGuard.CanTransition(ShipmentStatus.Delivered, target));
     }
 
     #endregion
@@ -400,11 +426,12 @@ public class ShipmentTransitionGuardTests
     #region GetAllowedTransitions
 
     [Fact]
-    public void GetAllowedTransitions_Draft_ReturnsFour()
+    public void GetAllowedTransitions_Draft_ReturnsFive()
     {
         var allowed = ShipmentTransitionGuard.GetAllowedTransitions(ShipmentStatus.Draft);
-        Assert.Equal(4, allowed.Count);
+        Assert.Equal(5, allowed.Count);
         Assert.Contains(ShipmentStatus.PendingReview, allowed);
+        Assert.Contains(ShipmentStatus.PendingDeposit, allowed);
         Assert.Contains(ShipmentStatus.In_Warehouse, allowed);
         Assert.Contains(ShipmentStatus.Cancelled, allowed);
         Assert.Contains(ShipmentStatus.Matched, allowed);
@@ -428,10 +455,11 @@ public class ShipmentTransitionGuardTests
     }
 
     [Fact]
-    public void GetAllowedTransitions_Delivered_ReturnsEmpty()
+    public void GetAllowedTransitions_Delivered_ReturnsCompleted()
     {
         var allowed = ShipmentTransitionGuard.GetAllowedTransitions(ShipmentStatus.Delivered);
-        Assert.Empty(allowed);
+        Assert.Single(allowed);
+        Assert.Contains(ShipmentStatus.Completed, allowed);
     }
 
     #endregion

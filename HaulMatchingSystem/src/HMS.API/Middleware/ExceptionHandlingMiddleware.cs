@@ -1,4 +1,5 @@
 using System.Net;
+using HMS.Shared.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 
@@ -26,6 +27,12 @@ namespace HMS.API.Middleware
                 _logger.LogWarning(ex, "Concurrency conflict");
                 context.Response.StatusCode = (int)HttpStatusCode.Conflict;
                 await context.Response.WriteAsJsonAsync(new { error = "Conflict", message = "Resource was modified by another process" });
+            }
+            catch (ForbiddenException ex)
+            {
+                _logger.LogWarning(ex, "Forbidden: {Message}", ex.Message);
+                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                await context.Response.WriteAsJsonAsync(new { error = "Forbidden", message = ex.Message });
             }
             catch (Exception ex)
             {

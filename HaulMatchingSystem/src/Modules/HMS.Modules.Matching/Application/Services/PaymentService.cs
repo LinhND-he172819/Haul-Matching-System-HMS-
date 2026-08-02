@@ -1,6 +1,7 @@
 using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Exceptions;
 using HMS.Shared.Core.Interfaces;
 using HMS.Shared.Core.Models.Realtime;
 using Microsoft.Extensions.Configuration;
@@ -12,7 +13,8 @@ namespace HMS.Modules.Matching.Application.Services
 {
     /// <summary>
     /// Payment service using raw Npgsql with transaction support.
-    /// Handles deposit payment, final payment, webhook processing.
+    /// Handles deposit payment, final payment, webhook processing,
+    /// retry, cancel, refund, COD, and detail/timeline queries.
     /// </summary>
     public class PaymentService : IPaymentService
     {
@@ -75,7 +77,7 @@ namespace HMS.Modules.Matching.Application.Services
 
                 // 5. Check customer owns this proposal
                 if (proposal.CustomerId != customerId)
-                    throw new UnauthorizedAccessException("Không có quyền thanh toán cho Báo giá này.");
+                    throw new ForbiddenException("Không có quyền thanh toán cho Báo giá này.");
 
                 // 6. Create payment record
                 var paymentId = Guid.NewGuid();
@@ -111,6 +113,25 @@ namespace HMS.Modules.Matching.Application.Services
                     $"Deposit payment created: {quotation.DepositAmount} {quotation.Currency}", customerId, ct);
 
                 await tx.CommitAsync(ct);
+
+                // 8. Notification
+                await SendNotificationAsync(customerId,
+                    "Deposit Created", $"Thanh toán cọc {quotation.DepositAmount} {quotation.Currency} đã được tạo.",
+                    "Payment", paymentId, ct);
+
+                // 9. SignalR
+                try
+                {
+                    await _dispatcher.SendPaymentUpdateToCustomerAsync(customerId, new PaymentEventPayload
+                    {
+                        EventType = "PaymentCreated",
+                        PaymentId = paymentId,
+                        ShipmentId = proposal.ShipmentId,
+                        Amount = quotation.DepositAmount,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex) { _logger.LogWarning(ex, "SignalR failed for deposit created"); }
 
                 return new PaymentResponseDto
                 {
@@ -173,7 +194,7 @@ namespace HMS.Modules.Matching.Application.Services
 
                 // 5. Check customer owns this proposal
                 if (proposal.CustomerId != customerId)
-                    throw new UnauthorizedAccessException("Không có quyền thanh toán cho Báo giá này.");
+                    throw new ForbiddenException("Không có quyền thanh toán cho Báo giá này.");
 
                 // 6. Calculate remaining amount
                 var outstandingAmount = quotation.ShippingFee - quotation.DepositAmount;
@@ -214,6 +235,25 @@ namespace HMS.Modules.Matching.Application.Services
                     $"Final payment created: {outstandingAmount} {quotation.Currency}", customerId, ct);
 
                 await tx.CommitAsync(ct);
+
+                // 9. Notification
+                await SendNotificationAsync(customerId,
+                    "Final Payment Created", $"Thanh toán cuối {outstandingAmount} {quotation.Currency} đã được tạo.",
+                    "Payment", paymentId, ct);
+
+                // 10. SignalR
+                try
+                {
+                    await _dispatcher.SendPaymentUpdateToCustomerAsync(customerId, new PaymentEventPayload
+                    {
+                        EventType = "PaymentCreated",
+                        PaymentId = paymentId,
+                        ShipmentId = proposal.ShipmentId,
+                        Amount = outstandingAmount,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex) { _logger.LogWarning(ex, "SignalR failed for final payment created"); }
 
                 return new PaymentResponseDto
                 {
@@ -443,10 +483,28 @@ namespace HMS.Modules.Matching.Application.Services
 
         /// <summary>
         /// Get payment summary for a shipment.
+        /// When customerId is provided (Customer role), verifies ownership via proposal chain.
         /// </summary>
         public async Task<PaymentSummaryDto> GetPaymentSummaryAsync(
-            Guid shipmentId, CancellationToken ct)
+            Guid shipmentId, Guid? customerId, CancellationToken ct)
         {
+            // Customer ownership verification: shipment must belong to this customer
+            if (customerId.HasValue)
+            {
+                await using var ownershipConn = new NpgsqlConnection(_connStr);
+                await ownershipConn.OpenAsync(ct);
+                const string ownershipSql = """
+                    SELECT COUNT(*) FROM warehouse.shipments s
+                    WHERE s.id = @shipment_id AND s.customer_id = @customer_id AND s.is_deleted = FALSE;
+                """;
+                await using var ownershipCmd = new NpgsqlCommand(ownershipSql, ownershipConn);
+                ownershipCmd.Parameters.AddWithValue("shipment_id", shipmentId);
+                ownershipCmd.Parameters.AddWithValue("customer_id", customerId.Value);
+                var count = Convert.ToInt32(await ownershipCmd.ExecuteScalarAsync(ct));
+                if (count == 0)
+                    throw new ForbiddenException("Không có quyền xem thông tin thanh toán cho Shipment này.");
+            }
+
             await using var conn = new NpgsqlConnection(_connStr);
             await conn.OpenAsync(ct);
 
@@ -497,10 +555,29 @@ namespace HMS.Modules.Matching.Application.Services
 
         /// <summary>
         /// Get payment history for a quotation.
+        /// When customerId is provided (Customer role), verifies ownership via proposal chain.
         /// </summary>
         public async Task<List<PaymentHistoryEntry>> GetPaymentHistoryAsync(
-            Guid quotationId, CancellationToken ct)
+            Guid quotationId, Guid? customerId, CancellationToken ct)
         {
+            // Customer ownership verification: quotation must belong to this customer
+            if (customerId.HasValue)
+            {
+                await using var ownershipConn = new NpgsqlConnection(_connStr);
+                await ownershipConn.OpenAsync(ct);
+                const string ownershipSql = """
+                    SELECT COUNT(*) FROM warehouse.quotations q
+                    JOIN warehouse.shipment_proposals sp ON sp.id = q.proposal_id
+                    WHERE q.id = @quotation_id AND sp.customer_id = @customer_id AND q.is_deleted = FALSE;
+                """;
+                await using var ownershipCmd = new NpgsqlCommand(ownershipSql, ownershipConn);
+                ownershipCmd.Parameters.AddWithValue("quotation_id", quotationId);
+                ownershipCmd.Parameters.AddWithValue("customer_id", customerId.Value);
+                var count = Convert.ToInt32(await ownershipCmd.ExecuteScalarAsync(ct));
+                if (count == 0)
+                    throw new ForbiddenException("Không có quyền xem lịch sử thanh toán cho Báo giá này.");
+            }
+
             await using var conn = new NpgsqlConnection(_connStr);
             await conn.OpenAsync(ct);
 
@@ -536,9 +613,9 @@ namespace HMS.Modules.Matching.Application.Services
         /// Calculate outstanding amount for a shipment.
         /// </summary>
         public async Task<decimal> CalculateOutstandingAmountAsync(
-            Guid shipmentId, CancellationToken ct)
+            Guid shipmentId, Guid? customerId, CancellationToken ct)
         {
-            var summary = await GetPaymentSummaryAsync(shipmentId, ct);
+            var summary = await GetPaymentSummaryAsync(shipmentId, customerId, ct);
             return summary.OutstandingAmount;
         }
 
@@ -705,6 +782,712 @@ namespace HMS.Modules.Matching.Application.Services
             cmd.Parameters.AddWithValue("entity_type", (object)entityType! ?? DBNull.Value);
             cmd.Parameters.AddWithValue("entity_id", (object)entityId! ?? DBNull.Value);
             await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // Part 1: Payment Retry — Failed → Pending
+        // ═══════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Retry a failed payment: Failed → Pending.
+        /// Keeps payment_code; updates status, transaction_reference, updated_at.
+        /// </summary>
+        public async Task<PaymentResponseDto> RetryPaymentAsync(
+            Guid paymentId, Guid customerId, CancellationToken ct)
+        {
+            await using var conn = new NpgsqlConnection(_connStr);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+            try
+            {
+                // 1. Read payment with lock
+                var payment = await ReadPaymentForUpdateAsync(conn, tx, paymentId, ct)
+                    ?? throw new InvalidOperationException("Thanh toán không tồn tại.");
+
+                // 2. Ownership check
+                if (payment.CustomerId != customerId)
+                    throw new ForbiddenException("Không có quyền thao tác trên thanh toán này.");
+
+                // 3. Validate transition: must be Failed
+                var currentStatus = Enum.Parse<PaymentStatus>(payment.Status);
+                PaymentTransitionGuard.EnsureCanTransition(currentStatus, PaymentStatus.Pending);
+
+                // 4. Update: status → Pending, clear transaction_reference, updated_at = NOW()
+                const string updateSql = """
+                    UPDATE warehouse.payments
+                    SET status = 'Pending',
+                        transaction_reference = NULL,
+                        updated_at = NOW()
+                    WHERE id = @id AND is_deleted = FALSE;
+                """;
+                await using (var cmd = new NpgsqlCommand(updateSql, conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("id", paymentId);
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+
+                // 5. Audit
+                await InsertAuditAsync(conn, tx, "Payment", paymentId, "Retry",
+                    $"Payment {payment.PaymentCode} retried from Failed to Pending", customerId, ct);
+
+                await tx.CommitAsync(ct);
+
+                // 6. Notification
+                await SendNotificationAsync(customerId,
+                    "Payment Retry",
+                    $"Thanh toán {payment.PaymentCode} đang được thử lại.",
+                    "Payment", paymentId, ct);
+
+                // 7. SignalR
+                try
+                {
+                    await _dispatcher.SendPaymentUpdateToCustomerAsync(customerId, new PaymentEventPayload
+                    {
+                        EventType = "PaymentRetry",
+                        PaymentId = paymentId,
+                        ShipmentId = payment.ShipmentId,
+                        Amount = payment.Amount,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex) { _logger.LogWarning(ex, "SignalR failed for payment retry"); }
+
+                return new PaymentResponseDto
+                {
+                    Id = paymentId,
+                    PaymentCode = payment.PaymentCode,
+                    QuotationId = payment.QuotationId,
+                    ShipmentId = payment.ShipmentId,
+                    PaymentType = payment.PaymentType,
+                    Amount = payment.Amount,
+                    Currency = payment.Currency,
+                    Status = "Pending",
+                    CreatedAt = payment.CreatedAt
+                };
+            }
+            catch
+            {
+                await tx.RollbackAsync(ct);
+                throw;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // Part 3: Payment Cancel — Pending → Cancelled
+        // ═══════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Cancel a pending payment: Pending → Cancelled.
+        /// No new payment created; shipment/quotation unaffected; can retry later.
+        /// </summary>
+        public async Task<PaymentResponseDto> CancelPaymentAsync(
+            Guid paymentId, Guid customerId, CancellationToken ct)
+        {
+            await using var conn = new NpgsqlConnection(_connStr);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+            try
+            {
+                var payment = await ReadPaymentForUpdateAsync(conn, tx, paymentId, ct)
+                    ?? throw new InvalidOperationException("Thanh toán không tồn tại.");
+
+                if (payment.CustomerId != customerId)
+                    throw new ForbiddenException("Không có quyền thao tác trên thanh toán này.");
+
+                var currentStatus = Enum.Parse<PaymentStatus>(payment.Status);
+                PaymentTransitionGuard.EnsureCanTransition(currentStatus, PaymentStatus.Cancelled);
+
+                const string updateSql = """
+                    UPDATE warehouse.payments
+                    SET status = 'Cancelled',
+                        updated_at = NOW()
+                    WHERE id = @id AND is_deleted = FALSE;
+                """;
+                await using (var cmd = new NpgsqlCommand(updateSql, conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("id", paymentId);
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+
+                await InsertAuditAsync(conn, tx, "Payment", paymentId, "Cancelled",
+                    $"Payment {payment.PaymentCode} cancelled by customer", customerId, ct);
+
+                await tx.CommitAsync(ct);
+
+                await SendNotificationAsync(customerId,
+                    "Payment Cancelled",
+                    $"Thanh toán {payment.PaymentCode} đã được hủy.",
+                    "Payment", paymentId, ct);
+
+                try
+                {
+                    await _dispatcher.SendPaymentUpdateToCustomerAsync(customerId, new PaymentEventPayload
+                    {
+                        EventType = "PaymentCancelled",
+                        PaymentId = paymentId,
+                        ShipmentId = payment.ShipmentId,
+                        Amount = payment.Amount,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex) { _logger.LogWarning(ex, "SignalR failed for payment cancel"); }
+
+                return new PaymentResponseDto
+                {
+                    Id = paymentId,
+                    PaymentCode = payment.PaymentCode,
+                    QuotationId = payment.QuotationId,
+                    ShipmentId = payment.ShipmentId,
+                    PaymentType = payment.PaymentType,
+                    Amount = payment.Amount,
+                    Currency = payment.Currency,
+                    Status = "Cancelled",
+                    CreatedAt = payment.CreatedAt
+                };
+            }
+            catch
+            {
+                await tx.RollbackAsync(ct);
+                throw;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // Part 5: Payment Detail
+        // ═══════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Get full payment detail for customer (ownership verified).
+        /// </summary>
+        public async Task<PaymentDetailDto?> GetPaymentDetailAsync(
+            Guid paymentId, Guid? customerId, Guid? staffId, string? role, Guid? hubId,
+            CancellationToken ct)
+        {
+            await using var conn = new NpgsqlConnection(_connStr);
+            await conn.OpenAsync(ct);
+
+            const string sql = """
+                SELECT
+                    p.id, p.payment_code, p.payment_method, p.status, p.payment_type,
+                    p.amount, p.currency, p.created_at, p.paid_at, p.transaction_reference,
+                    p.failure_reason,
+                    q.id AS quotation_id, q.quotation_code, q.shipping_fee, q.deposit_amount,
+                    s.id AS shipment_id, s.shipment_code, s.status AS shipment_status,
+                    sp.customer_id,
+                    COALESCE(cu.full_name, cu.email, 'Customer') AS customer_name
+                FROM warehouse.payments p
+                JOIN warehouse.quotations q ON q.id = p.quotation_id
+                JOIN warehouse.shipment_proposals sp ON sp.id = q.proposal_id
+                JOIN warehouse.shipments s ON s.id = p.shipment_id
+                LEFT JOIN identity.users cu ON cu.id = sp.customer_id
+                WHERE p.id = @payment_id AND p.is_deleted = FALSE;
+            """;
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("payment_id", paymentId);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync()) return null;
+
+            var detail = new PaymentDetailDto
+            {
+                Id = reader.GetGuid(reader.GetOrdinal("id")),
+                PaymentCode = reader.GetString(reader.GetOrdinal("payment_code")),
+                PaymentMethod = reader.IsDBNull(reader.GetOrdinal("payment_method")) ? null : reader.GetString(reader.GetOrdinal("payment_method")),
+                Status = reader.GetString(reader.GetOrdinal("status")),
+                PaymentType = reader.GetString(reader.GetOrdinal("payment_type")),
+                Amount = reader.GetDecimal(reader.GetOrdinal("amount")),
+                Currency = reader.GetString(reader.GetOrdinal("currency")),
+                CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
+                PaidAt = reader.IsDBNull(reader.GetOrdinal("paid_at")) ? null : reader.GetDateTime(reader.GetOrdinal("paid_at")),
+                TransactionReference = reader.IsDBNull(reader.GetOrdinal("transaction_reference")) ? null : reader.GetString(reader.GetOrdinal("transaction_reference")),
+                FailureReason = reader.IsDBNull(reader.GetOrdinal("failure_reason")) ? null : reader.GetString(reader.GetOrdinal("failure_reason")),
+                QuotationId = reader.GetGuid(reader.GetOrdinal("quotation_id")),
+                QuotationCode = reader.IsDBNull(reader.GetOrdinal("quotation_code")) ? null : reader.GetString(reader.GetOrdinal("quotation_code")),
+                ShippingFee = reader.GetDecimal(reader.GetOrdinal("shipping_fee")),
+                DepositAmount = reader.GetDecimal(reader.GetOrdinal("deposit_amount")),
+                ShipmentId = reader.GetGuid(reader.GetOrdinal("shipment_id")),
+                ShipmentCode = reader.IsDBNull(reader.GetOrdinal("shipment_code")) ? null : reader.GetString(reader.GetOrdinal("shipment_code")),
+                ShipmentStatus = reader.IsDBNull(reader.GetOrdinal("shipment_status")) ? null : reader.GetString(reader.GetOrdinal("shipment_status")),
+                CustomerId = reader.GetGuid(reader.GetOrdinal("customer_id")),
+                CustomerName = reader.IsDBNull(reader.GetOrdinal("customer_name")) ? null : reader.GetString(reader.GetOrdinal("customer_name")),
+            };
+
+            await reader.CloseAsync();
+
+            // Compute CancelledAt and FailedAt from audit log
+            detail.CancelledAt = await GetAuditTimestampAsync(conn, "Payment", paymentId, "Cancelled", ct);
+            detail.FailedAt = await GetAuditTimestampAsync(conn, "Payment", paymentId, "Failed", ct);
+
+            // Customer ownership check
+            if (customerId.HasValue && detail.CustomerId != customerId.Value)
+                throw new ForbiddenException("Không có quyền xem thanh toán này.");
+
+            // Staff hub scoping
+            if (staffId.HasValue && role == "Warehouse_Staff" && hubId.HasValue)
+            {
+                // Check if shipment belongs to staff's hub
+                const string hubCheck = """
+                    SELECT COUNT(*) FROM warehouse.shipments s
+                    WHERE s.id = @shipment_id AND s.hub_id = @hub_id AND s.is_deleted = FALSE;
+                """;
+                await using var hubCmd = new NpgsqlCommand(hubCheck, conn);
+                hubCmd.Parameters.AddWithValue("shipment_id", detail.ShipmentId);
+                hubCmd.Parameters.AddWithValue("hub_id", hubId.Value);
+                var count = Convert.ToInt32(await hubCmd.ExecuteScalarAsync(ct));
+                if (count == 0)
+                    throw new ForbiddenException("Shipment không thuộc Hub của bạn.");
+            }
+
+            return detail;
+        }
+
+        /// <summary>
+        /// Staff get payment detail (with hub scoping for Warehouse_Staff, full access for Admin).
+        /// </summary>
+        public async Task<PaymentDetailDto?> GetStaffPaymentDetailAsync(
+            Guid paymentId, Guid staffId, string? role, Guid? hubId,
+            CancellationToken ct)
+        {
+            return await GetPaymentDetailAsync(paymentId, null, staffId, role, hubId, ct);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // Part 6: Payment Timeline
+        // ═══════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Get payment timeline from audit log, ordered by time.
+        /// </summary>
+        public async Task<List<PaymentTimelineEntry>> GetPaymentTimelineAsync(
+            Guid paymentId, CancellationToken ct)
+        {
+            await using var conn = new NpgsqlConnection(_connStr);
+            await conn.OpenAsync(ct);
+
+            const string sql = """
+                SELECT action, details, created_at
+                FROM shared.audit_log
+                WHERE entity_type = 'Payment' AND entity_id = @payment_id
+                ORDER BY created_at ASC;
+            """;
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("payment_id", paymentId);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+            var timeline = new List<PaymentTimelineEntry>();
+            while (await reader.ReadAsync())
+            {
+                var action = reader.GetString(reader.GetOrdinal("action"));
+                var details = reader.IsDBNull(reader.GetOrdinal("details"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("details"));
+
+                // Parse JSON details message
+                var detailsMessage = details;
+                if (!string.IsNullOrEmpty(details) && details.Contains("\"message\""))
+                {
+                    try
+                    {
+                        var json = System.Text.Json.JsonDocument.Parse(details);
+                        if (json.RootElement.TryGetProperty("message", out var msgEl))
+                            detailsMessage = msgEl.GetString();
+                    }
+                    catch { /* keep raw */ }
+                }
+
+                timeline.Add(new PaymentTimelineEntry
+                {
+                    Status = action,
+                    Action = action,
+                    Details = detailsMessage,
+                    OccurredAt = reader.GetDateTime(reader.GetOrdinal("created_at"))
+                });
+            }
+
+            return timeline;
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // Part 7: Refund — Paid → PendingRefund → Refunded
+        // ═══════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Request refund: Paid → PendingRefund. Staff-initiated.
+        /// </summary>
+        public async Task<PaymentResponseDto> RequestRefundAsync(
+            Guid paymentId, Guid staffId, string reason, CancellationToken ct)
+        {
+            await using var conn = new NpgsqlConnection(_connStr);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+            try
+            {
+                var payment = await ReadPaymentForUpdateAsync(conn, tx, paymentId, ct)
+                    ?? throw new InvalidOperationException("Thanh toán không tồn tại.");
+
+                var currentStatus = Enum.Parse<PaymentStatus>(payment.Status);
+                PaymentTransitionGuard.EnsureCanTransition(currentStatus, PaymentStatus.PendingRefund);
+
+                const string updateSql = """
+                    UPDATE warehouse.payments
+                    SET status = 'PendingRefund',
+                        updated_at = NOW()
+                    WHERE id = @id AND is_deleted = FALSE;
+                """;
+                await using (var cmd = new NpgsqlCommand(updateSql, conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("id", paymentId);
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+
+                await InsertAuditAsync(conn, tx, "Payment", paymentId, "RefundRequested",
+                    $"Refund requested: {reason}", staffId, ct);
+
+                await tx.CommitAsync(ct);
+
+                // Notification to customer
+                var customerId = payment.CustomerId;
+                await SendNotificationAsync(customerId,
+                    "Refund Requested",
+                    $"Yêu cầu hoàn tiền cho thanh toán {payment.PaymentCode} đã được gửi.",
+                    "Payment", paymentId, ct);
+
+                try
+                {
+                    await _dispatcher.SendPaymentUpdateToCustomerAsync(customerId, new PaymentEventPayload
+                    {
+                        EventType = "RefundRequested",
+                        PaymentId = paymentId,
+                        ShipmentId = payment.ShipmentId,
+                        Amount = payment.Amount,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex) { _logger.LogWarning(ex, "SignalR failed for refund requested"); }
+
+                return new PaymentResponseDto
+                {
+                    Id = paymentId,
+                    PaymentCode = payment.PaymentCode,
+                    QuotationId = payment.QuotationId,
+                    ShipmentId = payment.ShipmentId,
+                    PaymentType = payment.PaymentType,
+                    Amount = payment.Amount,
+                    Currency = payment.Currency,
+                    Status = "PendingRefund",
+                    CreatedAt = payment.CreatedAt
+                };
+            }
+            catch
+            {
+                await tx.RollbackAsync(ct);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Approve refund: PendingRefund → Refunded. Admin-initiated.
+        /// If deposit refund → Shipment: Matched → PendingReview.
+        /// </summary>
+        public async Task<PaymentResponseDto> ApproveRefundAsync(
+            Guid paymentId, Guid staffId, CancellationToken ct)
+        {
+            await using var conn = new NpgsqlConnection(_connStr);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+            try
+            {
+                var payment = await ReadPaymentForUpdateAsync(conn, tx, paymentId, ct)
+                    ?? throw new InvalidOperationException("Thanh toán không tồn tại.");
+
+                var currentStatus = Enum.Parse<PaymentStatus>(payment.Status);
+                PaymentTransitionGuard.EnsureCanTransition(currentStatus, PaymentStatus.Refunded);
+
+                const string updateSql = """
+                    UPDATE warehouse.payments
+                    SET status = 'Refunded',
+                        updated_at = NOW()
+                    WHERE id = @id AND is_deleted = FALSE;
+                """;
+                await using (var cmd = new NpgsqlCommand(updateSql, conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("id", paymentId);
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+
+                await InsertAuditAsync(conn, tx, "Payment", paymentId, "RefundApproved",
+                    $"Refund approved for {payment.PaymentCode}: {payment.Amount} {payment.Currency}", staffId, ct);
+
+                // If Deposit refund → revert shipment Matched → PendingReview
+                if (payment.PaymentType == "Deposit")
+                {
+                    // Read current shipment status
+                    var shipment = await ReadShipmentForUpdateAsync(conn, tx, payment.ShipmentId, ct);
+                    if (shipment.HasValue && shipment.Value.Status == ShipmentStatus.Matched.ToString())
+                    {
+                        await _shipmentStateService.TransitionAsync(
+                            payment.ShipmentId,
+                            ShipmentStatus.PendingReview,
+                            connection: conn,
+                            transaction: tx,
+                            performedBy: staffId,
+                            reason: "Deposit refunded, shipment reverted to PendingReview",
+                            ct: ct);
+
+                        await InsertAuditAsync(conn, tx, "Shipment", payment.ShipmentId, "Transitioned",
+                            "Matched → PendingReview (deposit refund)", staffId, ct);
+
+                        // Also cancel quotation
+                        var quotation = await ReadQuotationForUpdateAsync(conn, tx, payment.QuotationId, ct);
+                        if (quotation.HasValue && quotation.Value.Status == "Accepted")
+                        {
+                            const string cancelQSql = """
+                                UPDATE warehouse.quotations
+                                SET status = 'Cancelled', cancelled_at = NOW(), updated_at = NOW()
+                                WHERE id = @quotation_id AND is_deleted = FALSE;
+                            """;
+                            await using var qCmd = new NpgsqlCommand(cancelQSql, conn, tx);
+                            qCmd.Parameters.AddWithValue("quotation_id", payment.QuotationId);
+                            await qCmd.ExecuteNonQueryAsync(ct);
+                        }
+                    }
+                }
+
+                await tx.CommitAsync(ct);
+
+                // Notification
+                await SendNotificationAsync(payment.CustomerId,
+                    "Refund Completed",
+                    $"Hoàn tiền cho thanh toán {payment.PaymentCode} đã hoàn tất.",
+                    "Payment", paymentId, ct);
+
+                try
+                {
+                    await _dispatcher.SendPaymentUpdateToCustomerAsync(payment.CustomerId, new PaymentEventPayload
+                    {
+                        EventType = "RefundCompleted",
+                        PaymentId = paymentId,
+                        ShipmentId = payment.ShipmentId,
+                        Amount = payment.Amount,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex) { _logger.LogWarning(ex, "SignalR failed for refund completed"); }
+
+                return new PaymentResponseDto
+                {
+                    Id = paymentId,
+                    PaymentCode = payment.PaymentCode,
+                    QuotationId = payment.QuotationId,
+                    ShipmentId = payment.ShipmentId,
+                    PaymentType = payment.PaymentType,
+                    Amount = payment.Amount,
+                    Currency = payment.Currency,
+                    Status = "Refunded",
+                    CreatedAt = payment.CreatedAt
+                };
+            }
+            catch
+            {
+                await tx.RollbackAsync(ct);
+                throw;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // Part 8: COD — Driver confirms, no webhook
+        // ═══════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Confirm COD payment: Pending → Paid. Driver-initiated after delivery.
+        /// Then transitions shipment Delivered → Completed.
+        /// </summary>
+        public async Task<PaymentResponseDto> ConfirmCodPaymentAsync(
+            Guid paymentId, Guid driverId, CancellationToken ct)
+        {
+            await using var conn = new NpgsqlConnection(_connStr);
+            await conn.OpenAsync(ct);
+            await using var tx = await conn.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+            try
+            {
+                var payment = await ReadPaymentForUpdateAsync(conn, tx, paymentId, ct)
+                    ?? throw new InvalidOperationException("Thanh toán không tồn tại.");
+
+                if (payment.PaymentType != "FinalPayment")
+                    throw new InvalidOperationException("COD chỉ áp dụng cho thanh toán cuối.");
+
+                if (payment.PaymentMethod != "COD")
+                    throw new InvalidOperationException("Thanh toán này không phải COD.");
+
+                // Verify driver owns a trip carrying this shipment
+                const string driverCheckSql = """
+                    SELECT COUNT(1) FROM transport.trip_shipments ts
+                    JOIN transport.trips t ON t.id = ts.trip_id AND t.driver_id = @driver_id AND t.is_deleted = FALSE
+                    WHERE ts.shipment_id = @shipment_id AND ts.is_deleted = FALSE;
+                """;
+                await using (var checkCmd = new NpgsqlCommand(driverCheckSql, conn, tx))
+                {
+                    checkCmd.Parameters.AddWithValue("driver_id", driverId);
+                    checkCmd.Parameters.AddWithValue("shipment_id", payment.ShipmentId);
+                    var hasTrip = (long)(await checkCmd.ExecuteScalarAsync(ct))! > 0;
+                    if (!hasTrip)
+                        throw new ForbiddenException("Bạn không có quyền xác nhận thanh toán COD này.");
+                }
+
+                var currentStatus = Enum.Parse<PaymentStatus>(payment.Status);
+                PaymentTransitionGuard.EnsureCanTransition(currentStatus, PaymentStatus.Paid);
+
+                // Update payment
+                const string updateSql = """
+                    UPDATE warehouse.payments
+                    SET status = 'Paid',
+                        paid_at = NOW(),
+                        confirmed_at = NOW(),
+                        confirmed_by = @driver_id,
+                        transaction_reference = @driver_ref,
+                        updated_at = NOW()
+                    WHERE id = @id AND is_deleted = FALSE;
+                """;
+                await using (var cmd = new NpgsqlCommand(updateSql, conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("id", paymentId);
+                    cmd.Parameters.AddWithValue("driver_id", driverId);
+                    cmd.Parameters.AddWithValue("driver_ref", $"COD-{driverId:N}");
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+
+                await InsertAuditAsync(conn, tx, "Payment", paymentId, "Paid",
+                    $"COD confirmed by driver {driverId}", driverId, ct);
+
+                // Check all final payments for this quotation
+                var allFinalPaid = await AllFinalPaymentsPaidAsync(conn, tx, payment.QuotationId, ct);
+                if (allFinalPaid)
+                {
+                    // Transition shipment: Delivered → Completed
+                    await _shipmentStateService.TransitionAsync(
+                        payment.ShipmentId,
+                        ShipmentStatus.Completed,
+                        connection: conn,
+                        transaction: tx,
+                        performedBy: driverId,
+                        reason: "COD payment confirmed, shipment completed",
+                        ct: ct);
+
+                    await InsertAuditAsync(conn, tx, "Shipment", payment.ShipmentId, "Transitioned",
+                        "Delivered → Completed (COD confirmed)", driverId, ct);
+                }
+
+                await tx.CommitAsync(ct);
+
+                // Notification
+                await SendNotificationAsync(payment.CustomerId,
+                    "Final Payment Paid",
+                    $"Thanh toán COD {payment.PaymentCode} đã xác nhận.",
+                    "Payment", paymentId, ct);
+
+                try
+                {
+                    await _dispatcher.SendPaymentUpdateToCustomerAsync(payment.CustomerId, new PaymentEventPayload
+                    {
+                        EventType = "FinalPaymentPaid",
+                        PaymentId = paymentId,
+                        ShipmentId = payment.ShipmentId,
+                        Amount = payment.Amount,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex) { _logger.LogWarning(ex, "SignalR failed for COD confirmation"); }
+
+                return new PaymentResponseDto
+                {
+                    Id = paymentId,
+                    PaymentCode = payment.PaymentCode,
+                    QuotationId = payment.QuotationId,
+                    ShipmentId = payment.ShipmentId,
+                    PaymentType = payment.PaymentType,
+                    Amount = payment.Amount,
+                    Currency = payment.Currency,
+                    Status = "Paid",
+                    PaidAt = DateTime.UtcNow,
+                    CreatedAt = payment.CreatedAt
+                };
+            }
+            catch
+            {
+                await tx.RollbackAsync(ct);
+                throw;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // Private helpers
+        // ═══════════════════════════════════════════════════════
+
+        private async Task<(Guid Id, string Status, string PaymentType, decimal Amount,
+            string Currency, Guid QuotationId, Guid ShipmentId, Guid CustomerId,
+            string PaymentCode, string? PaymentMethod, DateTime CreatedAt)?
+            > ReadPaymentForUpdateAsync(NpgsqlConnection conn, NpgsqlTransaction tx,
+            Guid paymentId, CancellationToken ct)
+        {
+            const string sql = """
+                SELECT id, status, payment_type, amount, currency, quotation_id, shipment_id, customer_id,
+                       payment_code, payment_method, created_at
+                FROM warehouse.payments
+                WHERE id = @id AND is_deleted = FALSE FOR UPDATE;
+            """;
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
+            cmd.Parameters.AddWithValue("id", paymentId);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync()) return null;
+            return (reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetDecimal(3),
+                    reader.GetString(4), reader.GetGuid(5), reader.GetGuid(6), reader.GetGuid(7),
+                    reader.GetString(8), reader.IsDBNull(9) ? null : reader.GetString(9), reader.GetDateTime(10));
+        }
+
+        private static async Task<DateTime?> GetAuditTimestampAsync(
+            NpgsqlConnection conn, string entityType, Guid entityId, string action, CancellationToken ct)
+        {
+            const string sql = """
+                SELECT created_at FROM shared.audit_log
+                WHERE entity_type = @entity_type AND entity_id = @entity_id AND action = @action
+                ORDER BY created_at DESC LIMIT 1;
+            """;
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("entity_type", entityType);
+            cmd.Parameters.AddWithValue("entity_id", entityId);
+            cmd.Parameters.AddWithValue("action", action);
+            var result = await cmd.ExecuteScalarAsync(ct);
+            return result as DateTime?;
+        }
+
+        private async Task SendNotificationAsync(
+            Guid userId, string title, string message,
+            string? entityType, Guid? entityId, CancellationToken ct)
+        {
+            try
+            {
+                await using var conn = new NpgsqlConnection(_connStr);
+                await conn.OpenAsync(ct);
+                const string sql = """
+                    INSERT INTO shared.notifications (user_id, title, message, entity_type, entity_id, created_at)
+                    VALUES (@user_id, @title, @message, @entity_type, @entity_id, NOW());
+                """;
+                await using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("user_id", userId);
+                cmd.Parameters.AddWithValue("title", title);
+                cmd.Parameters.AddWithValue("message", message);
+                cmd.Parameters.AddWithValue("entity_type", (object)entityType! ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("entity_id", (object)entityId! ?? DBNull.Value);
+                await cmd.ExecuteNonQueryAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send notification to {UserId}", userId);
+            }
         }
     }
 }

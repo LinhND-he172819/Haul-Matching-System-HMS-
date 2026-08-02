@@ -61,6 +61,10 @@ namespace HMS.Modules.Matching.Core.Models
         [Column("status")]
         public string? Status { get; set; }
 
+        // ── Ownership ──
+        [Column("customer_id")]
+        public Guid? CustomerId { get; set; }
+
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

@@ -12,31 +12,31 @@ namespace HMS.Modules.Matching.Core.Interfaces
         /// </summary>
         Task<QuotationResponseDto> CreateQuotationAsync(
             Guid proposalId, CreateQuotationRequest request,
-            Guid staffId, CancellationToken ct);
+            Guid staffId, string? role, Guid? hubId, CancellationToken ct);
 
         /// <summary>
         /// Update an existing quotation draft.
         /// </summary>
         Task<QuotationResponseDto> UpdateQuotationAsync(
             Guid quotationId, UpdateQuotationRequest request,
-            Guid staffId, CancellationToken ct);
+            Guid staffId, string? role, Guid? hubId, CancellationToken ct);
 
         /// <summary>
         /// Send a quotation: Draft → Sent. Also transitions Shipment → PendingDeposit.
         /// </summary>
         Task SendQuotationAsync(
-            Guid quotationId, Guid staffId, CancellationToken ct);
+            Guid quotationId, Guid staffId, string? role, Guid? hubId, CancellationToken ct);
 
         /// <summary>
         /// Cancel a quotation: Draft/Sent → Cancelled.
         /// </summary>
         Task CancelQuotationAsync(
-            Guid quotationId, Guid staffId, string? reason, CancellationToken ct);
+            Guid quotationId, Guid staffId, string? role, Guid? hubId, string? reason, CancellationToken ct);
 
         /// <summary>
         /// Get quotation details by ID.
         /// </summary>
-        Task<QuotationResponseDto?> GetQuotationAsync(Guid quotationId, CancellationToken ct);
+        Task<QuotationResponseDto?> GetQuotationAsync(Guid quotationId, string? role, Guid? hubId, CancellationToken ct);
 
         /// <summary>
         /// Get quotation for a proposal.

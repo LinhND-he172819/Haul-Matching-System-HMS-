@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Core.Interfaces;
+using HMS.Shared.Core.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -71,7 +72,7 @@ namespace HMS.Modules.Matching.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (UnauthorizedAccessException ex)
+            catch (ForbiddenException ex)
             {
                 return Forbid();
             }
@@ -101,7 +102,7 @@ namespace HMS.Modules.Matching.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (UnauthorizedAccessException ex)
+            catch (ForbiddenException ex)
             {
                 return Forbid();
             }
@@ -138,3 +139,4 @@ namespace HMS.Modules.Matching.Controllers
         }
     }
 }
+

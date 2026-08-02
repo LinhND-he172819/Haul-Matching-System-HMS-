@@ -3,6 +3,7 @@ using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Exceptions;
 using HMS.Shared.Core.Interfaces;
 using HMS.Shared.Core.Models.Realtime;
 using Moq;
@@ -50,16 +51,36 @@ namespace HMS.Modules.Matching.Tests
         }
 
         [Fact]
+        public async Task CreateProposal_WrongCustomer_ThrowsForbidden()
+        {
+            var shipmentId = Guid.NewGuid();
+            var realCustomerId = Guid.NewGuid();
+            var wrongCustomerId = Guid.NewGuid();
+            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1, CustomerId = realCustomerId };
+
+            _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(shipment);
+
+            var ex = await Assert.ThrowsAsync<ForbiddenException>(() =>
+                _sut.CreateProposalAsync(Guid.NewGuid(), wrongCustomerId,
+                    new CreateProposalRequest { ShipmentId = shipmentId, SenderName = "A", SenderPhone = "123", PickupAddress = "addr" },
+                    CancellationToken.None));
+
+            Assert.NotNull(ex);
+        }
+
+        [Fact]
         public async Task CreateProposal_ShipmentNotDraft_ThrowsInvalidOperation()
         {
             var shipmentId = Guid.NewGuid();
-            var shipment = new Shipment { Id = shipmentId, Status = "Matched", WeightKg = 10, VolumeCbm = 1 };
+            var customerId = Guid.NewGuid();
+            var shipment = new Shipment { Id = shipmentId, Status = "Matched", WeightKg = 10, VolumeCbm = 1, CustomerId = customerId };
 
             _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(shipment);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                _sut.CreateProposalAsync(Guid.NewGuid(), Guid.NewGuid(),
+                _sut.CreateProposalAsync(Guid.NewGuid(), customerId,
                     new CreateProposalRequest { ShipmentId = shipmentId, SenderName = "A", SenderPhone = "123", PickupAddress = "addr" },
                     CancellationToken.None));
         }
@@ -68,13 +89,14 @@ namespace HMS.Modules.Matching.Tests
         public async Task CreateProposal_ShipmentWeightZero_ThrowsInvalidOperation()
         {
             var shipmentId = Guid.NewGuid();
-            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 0, VolumeCbm = 1 };
+            var customerId = Guid.NewGuid();
+            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 0, VolumeCbm = 1, CustomerId = customerId };
 
             _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(shipment);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                _sut.CreateProposalAsync(Guid.NewGuid(), Guid.NewGuid(),
+                _sut.CreateProposalAsync(Guid.NewGuid(), customerId,
                     new CreateProposalRequest { ShipmentId = shipmentId, SenderName = "A", SenderPhone = "123", PickupAddress = "addr" },
                     CancellationToken.None));
         }
@@ -83,13 +105,14 @@ namespace HMS.Modules.Matching.Tests
         public async Task CreateProposal_ShipmentVolumeZero_ThrowsInvalidOperation()
         {
             var shipmentId = Guid.NewGuid();
-            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 0 };
+            var customerId = Guid.NewGuid();
+            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 0, CustomerId = customerId };
 
             _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(shipment);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                _sut.CreateProposalAsync(Guid.NewGuid(), Guid.NewGuid(),
+                _sut.CreateProposalAsync(Guid.NewGuid(), customerId,
                     new CreateProposalRequest { ShipmentId = shipmentId, SenderName = "A", SenderPhone = "123", PickupAddress = "addr" },
                     CancellationToken.None));
         }
@@ -99,7 +122,8 @@ namespace HMS.Modules.Matching.Tests
         {
             var shipmentId = Guid.NewGuid();
             var tripPostId = Guid.NewGuid();
-            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1 };
+            var customerId = Guid.NewGuid();
+            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1, CustomerId = customerId };
 
             _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(shipment);
@@ -107,7 +131,7 @@ namespace HMS.Modules.Matching.Tests
                 .ReturnsAsync((TripPostRecord?)null);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                _sut.CreateProposalAsync(tripPostId, Guid.NewGuid(),
+                _sut.CreateProposalAsync(tripPostId, customerId,
                     new CreateProposalRequest { ShipmentId = shipmentId, SenderName = "A", SenderPhone = "123", PickupAddress = "addr" },
                     CancellationToken.None));
         }
@@ -117,7 +141,8 @@ namespace HMS.Modules.Matching.Tests
         {
             var shipmentId = Guid.NewGuid();
             var tripPostId = Guid.NewGuid();
-            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1 };
+            var customerId = Guid.NewGuid();
+            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1, CustomerId = customerId };
             var tripPost = new TripPostRecord { Id = tripPostId, TripId = Guid.NewGuid(), Status = "Closed" };
 
             _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
@@ -126,7 +151,7 @@ namespace HMS.Modules.Matching.Tests
                 .ReturnsAsync(tripPost);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                _sut.CreateProposalAsync(tripPostId, Guid.NewGuid(),
+                _sut.CreateProposalAsync(tripPostId, customerId,
                     new CreateProposalRequest { ShipmentId = shipmentId, SenderName = "A", SenderPhone = "123", PickupAddress = "addr" },
                     CancellationToken.None));
         }
@@ -136,7 +161,8 @@ namespace HMS.Modules.Matching.Tests
         {
             var shipmentId = Guid.NewGuid();
             var tripPostId = Guid.NewGuid();
-            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1 };
+            var customerId = Guid.NewGuid();
+            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1, CustomerId = customerId };
             var tripPost = new TripPostRecord
             {
                 Id = tripPostId, TripId = Guid.NewGuid(), Status = "Open",
@@ -149,7 +175,7 @@ namespace HMS.Modules.Matching.Tests
                 .ReturnsAsync(tripPost);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                _sut.CreateProposalAsync(tripPostId, Guid.NewGuid(),
+                _sut.CreateProposalAsync(tripPostId, customerId,
                     new CreateProposalRequest { ShipmentId = shipmentId, SenderName = "A", SenderPhone = "123", PickupAddress = "addr" },
                     CancellationToken.None));
         }
@@ -161,7 +187,7 @@ namespace HMS.Modules.Matching.Tests
             var tripPostId = Guid.NewGuid();
             var customerId = Guid.NewGuid();
             var tripId = Guid.NewGuid();
-            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1 };
+            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1, CustomerId = customerId };
             var tripPost = new TripPostRecord
             {
                 Id = tripPostId, TripId = tripId, Status = "Open",
@@ -194,7 +220,7 @@ namespace HMS.Modules.Matching.Tests
             var customerId = Guid.NewGuid();
             var tripId = Guid.NewGuid();
             var driverId = Guid.NewGuid();
-            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1 };
+            var shipment = new Shipment { Id = shipmentId, Status = "Draft", WeightKg = 10, VolumeCbm = 1, CustomerId = customerId };
             var tripPost = new TripPostRecord
             {
                 Id = tripPostId, TripId = tripId, Status = "Open",
@@ -310,7 +336,7 @@ namespace HMS.Modules.Matching.Tests
             _repo.Setup(r => r.GetTripPostAsync(proposal.TripPostId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(tripPost);
 
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            await Assert.ThrowsAsync<ForbiddenException>(() =>
                 _sut.AcceptProposalAsync(proposalId, driverId, CancellationToken.None));
         }
 

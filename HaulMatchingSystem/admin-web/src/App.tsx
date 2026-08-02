@@ -759,6 +759,71 @@ function App() {
     case 'staff-payments':
       return <StaffPaymentMonitoringPage onLogout={handleLogout} />;
 
+    // ── Admin detail/quotation standalone outer cases ──
+    // handleStaffSelectProposal sets currentPage='admin-proposal-detail' which
+    // bypasses the inner switch under case 'admin'. These outer cases mirror
+    // the inner switch so the navigation works regardless of which switch
+    // catches the page change.
+    case 'admin-proposal-detail':
+      if (!selectedProposalId) {
+        setCurrentPage('admin');
+        setAdminTab('admin-proposals');
+        return null;
+      }
+      return (
+        <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+          {renderSidebar()}
+          <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+            <StaffProposalDetailPage
+              proposalId={selectedProposalId}
+              onBack={() => { setAdminTab('admin-proposals'); setCurrentPage('admin'); }}
+              onLogout={handleLogout}
+              onCreateQuotation={handleStaffCreateQuotation}
+              onViewQuotation={handleStaffViewQuotation}
+            />
+          </div>
+        </div>
+      );
+
+    case 'admin-create-quotation':
+      if (!createQuotationProposalId) {
+        setCurrentPage('admin');
+        setAdminTab('admin-proposals');
+        return null;
+      }
+      return (
+        <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+          {renderSidebar()}
+          <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+            <StaffCreateQuotationPage
+              proposalId={createQuotationProposalId}
+              onBack={() => { setAdminTab('admin-proposals'); setCurrentPage('admin'); }}
+              onLogout={handleLogout}
+              onCreated={handleStaffQuotationCreated}
+            />
+          </div>
+        </div>
+      );
+
+    case 'admin-quotation-detail':
+      if (!selectedQuotationId) {
+        setCurrentPage('admin');
+        setAdminTab('admin-quotations');
+        return null;
+      }
+      return (
+        <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+          {renderSidebar()}
+          <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+            <StaffQuotationDetailPage
+              quotationId={selectedQuotationId}
+              onBack={() => { setAdminTab('admin-quotations'); setCurrentPage('admin'); }}
+              onLogout={handleLogout}
+            />
+          </div>
+        </div>
+      );
+
     case 'admin':
       if (role !== 'Admin') {
         // Enforce admin permission restriction
@@ -850,43 +915,6 @@ function App() {
               </div>
             </div>
           );
-        case 'admin-proposal-detail':
-          if (!selectedProposalId) {
-            setAdminTab('admin-proposals');
-            return null;
-          }
-          return (
-            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
-              {renderSidebar()}
-              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
-                <StaffProposalDetailPage
-                  proposalId={selectedProposalId}
-                  onBack={() => setAdminTab('admin-proposals')}
-                  onLogout={handleLogout}
-                  onCreateQuotation={handleStaffCreateQuotation}
-                  onViewQuotation={handleStaffViewQuotation}
-                />
-              </div>
-            </div>
-          );
-        case 'admin-create-quotation':
-          if (!createQuotationProposalId) {
-            setAdminTab('admin-proposals');
-            return null;
-          }
-          return (
-            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
-              {renderSidebar()}
-              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
-                <StaffCreateQuotationPage
-                  proposalId={createQuotationProposalId}
-                  onBack={() => setAdminTab('admin-proposals')}
-                  onLogout={handleLogout}
-                  onCreated={handleStaffQuotationCreated}
-                />
-              </div>
-            </div>
-          );
         case 'admin-quotations':
           return (
             <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
@@ -895,23 +923,6 @@ function App() {
                 <StaffQuotationManagementPage
                   onLogout={handleLogout}
                   onSelectQuotation={handleStaffSelectQuotation}
-                />
-              </div>
-            </div>
-          );
-        case 'admin-quotation-detail':
-          if (!selectedQuotationId) {
-            setAdminTab('admin-quotations');
-            return null;
-          }
-          return (
-            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
-              {renderSidebar()}
-              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
-                <StaffQuotationDetailPage
-                  quotationId={selectedQuotationId}
-                  onBack={() => setAdminTab('admin-quotations')}
-                  onLogout={handleLogout}
                 />
               </div>
             </div>
