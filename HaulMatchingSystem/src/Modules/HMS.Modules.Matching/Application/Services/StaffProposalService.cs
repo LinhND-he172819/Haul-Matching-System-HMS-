@@ -110,13 +110,17 @@ namespace HMS.Modules.Matching.Application.Services
                         v.max_volume_cbm AS vehicle_max_volume,
                         c.id AS customer_id,
                         c.full_name AS customer_name,
-                        c.phone AS customer_phone
+                        c.phone AS customer_phone,
+                        q.id AS quotation_id,
+                        q.status AS quotation_status
                     FROM warehouse.shipment_proposals sp
                     JOIN warehouse.shipments s ON s.id = sp.shipment_id
                     LEFT JOIN transport.trip_posts tp ON tp.id = sp.trip_post_id AND tp.is_deleted = FALSE
                     LEFT JOIN transport.trips t ON t.id = tp.trip_id AND t.is_deleted = FALSE
                     LEFT JOIN transport.vehicles v ON v.id = t.vehicle_id
                     LEFT JOIN identity.users c ON c.id = sp.customer_id AND c.is_deleted = FALSE
+                    LEFT JOIN warehouse.quotations q ON q.proposal_id = sp.id AND q.is_deleted = FALSE
+                        AND q.status NOT IN ('Cancelled', 'Expired')
                     WHERE {whereSql}
                     ORDER BY sp.created_at DESC
                     LIMIT @limit OFFSET @offset;
@@ -163,7 +167,9 @@ namespace HMS.Modules.Matching.Application.Services
                         RemainingVolume = maxVolume - currentVolume,
                         CustomerId = reader.IsDBNull(reader.GetOrdinal("customer_id")) ? Guid.Empty : reader.GetGuid(reader.GetOrdinal("customer_id")),
                         CustomerName = reader.IsDBNull(reader.GetOrdinal("customer_name")) ? "N/A" : reader.GetString(reader.GetOrdinal("customer_name")),
-                        CustomerPhone = reader.IsDBNull(reader.GetOrdinal("customer_phone")) ? null : reader.GetString(reader.GetOrdinal("customer_phone"))
+                        CustomerPhone = reader.IsDBNull(reader.GetOrdinal("customer_phone")) ? null : reader.GetString(reader.GetOrdinal("customer_phone")),
+                        QuotationId = reader.IsDBNull(reader.GetOrdinal("quotation_id")) ? null : reader.GetGuid(reader.GetOrdinal("quotation_id")),
+                        QuotationStatus = reader.IsDBNull(reader.GetOrdinal("quotation_status")) ? null : reader.GetString(reader.GetOrdinal("quotation_status"))
                     });
                 }
 

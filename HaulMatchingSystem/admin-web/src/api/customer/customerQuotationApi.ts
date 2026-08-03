@@ -31,9 +31,13 @@ export interface PaymentResponseDto {
   paymentType: string;
   amount: number;
   currency: string;
+  paymentMethod?: string;
   status: string;
   paidAt?: string;
   createdAt: string;
+  expiresAt?: string;
+  canContinuePayment?: boolean;
+  canCancel?: boolean;
 }
 
 export interface PaymentSummaryDto {
@@ -58,6 +62,13 @@ export interface PaymentHistoryEntry {
   createdAt: string;
 }
 
+export interface PaymentAllowedActions {
+  canContinuePayment: boolean;
+  canCancel: boolean;
+  canRetry: boolean;
+  canViewDetail: boolean;
+}
+
 export interface PaymentDetailDto {
   id: string;
   paymentCode: string;
@@ -71,6 +82,7 @@ export interface PaymentDetailDto {
   paidAt?: string;
   cancelledAt?: string;
   failedAt?: string;
+  expiresAt?: string;
   transactionReference?: string;
   failureReason?: string;
   quotationId?: string;
@@ -82,6 +94,8 @@ export interface PaymentDetailDto {
   shipmentStatus?: string;
   customerId?: string;
   customerName?: string;
+  allowedActions?: PaymentAllowedActions;
+  timeline?: PaymentTimelineEntry[];
 }
 
 export interface PaymentTimelineEntry {
@@ -193,6 +207,68 @@ export async function getPaymentTimeline(paymentId: string): Promise<PaymentTime
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `Lỗi tải lịch sử trạng thái (${res.status})`);
+  }
+  return res.json();
+}
+
+/* ─── Mock Payment Checkout (dev/test only) ──────────────────────── */
+
+export interface MockCheckoutResponse {
+  paymentId: string;
+  checkoutSessionId: string;
+  checkoutUrl?: string;
+  expiresAt: string;
+}
+
+export interface SimulatePaymentResponse {
+  message: string;
+  paymentId: string;
+  result: string;
+  transactionReference: string;
+}
+
+/**
+ * Open a mock checkout session for a Pending payment.
+ * Returns checkout info including a CheckoutSessionId.
+ */
+export async function openMockCheckout(
+  paymentId: string,
+  paymentMethod: string = 'MockBanking'
+): Promise<MockCheckoutResponse> {
+  const res = await authFetch(
+    `${API_BASE}/api/customer/payments/${paymentId}/mock-checkout`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentMethod }),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Lỗi mở phiên thanh toán mô phỏng (${res.status})`);
+  }
+  return res.json();
+}
+
+/**
+ * Simulate a payment result (Paid, Failed, Cancelled).
+ * Calls ProcessWebhookAsync on the backend with a generated TransactionReference.
+ */
+export async function simulatePayment(
+  paymentId: string,
+  result: 'Paid' | 'Failed' | 'Cancelled'
+): Promise<SimulatePaymentResponse> {
+  const res = await authFetch(
+    `${API_BASE}/api/customer/payments/${paymentId}/simulate`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ result }),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Lỗi mô phỏng thanh toán (${res.status})`);
   }
   return res.json();
 }

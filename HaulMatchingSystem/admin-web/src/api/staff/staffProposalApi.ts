@@ -36,6 +36,8 @@ export interface StaffProposalSummary {
   customerId: string;
   customerName: string;
   createdAt: string;
+  quotationId?: string;
+  quotationStatus?: string;
 }
 
 export interface ShipmentInfoDto {

@@ -12,12 +12,13 @@ interface PaymentHistoryProps {
   payments: PaymentHistoryEntry[];
   loading?: boolean;
   onRetry?: (paymentId: string) => void;
+  onContinuePayment?: (paymentId: string) => void;
   onCancel?: (paymentId: string) => void;
   onDetail?: (paymentId: string) => void;
   actionLoading?: string | null;
 }
 
-export default function PaymentHistory({ payments, loading, onRetry, onCancel, onDetail, actionLoading }: PaymentHistoryProps) {
+export default function PaymentHistory({ payments, loading, onRetry, onContinuePayment, onCancel, onDetail, actionLoading }: PaymentHistoryProps) {
   const formatCurrency = (n: number) =>
     n.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 
@@ -77,6 +78,18 @@ export default function PaymentHistory({ payments, loading, onRetry, onCancel, o
           <div className="flex items-center gap-2">
             {/* Action Buttons */}
             <div className="flex items-center gap-1.5">
+              {p.status === 'Pending' && onContinuePayment && (
+                <button
+                  onClick={() => onContinuePayment(p.id)}
+                  disabled={actionLoading === p.id}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors text-label-sm font-semibold disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[14px]">
+                    {actionLoading === p.id ? 'sync' : 'credit_card'}
+                  </span>
+                  Tiếp tục
+                </button>
+              )}
               {p.status === 'Failed' && onRetry && (
                 <button
                   onClick={() => onRetry(p.id)}

@@ -45,6 +45,10 @@ namespace HMS.Modules.Matching.Application.DTOs
         public Guid CustomerId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
         public string? CustomerPhone { get; set; }
+
+        // Quotation info (populated via LEFT JOIN)
+        public Guid? QuotationId { get; set; }
+        public string? QuotationStatus { get; set; }
     }
 
     /// <summary>

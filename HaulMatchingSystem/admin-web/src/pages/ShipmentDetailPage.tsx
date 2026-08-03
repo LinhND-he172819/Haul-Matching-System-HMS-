@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   getShipmentDetail,
   cancelShipment,
   type CustomerShipmentDetail,
 } from '../api/customerShipmentApi';
+import { onHmsEvent } from '../realtime/hmsFleetConnection';
 import {
   getCustomerQuotation,
   createDepositPayment,
@@ -12,17 +13,16 @@ import {
   retryPayment,
   cancelPayment,
   getPaymentDetail,
-  getPaymentTimeline,
   type CustomerQuotationDetail,
   type PaymentResponseDto,
   type PaymentHistoryEntry,
   type PaymentDetailDto,
-  type PaymentTimelineEntry,
 } from '../api/customer/customerQuotationApi';
 import QuotationCountdown from '../components/customer/quotations/QuotationCountdown';
 import PaymentStatusBadge from '../components/customer/payments/PaymentStatusBadge';
 import PaymentHistory from '../components/customer/payments/PaymentHistory';
-import PaymentTimeline from '../components/customer/payments/PaymentTimeline';
+import MockPaymentCheckoutDialog from '../components/customer/payments/MockPaymentCheckoutDialog';
+import PaymentDetailDialog from '../components/customer/payments/PaymentDetailDialog';
 import Toast from '../components/matching/Toast';
 
 /* ─── Status Badge ────────────────────────────────────────────────── */
@@ -74,17 +74,21 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryEntry[]>([]);
   const [payingDeposit, setPayingDeposit] = useState(false);
   const [payingFinal, setPayingFinal] = useState(false);
-  const [showPayDialog, setShowPayDialog] = useState<'deposit' | 'final' | null>(null);
+
   const [showHistory, setShowHistory] = useState(false);
 
   // Part 13: New payment states
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [showPaymentDetail, setShowPaymentDetail] = useState(false);
-  const [paymentDetailData, setPaymentDetailData] = useState<PaymentDetailDto | null>(null);
-  const [paymentTimelineData, setPaymentTimelineData] = useState<PaymentTimelineEntry[]>([]);
-  const [loadingTimeline, setLoadingTimeline] = useState(false);
   const [showCancelPaymentDialog, setShowCancelPaymentDialog] = useState<string | null>(null);
   const [cancelPaymentReason, setCancelPaymentReason] = useState('');
+
+  // Mock checkout state
+  const [mockCheckoutPayment, setMockCheckoutPayment] = useState<PaymentResponseDto | null>(null);
+  const [showMockCheckout, setShowMockCheckout] = useState(false);
+
+  // Payment detail dialog state
+  const [showPaymentDetailDialog, setShowPaymentDetailDialog] = useState(false);
+  const [paymentDetailId, setPaymentDetailId] = useState<string | null>(null);
 
   const loadDetail = async () => {
     setLoading(true);
@@ -100,10 +104,10 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
         } catch { /* quotation detail not critical */ }
       }
 
-      // Load payment history
+      // Load payment history (use result, not stale detail state)
       try {
-        if (detail.quotation?.id) {
-          const history = await getPaymentHistory(detail.quotation.id);
+        if (result.quotation?.id) {
+          const history = await getPaymentHistory(result.quotation.id);
           setPaymentHistory(history);
         }
       } catch { /* payment history not critical */ }
@@ -118,13 +122,37 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
     loadDetail();
   }, [shipmentId]);
 
+  // ─── SignalR: Auto-refresh on payment updates ───
+  useEffect(() => {
+    const unsub = onHmsEvent('PaymentUpdate', (payload: {
+      EventType: string;
+      PaymentId: string;
+      ShipmentId: string;
+      Amount: number;
+      Timestamp: string;
+    }) => {
+      // Only refresh if this event is for our shipment
+      if (payload.ShipmentId === shipmentId) {
+        console.log('[SignalR] PaymentUpdate for this shipment:', payload.EventType);
+        // Close mock checkout if it was completed
+        if (payload.EventType === 'DepositPaid' || payload.EventType === 'FinalPaymentPaid' || payload.EventType === 'PaymentFailed') {
+          setShowMockCheckout(false);
+          setMockCheckoutPayment(null);
+        }
+        // Refresh all data
+        loadDetail();
+      }
+    });
+    return unsub;
+  }, [shipmentId]);
+
   const handlePayDeposit = async () => {
     setPayingDeposit(true);
     try {
       if (!detail.quotation?.id) throw new Error('Không tìm thấy báo giá.');
       const result = await createDepositPayment(detail.quotation.id);
-      setToast({ message: 'Đặt cọc thành công! Đơn hàng đã được xác nhận.', type: 'success' });
-      setShowPayDialog(null);
+      setMockCheckoutPayment(result);
+      setShowMockCheckout(true);
       await loadDetail();
     } catch (err: any) {
       setToast({ message: err.message || 'Lỗi đặt cọc', type: 'error' });
@@ -138,13 +166,55 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
     try {
       if (!detail.quotation?.id) throw new Error('Không tìm thấy báo giá.');
       const result = await createFinalPayment(detail.quotation.id);
-      setToast({ message: 'Thanh toán cuối thành công! Đơn hàng đã hoàn tất.', type: 'success' });
-      setShowPayDialog(null);
+      setMockCheckoutPayment(result);
+      setShowMockCheckout(true);
       await loadDetail();
     } catch (err: any) {
       setToast({ message: err.message || 'Lỗi thanh toán cuối', type: 'error' });
     } finally {
       setPayingFinal(false);
+    }
+  };
+
+  // ─── Mock Checkout Handlers ───
+  const handleMockCheckoutComplete = async (result: 'Paid' | 'Failed' | 'Cancelled') => {
+    setShowMockCheckout(false);
+    setMockCheckoutPayment(null);
+    await loadDetail();
+  };
+
+  const handleMockCheckoutClose = () => {
+    setShowMockCheckout(false);
+    setMockCheckoutPayment(null);
+  };
+
+  // ─── Continue Payment Handler ───
+  const handleContinuePayment = async (paymentId: string) => {
+    setActionLoading(paymentId);
+    try {
+      const detail = await getPaymentDetail(paymentId);
+      // Build a PaymentResponseDto-like object from the detail for MockPaymentCheckoutDialog
+      const paymentForCheckout: PaymentResponseDto = {
+        id: detail.id,
+        paymentCode: detail.paymentCode,
+        quotationId: detail.quotationId || '',
+        shipmentId: detail.shipmentId || '',
+        paymentType: detail.paymentType,
+        amount: detail.amount,
+        currency: detail.currency,
+        paymentMethod: detail.paymentMethod,
+        status: detail.status,
+        createdAt: detail.createdAt,
+        expiresAt: detail.expiresAt,
+        canContinuePayment: detail.allowedActions?.canContinuePayment,
+        canCancel: detail.allowedActions?.canCancel,
+      };
+      setMockCheckoutPayment(paymentForCheckout);
+      setShowMockCheckout(true);
+    } catch (err: any) {
+      setToast({ message: err.message || 'Lỗi tải thông tin thanh toán', type: 'error' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -196,23 +266,8 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
 
   // ─── Part 13: Payment Detail ───
   const handleShowPaymentDetail = async (paymentId: string) => {
-    setShowPaymentDetail(true);
-    setPaymentDetailData(null);
-    setPaymentTimelineData([]);
-    setLoadingTimeline(true);
-    try {
-      const [detail, timeline] = await Promise.all([
-        getPaymentDetail(paymentId),
-        getPaymentTimeline(paymentId),
-      ]);
-      setPaymentDetailData(detail);
-      setPaymentTimelineData(timeline);
-    } catch (err: any) {
-      setToast({ message: err.message || 'Lỗi tải chi tiết thanh toán', type: 'error' });
-      setShowPaymentDetail(false);
-    } finally {
-      setLoadingTimeline(false);
-    }
+    setPaymentDetailId(paymentId);
+    setShowPaymentDetailDialog(true);
   };
 
   const formatDate = (s?: string) =>
@@ -421,7 +476,7 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
             {detail.allowedActions?.canPayDeposit && detail.status === 'PendingDeposit' && (
               <div className="mt-4 pt-3 border-t border-outline-variant/30">
                 <button
-                  onClick={() => setShowPayDialog('deposit')}
+                  onClick={handlePayDeposit}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-on-primary text-label-md font-bold
                              hover:bg-primary-700 transition-colors"
                 >
@@ -435,7 +490,7 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
             {detail.allowedActions?.canPayRemaining && detail.status === 'Delivered' && (
               <div className="mt-4 pt-3 border-t border-outline-variant/30">
                 <button
-                  onClick={() => setShowPayDialog('final')}
+                  onClick={handlePayFinal}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-on-primary text-label-md font-bold
                              hover:bg-primary-700 transition-colors"
                 >
@@ -445,29 +500,34 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
               </div>
             )}
 
-            {/* Payment History Toggle */}
-            {paymentHistory.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-outline-variant/30">
-                <button
-                  onClick={() => setShowHistory(!showHistory)}
-                  className="flex items-center gap-2 text-label-md font-semibold text-primary hover:text-primary-700 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[18px]">{showHistory ? 'expand_less' : 'expand_more'}</span>
-                  {showHistory ? 'Ẩn lịch sử thanh toán' : `Xem lịch sử thanh toán (${paymentHistory.length})`}
-                </button>
-                {showHistory && (
-                  <div className="mt-3">
+            {/* Payment History — always visible */}
+            <div className="mt-3 pt-3 border-t border-outline-variant/30">
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="flex items-center gap-2 text-label-md font-semibold text-primary hover:text-primary-700 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px]">{showHistory ? 'expand_less' : 'expand_more'}</span>
+                {showHistory ? 'Ẩn lịch sử thanh toán' : paymentHistory.length > 0
+                  ? `Xem lịch sử thanh toán (${paymentHistory.length})`
+                  : 'Lịch sử thanh toán'}
+              </button>
+              {showHistory && (
+                <div className="mt-3">
+                  {paymentHistory.length > 0 ? (
                     <PaymentHistory
                       payments={paymentHistory}
+                      onContinuePayment={handleContinuePayment}
                       onRetry={handleRetryPayment}
                       onCancel={(id) => { setShowCancelPaymentDialog(id); setCancelPaymentReason(''); }}
                       onDetail={handleShowPaymentDetail}
                       actionLoading={actionLoading}
                     />
-                  </div>
-                )}
-              </div>
-            )}
+                  ) : (
+                    <p className="text-body-sm text-on-surface-variant/60 italic py-2">Chưa có khoản thanh toán nào.</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -614,203 +674,23 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
         </div>
       )}
 
-      {/* Payment Detail Modal */}
-      {showPaymentDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowPaymentDetail(false)}>
-          <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant w-full max-w-lg max-h-[85vh] overflow-y-auto card-shadow" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="sticky top-0 bg-surface-container-lowest border-b border-outline-variant px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-              <h3 className="text-headline-sm font-bold text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">receipt_long</span>
-                Chi tiết thanh toán
-              </h3>
-              <button
-                onClick={() => setShowPaymentDetail(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-low transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-
-            {(!paymentDetailData && loadingTimeline) && (
-              <div className="p-6 space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />
-                ))}
-              </div>
-            )}
-
-            {paymentDetailData && (
-              <div className="p-6 space-y-5">
-                {/* Payment Info */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-body-md text-on-surface-variant">Mã thanh toán</span>
-                    <span className="text-body-md font-semibold text-on-surface">{paymentDetailData.paymentCode}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-body-md text-on-surface-variant">Trạng thái</span>
-                    <PaymentStatusBadge status={paymentDetailData.status} />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-body-md text-on-surface-variant">Loại thanh toán</span>
-                    <span className="text-body-md font-medium text-on-surface">
-                      {paymentDetailData.paymentType === 'Deposit' ? 'Đặt cọc' : paymentDetailData.paymentType === 'FinalPayment' ? 'Thanh toán cuối' : paymentDetailData.paymentType}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-body-md text-on-surface-variant">Số tiền</span>
-                    <span className="text-body-lg font-bold text-primary">
-                      {paymentDetailData.amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-                    </span>
-                  </div>
-                  {paymentDetailData.paymentMethod && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-body-md text-on-surface-variant">Phương thức</span>
-                      <span className="text-body-md text-on-surface">{paymentDetailData.paymentMethod}</span>
-                    </div>
-                  )}
-                  {paymentDetailData.transactionReference && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-body-md text-on-surface-variant">Mã giao dịch</span>
-                      <span className="text-body-md text-on-surface font-mono">{paymentDetailData.transactionReference}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between items-center">
-                    <span className="text-body-md text-on-surface-variant">Ngày tạo</span>
-                    <span className="text-body-md text-on-surface">{new Date(paymentDetailData.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-                  {paymentDetailData.paidAt && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-body-md text-on-surface-variant">Ngày thanh toán</span>
-                      <span className="text-body-md text-emerald-600 font-medium">{new Date(paymentDetailData.paidAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                  )}
-                  {paymentDetailData.failureReason && (
-                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
-                      <p className="text-label-sm font-semibold text-rose-700">Lý do thất bại:</p>
-                      <p className="text-body-sm text-rose-600 mt-1">{paymentDetailData.failureReason}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Related Info */}
-                {(paymentDetailData.shipmentCode || paymentDetailData.quotationCode || paymentDetailData.customerName) && (
-                  <div className="border-t border-outline-variant/30 pt-4 space-y-3">
-                    <h4 className="text-label-lg font-bold text-on-surface flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[16px] text-primary">link</span>
-                      Thông tin liên kết
-                    </h4>
-                    {paymentDetailData.shipmentCode && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-body-md text-on-surface-variant">Đơn hàng</span>
-                        <span className="text-body-md font-medium text-on-surface">{paymentDetailData.shipmentCode}</span>
-                      </div>
-                    )}
-                    {paymentDetailData.quotationCode && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-body-md text-on-surface-variant">Báo giá</span>
-                        <span className="text-body-md font-medium text-on-surface">{paymentDetailData.quotationCode}</span>
-                      </div>
-                    )}
-                    {paymentDetailData.customerName && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-body-md text-on-surface-variant">Khách hàng</span>
-                        <span className="text-body-md font-medium text-on-surface">{paymentDetailData.customerName}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Timeline */}
-                <div className="border-t border-outline-variant/30 pt-4">
-                  <h4 className="text-label-lg font-bold text-on-surface mb-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px] text-primary">timeline</span>
-                    Lịch sử trạng thái
-                  </h4>
-                  <PaymentTimeline entries={paymentTimelineData} loading={loadingTimeline} />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Payment Detail Dialog (reusable) */}
+      {showPaymentDetailDialog && paymentDetailId && (
+        <PaymentDetailDialog
+          paymentId={paymentDetailId}
+          onClose={() => { setShowPaymentDetailDialog(false); setPaymentDetailId(null); }}
+          onToast={(message, type) => setToast({ message, type })}
+        />
       )}
 
-      {/* Payment Confirmation Dialog */}
-      {showPayDialog && detail.quotation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !payingDeposit && !payingFinal && setShowPayDialog(null)}>
-          <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 w-full max-w-md card-shadow" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="material-symbols-outlined text-primary text-xl">
-                  {showPayDialog === 'deposit' ? 'account_balance_wallet' : 'payments'}
-                </span>
-              </div>
-              <div>
-                <h3 className="text-headline-sm font-bold text-on-surface">
-                  {showPayDialog === 'deposit' ? 'Thanh toán đặt cọc' : 'Thanh toán số còn lại'}
-                </h3>
-                <p className="text-label-sm text-on-surface-variant">{detail.shipmentCode}</p>
-              </div>
-            </div>
-            <div className="bg-surface-container-low rounded-xl p-4 mb-5 space-y-2">
-              <div className="flex justify-between text-body-md">
-                <span className="text-on-surface-variant">Phí vận chuyển:</span>
-                <span className="font-bold">{formatCurrency(detail.quotation.shippingFee)}</span>
-              </div>
-              {showPayDialog === 'deposit' && (
-                <>
-                  <div className="flex justify-between text-body-md">
-                    <span className="text-on-surface-variant">Số tiền đặt cọc:</span>
-                    <span className="font-bold text-primary text-lg">{formatCurrency(detail.quotation.depositAmount)}</span>
-                  </div>
-                  <div className="flex justify-between text-body-md">
-                    <span className="text-on-surface-variant">Thanh toán sau khi giao:</span>
-                    <span className="font-semibold">{formatCurrency(detail.quotation.remainingAmount)}</span>
-                  </div>
-                </>
-              )}
-              {showPayDialog === 'final' && (
-                <div className="flex justify-between text-body-md">
-                  <span className="text-on-surface-variant">Số tiền cần thanh toán:</span>
-                  <span className="font-bold text-primary text-lg">{formatCurrency(detail.quotation.remainingAmount)}</span>
-                </div>
-              )}
-            </div>
-            <p className="text-body-sm text-on-surface-variant mb-4">
-              {showPayDialog === 'deposit'
-                ? 'Sau khi đặt cọc, đơn hàng sẽ được xác nhận và tiến hành ghép chuyến.'
-                : 'Thanh toán số tiền còn lại để hoàn tất đơn hàng.'}
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowPayDialog(null)}
-                disabled={payingDeposit || payingFinal}
-                className="px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface hover:bg-surface-container-low transition-colors text-label-md font-bold"
-              >
-                Đóng
-              </button>
-              <button
-                onClick={showPayDialog === 'deposit' ? handlePayDeposit : handlePayFinal}
-                disabled={payingDeposit || payingFinal}
-                className="px-5 py-2.5 rounded-xl bg-primary text-on-primary font-bold text-sm
-                           hover:bg-primary-700 disabled:opacity-50 transition-colors flex items-center gap-2"
-              >
-                {(showPayDialog === 'deposit' ? payingDeposit : payingFinal) ? (
-                  <>
-                    <span className="material-symbols-outlined animate-spin text-[16px]">sync</span>
-                    Đang xử lý...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[16px]">lock</span>
-                    {showPayDialog === 'deposit' ? 'Xác nhận đặt cọc' : 'Xác nhận thanh toán'}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Mock Payment Checkout Dialog */}
+      {showMockCheckout && mockCheckoutPayment && (
+        <MockPaymentCheckoutDialog
+          payment={mockCheckoutPayment}
+          onComplete={handleMockCheckoutComplete}
+          onClose={handleMockCheckoutClose}
+          onToast={(message, type) => setToast({ message, type })}
+        />
       )}
     </div>
   );

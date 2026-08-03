@@ -28,9 +28,51 @@ namespace HMS.Modules.Matching.Application.DTOs
         public string PaymentType { get; set; } = string.Empty;
         public decimal Amount { get; set; }
         public string Currency { get; set; } = "VND";
+        public string? PaymentMethod { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime? PaidAt { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? ExpiresAt { get; set; }
+        public bool CanContinuePayment { get; set; }
+        public bool CanCancel { get; set; }
+    }
+
+    /// <summary>
+    /// Allowed actions for a payment based on its current status.
+    /// </summary>
+    public class PaymentAllowedActions
+    {
+        public bool CanContinuePayment { get; set; }
+        public bool CanCancel { get; set; }
+        public bool CanRetry { get; set; }
+        public bool CanViewDetail { get; set; } = true;
+    }
+
+    /// <summary>
+    /// Request to open mock checkout session.
+    /// </summary>
+    public class MockCheckoutRequest
+    {
+        public string PaymentMethod { get; set; } = "MockBanking";
+    }
+
+    /// <summary>
+    /// Response from mock checkout session creation.
+    /// </summary>
+    public class MockCheckoutResponse
+    {
+        public Guid PaymentId { get; set; }
+        public Guid CheckoutSessionId { get; set; }
+        public string? CheckoutUrl { get; set; }
+        public DateTime ExpiresAt { get; set; }
+    }
+
+    /// <summary>
+    /// Request to simulate payment result (dev/test only).
+    /// </summary>
+    public class SimulatePaymentRequest
+    {
+        public string Result { get; set; } = "Paid"; // "Paid", "Failed", "Cancelled"
     }
 
     /// <summary>
@@ -94,6 +136,7 @@ namespace HMS.Modules.Matching.Application.DTOs
         public DateTime? PaidAt { get; set; }
         public DateTime? CancelledAt { get; set; }
         public DateTime? FailedAt { get; set; }
+        public DateTime? ExpiresAt { get; set; }
         public string? TransactionReference { get; set; }
         public string? FailureReason { get; set; }
 
@@ -111,6 +154,12 @@ namespace HMS.Modules.Matching.Application.DTOs
         // Customer info
         public Guid CustomerId { get; set; }
         public string? CustomerName { get; set; }
+
+        // Allowed actions
+        public PaymentAllowedActions AllowedActions { get; set; } = new();
+
+        // Timeline
+        public List<PaymentTimelineEntry> Timeline { get; set; } = new();
     }
 
     /// <summary>
