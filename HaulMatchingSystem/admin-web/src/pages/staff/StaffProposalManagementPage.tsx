@@ -324,7 +324,7 @@ export default function StaffProposalManagementPage({
                       </>
                     )}
 
-                    {p.status === 'Approved' && (
+                    {p.status === 'Approved' && !p.quotationId && (
                       <button
                         onClick={() => onCreateQuotation(p.proposalId)}
                         className="bg-primary text-on-primary px-4 py-2 rounded-xl text-label-md font-semibold
@@ -335,17 +335,15 @@ export default function StaffProposalManagementPage({
                       </button>
                     )}
 
-                    {p.status === 'Confirmed' && p.quotations?.length > 0 && (
-                      <>
-                        <button
-                          onClick={() => onViewQuotation(p.quotations[0].id)}
-                          className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-label-md font-semibold
-                                     hover:bg-primary/20 transition-colors flex items-center gap-1.5"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">request_quote</span>
-                          Xem báo giá
-                        </button>
-                      </>
+                    {p.quotationId && (
+                      <button
+                        onClick={() => onViewQuotation(p.quotationId!)}
+                        className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-label-md font-semibold
+                                   hover:bg-primary/20 transition-colors flex items-center gap-1.5"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">request_quote</span>
+                        Xem báo giá
+                      </button>
                     )}
                   </div>
                 </div>

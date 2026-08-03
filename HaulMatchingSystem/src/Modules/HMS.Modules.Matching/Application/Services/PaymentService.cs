@@ -1,5 +1,6 @@
 using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Core.Interfaces;
+using HMS.Modules.Matching.Core.Models;
 using HMS.Shared.Core.Enums;
 using HMS.Shared.Core.Exceptions;
 using HMS.Shared.Core.Interfaces;
@@ -39,6 +40,7 @@ namespace HMS.Modules.Matching.Application.Services
         /// <summary>
         /// Create a deposit payment for a quotation.
         /// Quotation must be in Sent status; Shipment must be in PendingDeposit.
+        /// Idempotent: returns existing Pending deposit payment if one exists.
         /// </summary>
         public async Task<PaymentResponseDto> CreateDepositPaymentAsync(
             Guid quotationId, Guid customerId, CreateDepositPaymentRequest request,
@@ -58,16 +60,40 @@ namespace HMS.Modules.Matching.Application.Services
                     throw new InvalidOperationException(
                         $"Chỉ có thể thanh toán cọc khi Báo giá ở trạng thái Sent. Hiện tại: {quotation.Status}");
 
-                // 2. Check idempotency: no existing paid deposit for this quotation
-                var existingDeposit = await GetPaidDepositForQuotationAsync(conn, tx, quotationId, ct);
-                if (existingDeposit.HasValue)
-                    throw new InvalidOperationException("Đã tồn tại khoản thanh toán cọc cho Báo giá này.");
+                // 2. Check idempotency: if a Paid deposit already exists, reject
+                var existingPaidDeposit = await GetPaidDepositForQuotationAsync(conn, tx, quotationId, ct);
+                if (existingPaidDeposit.HasValue)
+                    throw new InvalidOperationException("Đã tồn tại khoản thanh toán cọc đã thanh toán cho Báo giá này.");
 
-                // 3. Read proposal → shipment
+                // 3. Check if a Pending deposit already exists — return it (idempotent)
+                var existingPendingDeposit = await GetPendingPaymentForQuotationAsync(conn, tx, quotationId, "Deposit", ct);
+                if (existingPendingDeposit.HasValue)
+                {
+                    var ep = existingPendingDeposit.Value;
+                    await tx.RollbackAsync(ct);
+                    return new PaymentResponseDto
+                    {
+                        Id = ep.Id,
+                        PaymentCode = ep.PaymentCode,
+                        QuotationId = quotationId,
+                        ShipmentId = ep.ShipmentId,
+                        PaymentType = "Deposit",
+                        Amount = ep.Amount,
+                        Currency = ep.Currency,
+                        PaymentMethod = ep.PaymentMethod,
+                        Status = "Pending",
+                        CreatedAt = ep.CreatedAt,
+                        ExpiresAt = ep.ExpiresAt,
+                        CanContinuePayment = true,
+                        CanCancel = true
+                    };
+                }
+
+                // 4. Read proposal → shipment
                 var proposal = await ReadProposalAsync(conn, tx, quotation.ProposalId, ct)
                     ?? throw new InvalidOperationException("Proposal không tồn tại.");
 
-                // 4. Validate shipment is PendingDeposit
+                // 5. Validate shipment is PendingDeposit
                 var shipment = await ReadShipmentForUpdateAsync(conn, tx, proposal.ShipmentId, ct)
                     ?? throw new InvalidOperationException("Shipment không tồn tại.");
 
@@ -75,14 +101,15 @@ namespace HMS.Modules.Matching.Application.Services
                     throw new InvalidOperationException(
                         $"Shipment đang ở trạng thái {shipment.Status}. Cần PendingDeposit.");
 
-                // 5. Check customer owns this proposal
+                // 6. Check customer owns this proposal
                 if (proposal.CustomerId != customerId)
                     throw new ForbiddenException("Không có quyền thanh toán cho Báo giá này.");
 
-                // 6. Create payment record
+                // 7. Create payment record
                 var paymentId = Guid.NewGuid();
                 var paymentCode = await GeneratePaymentCodeAsync(conn, "Deposit", ct);
                 var idempotencyKey = $"deposit-{quotationId}-{DateTime.UtcNow:yyyyMMddHHmmss}";
+                var expiresAt = DateTime.UtcNow.AddMinutes(60);
 
                 const string insertSql = """
                     INSERT INTO warehouse.payments
@@ -108,18 +135,18 @@ namespace HMS.Modules.Matching.Application.Services
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
 
-                // 7. Audit
+                // 8. Audit
                 await InsertAuditAsync(conn, tx, "Payment", paymentId, "Created",
                     $"Deposit payment created: {quotation.DepositAmount} {quotation.Currency}", customerId, ct);
 
                 await tx.CommitAsync(ct);
 
-                // 8. Notification
+                // 9. Notification
                 await SendNotificationAsync(customerId,
                     "Deposit Created", $"Thanh toán cọc {quotation.DepositAmount} {quotation.Currency} đã được tạo.",
                     "Payment", paymentId, ct);
 
-                // 9. SignalR
+                // 10. SignalR
                 try
                 {
                     await _dispatcher.SendPaymentUpdateToCustomerAsync(customerId, new PaymentEventPayload
@@ -142,8 +169,12 @@ namespace HMS.Modules.Matching.Application.Services
                     PaymentType = "Deposit",
                     Amount = quotation.DepositAmount,
                     Currency = quotation.Currency,
+                    PaymentMethod = request.PaymentMethod,
                     Status = "Pending",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiresAt = expiresAt,
+                    CanContinuePayment = true,
+                    CanCancel = true
                 };
             }
             catch
@@ -156,6 +187,7 @@ namespace HMS.Modules.Matching.Application.Services
         /// <summary>
         /// Create a final payment (remaining amount) for a quotation.
         /// Deposit must be paid and shipment must be Delivered.
+        /// Idempotent: returns existing Pending final payment if one exists.
         /// </summary>
         public async Task<PaymentResponseDto> CreateFinalPaymentAsync(
             Guid quotationId, Guid customerId, CreateFinalPaymentRequest request,
@@ -201,10 +233,35 @@ namespace HMS.Modules.Matching.Application.Services
                 if (outstandingAmount <= 0)
                     throw new InvalidOperationException("Không có số tiền cần thanh toán thêm.");
 
-                // 7. Create final payment record
+                // 7. Check idempotency: if a Pending final payment already exists, return it
+                var existingPendingFinal = await GetPendingPaymentForQuotationAsync(conn, tx, quotationId, "FinalPayment", ct);
+                if (existingPendingFinal.HasValue)
+                {
+                    var ep = existingPendingFinal.Value;
+                    await tx.RollbackAsync(ct);
+                    return new PaymentResponseDto
+                    {
+                        Id = ep.Id,
+                        PaymentCode = ep.PaymentCode,
+                        QuotationId = quotationId,
+                        ShipmentId = ep.ShipmentId,
+                        PaymentType = "FinalPayment",
+                        Amount = ep.Amount,
+                        Currency = ep.Currency,
+                        PaymentMethod = ep.PaymentMethod,
+                        Status = "Pending",
+                        CreatedAt = ep.CreatedAt,
+                        ExpiresAt = ep.ExpiresAt,
+                        CanContinuePayment = true,
+                        CanCancel = true
+                    };
+                }
+
+                // 8. Create final payment record
                 var paymentId = Guid.NewGuid();
                 var paymentCode = await GeneratePaymentCodeAsync(conn, "Final", ct);
                 var idempotencyKey = $"final-{quotationId}-{DateTime.UtcNow:yyyyMMddHHmmss}";
+                var expiresAt = DateTime.UtcNow.AddMinutes(60);
 
                 const string insertSql = """
                     INSERT INTO warehouse.payments
@@ -230,18 +287,18 @@ namespace HMS.Modules.Matching.Application.Services
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
 
-                // 8. Audit
+                // 9. Audit
                 await InsertAuditAsync(conn, tx, "Payment", paymentId, "Created",
                     $"Final payment created: {outstandingAmount} {quotation.Currency}", customerId, ct);
 
                 await tx.CommitAsync(ct);
 
-                // 9. Notification
+                // 10. Notification
                 await SendNotificationAsync(customerId,
                     "Final Payment Created", $"Thanh toán cuối {outstandingAmount} {quotation.Currency} đã được tạo.",
                     "Payment", paymentId, ct);
 
-                // 10. SignalR
+                // 11. SignalR
                 try
                 {
                     await _dispatcher.SendPaymentUpdateToCustomerAsync(customerId, new PaymentEventPayload
@@ -264,8 +321,12 @@ namespace HMS.Modules.Matching.Application.Services
                     PaymentType = "FinalPayment",
                     Amount = outstandingAmount,
                     Currency = quotation.Currency,
+                    PaymentMethod = request.PaymentMethod,
                     Status = "Pending",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiresAt = expiresAt,
+                    CanContinuePayment = true,
+                    CanCancel = true
                 };
             }
             catch
@@ -369,13 +430,29 @@ namespace HMS.Modules.Matching.Application.Services
                     await InsertAuditAsync(conn, tx, "Shipment", payment.ShipmentId, "Transitioned",
                         "PendingDeposit → Matched (deposit paid)", payment.CustomerId, ct);
 
-                    // Get proposal → customer for notification
+                    // Transition proposal: Approved → Confirmed
                     var proposalId = await GetProposalIdByQuotationAsync(conn, tx, payment.QuotationId, ct);
                     if (proposalId.HasValue)
                     {
                         var proposal = await ReadProposalAsync(conn, tx, proposalId.Value, ct);
                         if (proposal.HasValue)
                         {
+                            if (proposal.Value.Status == ProposalStatusConstants.Approved)
+                            {
+                                const string updateProposalSql = """
+                                    UPDATE warehouse.shipment_proposals
+                                    SET status = @status
+                                    WHERE id = @id AND is_deleted = FALSE;
+                                """;
+                                await using (var cmdProp = new NpgsqlCommand(updateProposalSql, conn, tx))
+                                {
+                                    cmdProp.Parameters.AddWithValue("id", proposal.Value.Id);
+                                    cmdProp.Parameters.AddWithValue("status", ProposalStatusConstants.Confirmed);
+                                    await cmdProp.ExecuteNonQueryAsync(ct);
+                                }
+                                _logger.LogInformation("Proposal {ProposalId} transitioned Approved → Confirmed (deposit paid)", proposal.Value.Id);
+                            }
+
                             // Save notification
                             await SaveNotificationAsync(conn, proposal.Value.CustomerId,
                                 "Thanh toán cọc thành công",
@@ -701,6 +778,41 @@ namespace HMS.Modules.Matching.Application.Services
             return result as Guid?;
         }
 
+        /// <summary>
+        /// Find an existing Pending payment for a quotation of the given type.
+        /// Returns null if none found. Used for idempotency in create endpoints.
+        /// </summary>
+        private static async Task<(Guid Id, string PaymentCode, Guid ShipmentId, decimal Amount,
+            string Currency, string? PaymentMethod, DateTime CreatedAt, DateTime ExpiresAt)?>
+            GetPendingPaymentForQuotationAsync(
+            NpgsqlConnection conn, NpgsqlTransaction tx,
+            Guid quotationId, string paymentType, CancellationToken ct)
+        {
+            const string sql = """
+                SELECT id, payment_code, shipment_id, amount, currency, payment_method,
+                       created_at, created_at + INTERVAL '60 minutes' AS expires_at
+                FROM warehouse.payments
+                WHERE quotation_id = @quotation_id AND payment_type = @payment_type
+                  AND status = 'Pending' AND is_deleted = FALSE
+                ORDER BY created_at DESC LIMIT 1;
+            """;
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
+            cmd.Parameters.AddWithValue("quotation_id", quotationId);
+            cmd.Parameters.AddWithValue("payment_type", paymentType);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync()) return null;
+            return (
+                reader.GetGuid(reader.GetOrdinal("id")),
+                reader.GetString(reader.GetOrdinal("payment_code")),
+                reader.GetGuid(reader.GetOrdinal("shipment_id")),
+                reader.GetDecimal(reader.GetOrdinal("amount")),
+                reader.GetString(reader.GetOrdinal("currency")),
+                reader.IsDBNull(reader.GetOrdinal("payment_method")) ? null : reader.GetString(reader.GetOrdinal("payment_method")),
+                reader.GetDateTime(reader.GetOrdinal("created_at")),
+                reader.GetDateTime(reader.GetOrdinal("expires_at"))
+            );
+        }
+
         private static async Task<Guid?> GetProposalIdByQuotationAsync(
             NpgsqlConnection conn, NpgsqlTransaction tx, Guid quotationId, CancellationToken ct)
         {
@@ -960,6 +1072,7 @@ namespace HMS.Modules.Matching.Application.Services
 
         /// <summary>
         /// Get full payment detail for customer (ownership verified).
+        /// Populates AllowedActions, ExpiresAt, and Timeline.
         /// </summary>
         public async Task<PaymentDetailDto?> GetPaymentDetailAsync(
             Guid paymentId, Guid? customerId, Guid? staffId, string? role, Guid? hubId,
@@ -974,6 +1087,7 @@ namespace HMS.Modules.Matching.Application.Services
                     p.amount, p.currency, p.created_at, p.paid_at, p.transaction_reference,
                     p.failure_reason,
                     q.id AS quotation_id, q.quotation_code, q.shipping_fee, q.deposit_amount,
+                    q.expires_at AS quotation_expires_at, q.status AS quotation_status,
                     s.id AS shipment_id, s.shipment_code, s.status AS shipment_status,
                     sp.customer_id,
                     COALESCE(cu.full_name, cu.email, 'Customer') AS customer_name
@@ -989,19 +1103,33 @@ namespace HMS.Modules.Matching.Application.Services
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             if (!await reader.ReadAsync()) return null;
 
+            var status = reader.GetString(reader.GetOrdinal("status"));
+            var paymentType = reader.GetString(reader.GetOrdinal("payment_type"));
+            var createdAt = reader.GetDateTime(reader.GetOrdinal("created_at"));
+            var quotationExpiresAt = reader.IsDBNull(reader.GetOrdinal("quotation_expires_at"))
+                ? (DateTime?)null
+                : reader.GetDateTime(reader.GetOrdinal("quotation_expires_at"));
+            var quotationStatus = reader.GetString(reader.GetOrdinal("quotation_status"));
+
+            // Compute ExpiresAt: payment expires 60 minutes after creation or at quotation expiry
+            var paymentExpiresAt = createdAt.AddMinutes(60);
+            if (quotationExpiresAt.HasValue && quotationExpiresAt.Value < paymentExpiresAt)
+                paymentExpiresAt = quotationExpiresAt.Value;
+
             var detail = new PaymentDetailDto
             {
                 Id = reader.GetGuid(reader.GetOrdinal("id")),
                 PaymentCode = reader.GetString(reader.GetOrdinal("payment_code")),
                 PaymentMethod = reader.IsDBNull(reader.GetOrdinal("payment_method")) ? null : reader.GetString(reader.GetOrdinal("payment_method")),
-                Status = reader.GetString(reader.GetOrdinal("status")),
-                PaymentType = reader.GetString(reader.GetOrdinal("payment_type")),
+                Status = status,
+                PaymentType = paymentType,
                 Amount = reader.GetDecimal(reader.GetOrdinal("amount")),
                 Currency = reader.GetString(reader.GetOrdinal("currency")),
-                CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
+                CreatedAt = createdAt,
                 PaidAt = reader.IsDBNull(reader.GetOrdinal("paid_at")) ? null : reader.GetDateTime(reader.GetOrdinal("paid_at")),
                 TransactionReference = reader.IsDBNull(reader.GetOrdinal("transaction_reference")) ? null : reader.GetString(reader.GetOrdinal("transaction_reference")),
                 FailureReason = reader.IsDBNull(reader.GetOrdinal("failure_reason")) ? null : reader.GetString(reader.GetOrdinal("failure_reason")),
+                ExpiresAt = paymentExpiresAt,
                 QuotationId = reader.GetGuid(reader.GetOrdinal("quotation_id")),
                 QuotationCode = reader.IsDBNull(reader.GetOrdinal("quotation_code")) ? null : reader.GetString(reader.GetOrdinal("quotation_code")),
                 ShippingFee = reader.GetDecimal(reader.GetOrdinal("shipping_fee")),
@@ -1039,7 +1167,50 @@ namespace HMS.Modules.Matching.Application.Services
                     throw new ForbiddenException("Shipment không thuộc Hub của bạn.");
             }
 
+            // Compute AllowedActions
+            var isExpired = paymentExpiresAt <= DateTime.UtcNow;
+            detail.AllowedActions = ComputeAllowedActions(status, paymentType, quotationStatus, isExpired);
+
+            // Populate Timeline from audit log
+            detail.Timeline = await GetPaymentTimelineAsync(paymentId, ct);
+
             return detail;
+        }
+
+        /// <summary>
+        /// Compute allowed actions based on payment and quotation status.
+        /// </summary>
+        private static PaymentAllowedActions ComputeAllowedActions(
+            string paymentStatus, string paymentType, string quotationStatus, bool isExpired)
+        {
+            var actions = new PaymentAllowedActions();
+
+            switch (paymentStatus)
+            {
+                case "Pending":
+                    actions.CanContinuePayment = !isExpired;
+                    actions.CanCancel = true;
+                    actions.CanRetry = false;
+                    break;
+                case "Failed":
+                    actions.CanContinuePayment = false;
+                    actions.CanCancel = false;
+                    actions.CanRetry = !isExpired && quotationStatus != "Expired" && quotationStatus != "Cancelled";
+                    break;
+                case "Cancelled":
+                    actions.CanContinuePayment = false;
+                    actions.CanCancel = false;
+                    actions.CanRetry = !isExpired && quotationStatus != "Expired" && quotationStatus != "Cancelled";
+                    break;
+                default:
+                    actions.CanContinuePayment = false;
+                    actions.CanCancel = false;
+                    actions.CanRetry = false;
+                    break;
+            }
+
+            actions.CanViewDetail = true;
+            return actions;
         }
 
         /// <summary>

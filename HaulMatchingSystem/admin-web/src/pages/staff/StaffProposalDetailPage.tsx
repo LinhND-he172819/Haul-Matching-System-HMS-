@@ -358,7 +358,7 @@ export default function StaffProposalDetailPage({
                     </button>
                   </>
                 )}
-                {detail.status === 'Approved' && onCreateQuotation && (
+                {detail.status === 'Approved' && onCreateQuotation && quotations.length === 0 && (
                   <button
                     onClick={() => onCreateQuotation(proposalId)}
                     className="w-full bg-primary text-on-primary px-4 py-3 rounded-xl text-label-md font-semibold
