@@ -169,21 +169,23 @@ builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
+// ══════════════════════════════════════════════════════════════
+// Schema init order — FK dependency chain (BẮT BUỘC thứ tự này):
+//   1. Identity  → no deps
+//   2. Warehouse → warehouse.shipments, shipment_proposals
+//   3. Transport → FK → warehouse.shipments, warehouse.shipment_proposals
+//   4. Customer/Driver → FK → warehouse.* + transport.trips
+//   5. Matching indexes → warehouse.* columns
+// ══════════════════════════════════════════════════════════════
+
+// Step 1: Identity
 using (var scope = app.Services.CreateScope())
 {
     var identityDb = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     HMS.API.DbInitializer.Initialize(identityDb);
 }
 
-await app.InitializeTransportModuleAsync();
-
-await using (var scope = app.Services.CreateAsyncScope())
-{
-    var initializer = scope.ServiceProvider.GetRequiredService<IMatchingSpatialSchemaInitializer>();
-    await initializer.InitializeAsync();
-}
-
-// Initialize warehouse schema (shipment_status_history + shipment_proposals)
+// Step 2: Warehouse (shipments, shipment_proposals, shipment_status_history)
 await using (var whScope = app.Services.CreateAsyncScope())
 {
     var whInitializer = whScope.ServiceProvider
@@ -191,12 +193,22 @@ await using (var whScope = app.Services.CreateAsyncScope())
     await whInitializer.InitializeAsync();
 }
 
-// Initialize Customer/Driver schema (quotations, payments, trip_incidents, audit_log, etc.)
+// Step 3: Transport (vehicles, trips, trip_shipments FK → warehouse.*, gps_logs…)
+await app.InitializeTransportModuleAsync();
+
+// Step 4: Customer/Driver (quotations, payments, trip_incidents FK → transport.trips, audit_log)
 await using (var cdScope = app.Services.CreateAsyncScope())
 {
     var cdInitializer = cdScope.ServiceProvider
         .GetRequiredService<HMS.Modules.Warehouse.Application.Services.CustomerDriverSchemaInitializer>();
     await cdInitializer.InitializeAsync();
+}
+
+// Step 5: Matching spatial indexes + proposal_source columns
+await using (var matchScope = app.Services.CreateAsyncScope())
+{
+    var initializer = matchScope.ServiceProvider.GetRequiredService<IMatchingSpatialSchemaInitializer>();
+    await initializer.InitializeAsync();
 }
 
 // Configure the HTTP request pipeline.
