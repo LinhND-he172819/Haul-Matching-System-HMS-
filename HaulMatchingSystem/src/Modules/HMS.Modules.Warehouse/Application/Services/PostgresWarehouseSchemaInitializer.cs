@@ -164,6 +164,13 @@ public sealed class PostgresWarehouseSchemaInitializer
                 -- Status
                 status          VARCHAR(20) NOT NULL DEFAULT 'Pending',
 
+                -- Soft delete
+                is_deleted      BOOLEAN NOT NULL DEFAULT FALSE,
+
+                -- Reviewer (when Approved/Rejected)
+                reviewer_id     UUID,
+                reviewer_name   TEXT,
+
                 -- Timestamps
                 created_at      TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
                 cancelled_at    TIMESTAMPTZ,
@@ -193,6 +200,16 @@ public sealed class PostgresWarehouseSchemaInitializer
 
             ALTER TABLE warehouse.shipment_proposals
                 ADD COLUMN IF NOT EXISTS expired_at TIMESTAMPTZ;
+
+            -- Ensure is_deleted exists on older databases where table was already created
+            ALTER TABLE warehouse.shipment_proposals
+                ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE;
+
+            ALTER TABLE warehouse.shipment_proposals
+                ADD COLUMN IF NOT EXISTS reviewer_id UUID;
+
+            ALTER TABLE warehouse.shipment_proposals
+                ADD COLUMN IF NOT EXISTS reviewer_name TEXT;
         """;
         await using (var proposalsCmd = new NpgsqlCommand(createProposalsTable, conn))
         {
