@@ -38,7 +38,8 @@ namespace HMS.Modules.Matching.Application.Services
 
         public async Task<PagedResult<StaffProposalSummaryDto>> GetProposalsAsync(
             Guid staffId, string? role, Guid? hubId,
-            string? status, int page, int pageSize,
+            string? status, string? proposalSource, Guid? driverId,
+            int page, int pageSize,
             CancellationToken ct)
         {
             await using var conn = new NpgsqlConnection(_connStr);
@@ -48,18 +49,40 @@ namespace HMS.Modules.Matching.Application.Services
             var parameters = new List<NpgsqlParameter>();
 
             // Hub filtering: Staff only sees proposals for trips originating from their hub
+            // For Driver proposals (no TripPost), Staff cannot filter by hub — skip hub filter for Driver source
             if (role == "Warehouse_Staff")
             {
                 if (!hubId.HasValue)
                     throw new ForbiddenException("Warehouse_Staff missing HubId — access denied.");
-                whereClauses.Add("tp.created_by_staff_hub = @hubId");
-                parameters.Add(new NpgsqlParameter("hubId", hubId.Value));
+                // If filtering only Driver proposals, skip hub filter (Driver proposals have no trip_post)
+                if (proposalSource == "Driver")
+                {
+                    // Driver proposals have no trip_post — Staff can see them if role allows
+                    // No hub filtering needed
+                }
+                else
+                {
+                    whereClauses.Add("(tp.created_by_staff_hub = @hubId OR sp.proposal_source = 'Driver')");
+                    parameters.Add(new NpgsqlParameter("hubId", hubId.Value));
+                }
             }
 
             if (!string.IsNullOrEmpty(status))
             {
                 whereClauses.Add("sp.status = @status");
                 parameters.Add(new NpgsqlParameter("status", status));
+            }
+
+            if (!string.IsNullOrEmpty(proposalSource))
+            {
+                whereClauses.Add("sp.proposal_source = @proposalSource");
+                parameters.Add(new NpgsqlParameter("proposalSource", proposalSource));
+            }
+
+            if (driverId.HasValue)
+            {
+                whereClauses.Add("sp.driver_id = @driverId");
+                parameters.Add(new NpgsqlParameter("driverId", driverId.Value));
             }
 
             var whereSql = string.Join(" AND ", whereClauses);
@@ -87,6 +110,9 @@ namespace HMS.Modules.Matching.Application.Services
                         sp.sender_name,
                         sp.sender_phone,
                         sp.pickup_address,
+                        sp.proposal_source,
+                        sp.driver_id AS sp_driver_id,
+                        sp.requested_trip_id,
                         s.id AS shipment_id,
                         s.cargo_type AS commodity,
                         s.weight_kg,
@@ -111,6 +137,9 @@ namespace HMS.Modules.Matching.Application.Services
                         c.id AS customer_id,
                         c.full_name AS customer_name,
                         c.phone AS customer_phone,
+                        drv.full_name AS driver_name,
+                        drv.phone AS driver_phone,
+                        vh.license_plate AS vehicle_plate,
                         q.id AS quotation_id,
                         q.status AS quotation_status
                     FROM warehouse.shipment_proposals sp
@@ -119,6 +148,9 @@ namespace HMS.Modules.Matching.Application.Services
                     LEFT JOIN transport.trips t ON t.id = tp.trip_id AND t.is_deleted = FALSE
                     LEFT JOIN transport.vehicles v ON v.id = t.vehicle_id
                     LEFT JOIN identity.users c ON c.id = sp.customer_id AND c.is_deleted = FALSE
+                    LEFT JOIN identity.users drv ON drv.id = sp.driver_id AND drv.is_deleted = FALSE
+                    LEFT JOIN transport.trips drv_trip ON drv_trip.id = sp.requested_trip_id AND drv_trip.is_deleted = FALSE
+                    LEFT JOIN transport.vehicles vh ON vh.id = drv_trip.vehicle_id AND vh.is_deleted = FALSE
                     LEFT JOIN warehouse.quotations q ON q.proposal_id = sp.id AND q.is_deleted = FALSE
                         AND q.status NOT IN ('Cancelled', 'Expired')
                     WHERE {whereSql}
@@ -150,6 +182,11 @@ namespace HMS.Modules.Matching.Application.Services
                         SenderName = reader.GetString(reader.GetOrdinal("sender_name")),
                         SenderPhone = reader.GetString(reader.GetOrdinal("sender_phone")),
                         PickupAddress = reader.GetString(reader.GetOrdinal("pickup_address")),
+                        ProposalSource = reader.IsDBNull(reader.GetOrdinal("proposal_source")) ? "Customer" : reader.GetString(reader.GetOrdinal("proposal_source")),
+                        DriverId = reader.IsDBNull(reader.GetOrdinal("sp_driver_id")) ? null : reader.GetGuid(reader.GetOrdinal("sp_driver_id")),
+                        DriverName = reader.IsDBNull(reader.GetOrdinal("driver_name")) ? null : reader.GetString(reader.GetOrdinal("driver_name")),
+                        DriverPhone = reader.IsDBNull(reader.GetOrdinal("driver_phone")) ? null : reader.GetString(reader.GetOrdinal("driver_phone")),
+                        VehiclePlate = reader.IsDBNull(reader.GetOrdinal("vehicle_plate")) ? null : reader.GetString(reader.GetOrdinal("vehicle_plate")),
                         ShipmentId = reader.GetGuid(reader.GetOrdinal("shipment_id")),
                         Commodity = reader.IsDBNull(reader.GetOrdinal("commodity")) ? null : reader.GetString(reader.GetOrdinal("commodity")),
                         WeightKg = reader.GetDecimal(reader.GetOrdinal("weight_kg")),

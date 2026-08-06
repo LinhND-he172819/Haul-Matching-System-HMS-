@@ -57,7 +57,6 @@ builder.Services.AddSignalR();
 // Add controllers
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(HMS.Modules.Transport.Controllers.TripPostsController).Assembly)
-    .AddApplicationPart(typeof(HMS.Modules.Matching.Controllers.CustomerProposalController).Assembly)
     .AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -113,21 +112,21 @@ builder.Services.AddScoped<IRedisLockService, RedisLockService>();
 // Repos & services
 builder.Services.AddScoped<IMatchingRepository, MatchingRepository>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
-builder.Services.AddScoped<IProposalRepository, ProposalRepository>();
-builder.Services.AddScoped<IProposalService, ProposalService>();
-
-// Quotation & Payment Services (new Staff Proposal → Quotation → Payment flow)
-builder.Services.AddScoped<IStaffProposalService, StaffProposalService>();
-builder.Services.AddScoped<IQuotationService, QuotationService>();
-builder.Services.AddScoped<IPaymentService, PaymentService>();
-builder.Services.AddHostedService<HMS.Modules.Matching.Workers.QuotationExpirationWorker>();
-builder.Services.AddHostedService<HMS.Modules.Matching.Workers.PaymentTimeoutWorker>();
 //builder.Services.AddHttpClient<HMS.Shared.Core.Interfaces.ISmsService, HMS.Shared.Infrastructure.Services.SpeedSmsService>();
 builder.Services.AddSingleton<IMatchingSpatialSchemaInitializer, PostgresMatchingSpatialSchemaInitializer>();
 builder.Services.AddScoped<
     HMS.Shared.Core.Interfaces.IDashboardStatsProvider,
     HMS.Modules.Matching.Infrastructure.DashboardStatsProvider
 >();
+
+// Matching module — Proposal / Quotation / Payment services
+builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IProposalRepository, HMS.Modules.Matching.Infrastructure.ProposalRepository>();
+builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IProposalService, HMS.Modules.Matching.Application.Services.ProposalService>();
+builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IStaffProposalService, HMS.Modules.Matching.Application.Services.StaffProposalService>();
+builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IDriverExternalShipmentService, HMS.Modules.Matching.Application.Services.DriverExternalShipmentService>();
+builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IQuotationService, HMS.Modules.Matching.Application.Services.QuotationService>();
+builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IPaymentService, HMS.Modules.Matching.Application.Services.PaymentService>();
+builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IQuotationPaymentRepository, HMS.Modules.Matching.Infrastructure.QuotationPaymentRepository>();
 
 // Exception middleware (registered as transient through pipeline)
 
@@ -184,7 +183,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     await initializer.InitializeAsync();
 }
 
-// Initialize warehouse schema (shipment_status_history)
+// Initialize warehouse schema (shipment_status_history + shipment_proposals)
 await using (var whScope = app.Services.CreateAsyncScope())
 {
     var whInitializer = whScope.ServiceProvider
@@ -192,7 +191,7 @@ await using (var whScope = app.Services.CreateAsyncScope())
     await whInitializer.InitializeAsync();
 }
 
-// Initialize Customer/Driver schema (quotations, payments, trip_incidents, audit_log)
+// Initialize Customer/Driver schema (quotations, payments, trip_incidents, audit_log, etc.)
 await using (var cdScope = app.Services.CreateAsyncScope())
 {
     var cdInitializer = cdScope.ServiceProvider

@@ -152,10 +152,9 @@ public sealed class TripPostService : ITripPostService
             throw new InvalidOperationException("Chuyến này đã có một bài đăng đang mở.");
 
         // 6. Generate title
-        var title = GenerateTitle(originHub.Name, destHub.Name, vehicle.LicensePlate);
+        var title = GenerateTitle(originHub.Name, destHub.Name, vehicle.LicensePlate, remainingWeight, remainingVolume);
 
         var now = DateTimeOffset.UtcNow;
-        var pickupMode = string.Equals(request.PickupMode, "Hub", StringComparison.OrdinalIgnoreCase) ? "Hub" : "DirectPickup";
         var post = new TripPostRecord
         {
             Id = Guid.NewGuid(),
@@ -165,7 +164,6 @@ public sealed class TripPostService : ITripPostService
             Description = request.Description,
             AcceptUntil = request.AcceptUntil,
             Status = "Open",
-            PickupMode = pickupMode,
             PublishedAt = now,
             CreatedAt = now,
             UpdatedAt = now,
@@ -178,7 +176,6 @@ public sealed class TripPostService : ITripPostService
             TripId: request.TripId,
             Title: title,
             Status: "Open",
-            PickupMode: post.PickupMode,
             Message: "Đăng bài chuyến xe thành công.");
     }
 
@@ -286,8 +283,11 @@ public sealed class TripPostService : ITripPostService
         if (role == "Warehouse_Staff" && trip.OriginHubId != jwtHubId)
             throw new UnauthorizedAccessException("Bạn không có quyền cập nhật bài đăng thuộc Hub khác.");
 
-        // Regenerate title (no longer includes capacity — capacity is dynamic via API)
-        post.Title = GenerateTitle(originHub.Name, destHub.Name, vehicle.LicensePlate);
+        // Recalculate capacity and regenerate title
+        var remainingWeight = vehicle.MaxWeightKg - trip.CurrentLoadWeight;
+        var remainingVolume = vehicle.MaxVolumeCbm - trip.CurrentLoadVolume;
+
+        post.Title = GenerateTitle(originHub.Name, destHub.Name, vehicle.LicensePlate, remainingWeight, remainingVolume);
 
         if (request.Description is not null)
             post.Description = request.Description;
@@ -393,9 +393,10 @@ public sealed class TripPostService : ITripPostService
     // ── Private helpers ──────────────────────────────────────────────
 
     private static string GenerateTitle(
-        string originHubName, string destHubName, string licensePlate)
+        string originHubName, string destHubName, string licensePlate,
+        decimal remainingWeightKg, decimal remainingVolumeCbm)
     {
-        return $"{originHubName} → {destHubName} | Xe {licensePlate}";
+        return $"{originHubName} → {destHubName} | Xe {licensePlate} | Còn {remainingWeightKg:N0} kg • {remainingVolumeCbm:N1} CBM";
     }
 
     private async Task<Guid?> GetStaffHubIdAsync(Guid userId, CancellationToken ct)

@@ -87,29 +87,39 @@ export default function TripCard({ trip, onViewDetail, onNewProposal }: TripCard
             {/* Capacity section */}
             <div className="px-5 pb-4 pt-2">
                 {/* Weight */}
-                <div className="mb-2">
-                    <div className="flex items-center justify-between text-xs mb-1">
+                <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
                         <span className="text-gray-500 font-medium">Khối lượng còn nhận</span>
-                        <span className="font-bold text-primary">{trip.remainingWeightKg.toLocaleString()} kg</span>
+                        <span className="font-bold text-primary">{(trip.remainingWeightKg ?? 0).toLocaleString()} / {(trip.maxWeightKg ?? 0).toLocaleString()} kg</span>
                     </div>
-                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div style={{ width: '100%', height: '10px', backgroundColor: '#e5e7eb', borderRadius: '9999px', overflow: 'hidden' }}>
                         <div
-                            className="h-full bg-primary rounded-full transition-all"
-                            style={{ width: `${trip.maxWeightKg > 0 ? Math.round((trip.remainingWeightKg / trip.maxWeightKg) * 100) : 0}%` }}
+                            style={{
+                                height: '100%',
+                                width: `${(trip.maxWeightKg ?? 0) > 0 ? Math.round(((trip.remainingWeightKg ?? 0) / (trip.maxWeightKg ?? 1)) * 100) : 0}%`,
+                                backgroundColor: '#00288e',
+                                borderRadius: '9999px',
+                                transition: 'width 0.3s ease'
+                            }}
                         />
                     </div>
                 </div>
 
                 {/* Volume */}
                 <div>
-                    <div className="flex items-center justify-between text-xs mb-1">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
                         <span className="text-gray-500 font-medium">Thể tích còn nhận</span>
-                        <span className="font-bold text-secondary">{trip.remainingVolumeCbm} CBM</span>
+                        <span className="font-bold" style={{ color: '#006c49' }}>{trip.remainingVolumeCbm ?? 0} / {trip.maxVolumeCbm ?? 0} CBM</span>
                     </div>
-                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div style={{ width: '100%', height: '10px', backgroundColor: '#e5e7eb', borderRadius: '9999px', overflow: 'hidden' }}>
                         <div
-                            className="h-full bg-secondary rounded-full transition-all"
-                            style={{ width: `${trip.maxVolumeCbm > 0 ? Math.round((trip.remainingVolumeCbm / trip.maxVolumeCbm) * 100) : 0}%` }}
+                            style={{
+                                height: '100%',
+                                width: `${(trip.maxVolumeCbm ?? 0) > 0 ? Math.round(((trip.remainingVolumeCbm ?? 0) / (trip.maxVolumeCbm ?? 1)) * 100) : 0}%`,
+                                backgroundColor: '#006c49',
+                                borderRadius: '9999px',
+                                transition: 'width 0.3s ease'
+                            }}
                         />
                     </div>
                 </div>

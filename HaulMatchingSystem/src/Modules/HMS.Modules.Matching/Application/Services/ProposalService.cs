@@ -177,7 +177,9 @@ namespace HMS.Modules.Matching.Application.Services
             // SignalR: Notify driver that proposal was cancelled
             try
             {
-                var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId, ct);
+                if (proposal.TripPostId.HasValue)
+                {
+                var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId.Value, ct);
                 if (tripPost != null)
                 {
                     var trip = await _repo.GetTripByIdAsync(tripPost.TripId, ct);
@@ -191,6 +193,7 @@ namespace HMS.Modules.Matching.Application.Services
                             Timestamp = DateTime.UtcNow
                         });
                     }
+                }
                 }
             }
             catch (Exception ex)
@@ -258,7 +261,9 @@ namespace HMS.Modules.Matching.Application.Services
                     ?? throw new InvalidOperationException("Không có chuyến đang hoạt động.");
 
                 // 4. Get trip post to verify it's still open and belongs to this trip
-                var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId, ct);
+                if (!proposal.TripPostId.HasValue)
+                    throw new InvalidOperationException("Proposal không liên kết với Trip Post.");
+                var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId.Value, ct);
                 if (tripPost == null || tripPost.Status != "Open")
                     throw new InvalidOperationException("Trip Post không còn mở.");
 
@@ -352,7 +357,8 @@ namespace HMS.Modules.Matching.Application.Services
                 {
                     try
                     {
-                        await _dispatcher.SendProposalStatusToCustomerAsync(other.CustomerId, new Shared.Core.Models.Realtime.ProposalEventPayload
+                        if (other.CustomerId.HasValue)
+                        await _dispatcher.SendProposalStatusToCustomerAsync(other.CustomerId.Value, new Shared.Core.Models.Realtime.ProposalEventPayload
                         {
                             EventType = "ShipmentProposalCancelled",
                             ProposalId = other.Id,
@@ -403,7 +409,9 @@ namespace HMS.Modules.Matching.Application.Services
                     throw new InvalidOperationException("Không có chuyến đang hoạt động.");
 
                 // Verify the proposal is for a trip post linked to this driver's trip
-                var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId, ct);
+                if (!proposal.TripPostId.HasValue)
+                    throw new InvalidOperationException("Proposal không liên kết với Trip Post.");
+                var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId.Value, ct);
                 if (tripPost == null || tripPost.TripId != trip.Id)
                     throw new ForbiddenException("Proposal không thuộc chuyến của bạn.");
 
@@ -419,7 +427,8 @@ namespace HMS.Modules.Matching.Application.Services
                 // 2. Notify customer
                 try
                 {
-                    await _dispatcher.SendProposalStatusToCustomerAsync(proposal.CustomerId, new Shared.Core.Models.Realtime.ProposalEventPayload
+                    if (proposal.CustomerId.HasValue)
+                    await _dispatcher.SendProposalStatusToCustomerAsync(proposal.CustomerId.Value, new Shared.Core.Models.Realtime.ProposalEventPayload
                     {
                         EventType = "ProposalRejected",
                         ProposalId = proposalId,

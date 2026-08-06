@@ -14,5 +14,4 @@ public sealed record TripPostListItemResponse(
     string Status,
     DateTimeOffset AcceptUntil,
     DateTimeOffset? PublishedAt,
-    string CreatedByName,
-    string PickupMode);
+    string CreatedByName);

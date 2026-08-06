@@ -10,6 +10,9 @@ namespace HMS.Modules.Matching.Application.DTOs
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
 
+        // Source
+        public string ProposalSource { get; set; } = "Customer";
+
         // Shipment info
         public string? ShipmentCode { get; set; }
         public string? Commodity { get; set; }
@@ -29,7 +32,7 @@ namespace HMS.Modules.Matching.Application.DTOs
         public string? ReceiverPhone { get; set; }
         public string? DeliveryAddress { get; set; }
 
-        // Trip info
+        // Trip info (Customer proposals use TripPost, Driver proposals use RequestedTrip)
         public Guid TripPostId { get; set; }
         public Guid TripId { get; set; }
         public string? TripCode { get; set; }
@@ -41,10 +44,16 @@ namespace HMS.Modules.Matching.Application.DTOs
         public decimal RemainingWeight { get; set; }
         public decimal RemainingVolume { get; set; }
 
-        // Customer info
+        // Customer info (null for Driver proposals)
         public Guid CustomerId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
         public string? CustomerPhone { get; set; }
+
+        // Driver info (null for Customer proposals)
+        public Guid? DriverId { get; set; }
+        public string? DriverName { get; set; }
+        public string? DriverPhone { get; set; }
+        public string? VehiclePlate { get; set; }
 
         // Quotation info (populated via LEFT JOIN)
         public Guid? QuotationId { get; set; }

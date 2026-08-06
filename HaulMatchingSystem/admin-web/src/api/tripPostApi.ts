@@ -60,7 +60,6 @@ export interface TripPostListItem {
     acceptUntil: string;
     publishedAt: string | null;
     createdByName: string;
-    pickupMode: string; // "Hub" | "DirectPickup"
 }
 
 export interface TripPostDetail {
@@ -116,7 +115,6 @@ export interface CreateTripPostPayload {
     tripId: string;
     description?: string;
     acceptUntil: string;
-    pickupMode?: string; // "Hub" | "DirectPickup"
 }
 
 export interface UpdateTripPostPayload {
@@ -143,38 +141,6 @@ export interface TripPostFilterParams {
 export interface Hub {
     id: string;
     name: string;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Public API types (for Customer-facing marketplace)                 */
-/* ------------------------------------------------------------------ */
-
-export interface PublicTripPost {
-    id: string;
-    title: string;
-    description: string | null;
-    originHubName: string;
-    destinationHubName: string;
-    departureTime: string | null;
-    acceptUntil: string;
-    maxWeightKg: number;
-    maxVolumeCbm: number;
-    remainingWeightKg: number;
-    remainingVolumeCbm: number;
-    truckType: string;
-    licensePlate: string;
-    driverName: string;
-    pickupMode: string; // "Hub" | "DirectPickup"
-}
-
-export interface PublicTripPostFilterParams {
-    page?: number;
-    pageSize?: number;
-    keyword?: string;
-    originHubId?: string;
-    destinationHubId?: string;
-    departureFrom?: string;
-    departureTo?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -262,8 +228,37 @@ export async function fetchHubs(): Promise<Hub[]> {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Public API (Customer-facing marketplace)                           */
+/*  Public API (no auth required)                                      */
 /* ------------------------------------------------------------------ */
+
+export interface PublicTripPost {
+    id: string;
+    tripId: string;
+    title: string;
+    description: string | null;
+    originHubName: string;
+    destinationHubName: string;
+    departureTime: string | null;
+    acceptUntil: string;
+    remainingWeightKg: number;
+    remainingVolumeCbm: number;
+    maxWeightKg: number;
+    maxVolumeCbm: number;
+    truckType: string;
+    licensePlate: string;
+    driverName: string;
+    pickupMode: string;
+}
+
+export interface PublicTripPostFilterParams {
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+    originHubId?: string;
+    destinationHubId?: string;
+    departureFrom?: string;
+    departureTo?: string;
+}
 
 export async function fetchPublicTripPosts(params: PublicTripPostFilterParams = {}): Promise<PagedResult<PublicTripPost>> {
     const url = new URL(`${API_BASE}/api/trip-posts/public`);

@@ -89,6 +89,7 @@ export default function DriverTripsPageV2({ onSelectTrip, onLogout, onNavigate }
         onLogout={onLogout}
         pages={[
           { label: 'Chuyến đi của tôi', onClick: () => {}, active: true },
+          { label: 'Đơn ngoài hệ thống', onClick: () => onNavigate?.('driver-external-history') },
         ]}
       />
 
@@ -244,6 +245,16 @@ export default function DriverTripsPageV2({ onSelectTrip, onLogout, onNavigate }
       </div>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* Floating Action Button: External Shipment */}
+      <button
+        onClick={() => onNavigate?.('driver-external-create')}
+        className="fixed bottom-6 right-6 z-30 flex items-center gap-2 px-5 py-3.5 rounded-full bg-primary text-on-primary shadow-lg hover:bg-primary-dark hover:shadow-xl transition-all group"
+        title="Tạo đơn ngoài hệ thống"
+      >
+        <span className="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">add_circle</span>
+        <span className="text-label-lg font-semibold hidden sm:inline">Tạo đơn ngoài hệ thống</span>
+      </button>
     </div>
   );
 }

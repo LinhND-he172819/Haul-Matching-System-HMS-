@@ -9,7 +9,7 @@ namespace HMS.Modules.Matching.Application.DTOs
     {
         public Guid ProposalId { get; set; }
         public Guid ShipmentId { get; set; }
-        public Guid TripPostId { get; set; }
+        public Guid? TripPostId { get; set; }
         public string? ShipmentCode { get; set; }
 
         // â”€â”€ Shipment info (readonly from Shipment) â”€â”€
@@ -67,7 +67,7 @@ namespace HMS.Modules.Matching.Application.DTOs
     {
         public Guid ProposalId { get; set; }
         public Guid ShipmentId { get; set; }
-        public Guid TripPostId { get; set; }
+        public Guid? TripPostId { get; set; }
         public string Status { get; set; } = ProposalStatusConstants.PendingReview;
         public DateTime CreatedAt { get; set; }
     }
