@@ -216,29 +216,6 @@ public sealed class PostgresWarehouseSchemaInitializer
             await proposalsCmd.ExecuteNonQueryAsync(ct);
         }
 
-        // ── One-time data migration: transition Approved → Confirmed for proposals
-        //    that already have an Accepted quotation (deposit was paid before this
-        //    automatic transition was added in PaymentService). ──
-        const string migrateDepositedProposals = """
-            UPDATE warehouse.shipment_proposals sp
-            SET status = 'Confirmed'
-            WHERE sp.status = 'Approved'
-              AND sp.is_deleted = FALSE
-              AND EXISTS (
-                SELECT 1
-                FROM warehouse.quotations q
-                WHERE q.proposal_id = sp.id
-                  AND q.is_deleted = FALSE
-                  AND q.status IN ('Accepted', 'Sent')
-              );
-        """;
-        await using (var migrateCmd = new NpgsqlCommand(migrateDepositedProposals, conn))
-        {
-            var migrated = await migrateCmd.ExecuteNonQueryAsync(ct);
-            if (migrated > 0)
-                _logger.LogInformation("Migrated {Count} proposals from Approved → Confirmed (deposit already paid)", migrated);
-        }
-
         _logger.LogInformation("Warehouse schema and shipment_status_history initialized.");
     }
 }
