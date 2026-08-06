@@ -25,6 +25,9 @@ import StaffCreateQuotationPage from './pages/staff/StaffCreateQuotationPage';
 import StaffQuotationManagementPage from './pages/staff/StaffQuotationManagementPage';
 import StaffQuotationDetailPage from './pages/staff/StaffQuotationDetailPage';
 import StaffPaymentMonitoringPage from './pages/staff/StaffPaymentMonitoringPage';
+import DriverExternalShipmentForm from './pages/DriverExternalShipmentForm';
+import DriverExternalShipmentHistory from './pages/DriverExternalShipmentHistory';
+import DriverExternalShipmentDetail from './pages/DriverExternalShipmentDetail';
 import type { PublicTripPost } from './api/tripPostApi';
 
 type Page =
@@ -39,6 +42,9 @@ type Page =
   | 'shipment-detail'
   | 'driver-trips-v2'
   | 'driver-trip-detail'
+  | 'driver-external-create'
+  | 'driver-external-history'
+  | 'driver-external-detail'
   | 'admin'
   | 'admin-proposals'
   | 'admin-proposal-detail'
@@ -86,6 +92,7 @@ function App() {
   // Customer/Driver detail state
   const [selectedShipmentId, setSelectedShipmentId] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [selectedExternalProposalId, setSelectedExternalProposalId] = useState<string | null>(null);
 
   // Sync state if user changes localStorage directly or on mount
   useEffect(() => {
@@ -134,6 +141,12 @@ function App() {
       setCurrentPage('my-shipments');
     } else if (targetPage === 'driver-trips-v2') {
       setCurrentPage('driver-trips-v2');
+    } else if (targetPage === 'driver-external-create') {
+      const token = localStorage.getItem('accessToken');
+      if (!token) { setCurrentPage('login'); }
+      else { setCurrentPage('driver-external-create'); }
+    } else if (targetPage === 'driver-external-history') {
+      setCurrentPage('driver-external-history');
     } else if (targetPage === 'home') {
       const token = localStorage.getItem('accessToken');
       const role = localStorage.getItem('role');
@@ -590,6 +603,41 @@ function App() {
           tripId={selectedTripId}
           onBack={() => setCurrentPage('driver-trips-v2')}
           onLogout={handleLogout}
+        />
+      );
+
+    case 'driver-external-create':
+      return (
+        <DriverExternalShipmentForm
+          onLogout={handleLogout}
+          onNavigate={(p) => setCurrentPage(p as Page)}
+          onCreated={() => setCurrentPage('driver-external-history')}
+        />
+      );
+
+    case 'driver-external-history':
+      return (
+        <DriverExternalShipmentHistory
+          onLogout={handleLogout}
+          onNavigate={(p) => setCurrentPage(p as Page)}
+          onSelectDetail={(proposalId) => {
+            setSelectedExternalProposalId(proposalId);
+            setCurrentPage('driver-external-detail');
+          }}
+        />
+      );
+
+    case 'driver-external-detail':
+      if (!selectedExternalProposalId || role !== 'Driver') {
+        setCurrentPage('driver-external-history');
+        return null;
+      }
+      return (
+        <DriverExternalShipmentDetail
+          proposalId={selectedExternalProposalId}
+          onLogout={handleLogout}
+          onNavigate={(p) => setCurrentPage(p as Page)}
+          onBack={() => setCurrentPage('driver-external-history')}
         />
       );
 

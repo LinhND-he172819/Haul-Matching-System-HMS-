@@ -96,7 +96,7 @@ namespace HMS.Modules.Matching.Infrastructure
                 return new List<ShipmentProposal>();
 
             return await _db.ShipmentProposals
-                .Where(p => tripPostIds.Contains(p.TripPostId) && p.Status == ProposalStatusConstants.PendingReview)
+                .Where(p => p.TripPostId.HasValue && tripPostIds.Contains(p.TripPostId!.Value) && p.Status == ProposalStatusConstants.PendingReview)
                 .OrderBy(p => p.CreatedAt)
                 .ToListAsync(ct);
         }

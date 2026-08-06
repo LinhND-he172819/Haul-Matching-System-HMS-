@@ -20,6 +20,7 @@ public sealed class Trip
         decimal currentLoadVolumeCbm)
     {
         Id = id;
+        TripCode = "TRIP-" + id.ToString()[..8];
         DriverId = driverId;
         VehicleId = vehicleId;
         OriginHubId = originHubId;
@@ -35,6 +36,7 @@ public sealed class Trip
     }
 
     public Guid Id { get; }
+    public string TripCode { get; private set; }
     public Guid DriverId { get; private set; }
     public Guid VehicleId { get; private set; }
     public Guid OriginHubId { get; private set; }
@@ -92,7 +94,8 @@ public sealed class Trip
         int version,
         TripStatus status,
         DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTimeOffset updatedAt,
+        string? tripCode = null)
     {
         var trip = new Trip(
             id,
@@ -111,6 +114,7 @@ public sealed class Trip
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
         };
+        if (tripCode != null) trip.TripCode = tripCode;
 
         return trip;
     }

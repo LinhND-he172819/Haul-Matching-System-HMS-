@@ -25,6 +25,7 @@ public sealed class PostgresTripRepository : ITripRepository
         command.CommandText = """
             INSERT INTO transport.trips (
                 id,
+                trip_code,
                 driver_id,
                 vehicle_id,
                 origin_hub_id,
@@ -42,6 +43,7 @@ public sealed class PostgresTripRepository : ITripRepository
             )
             VALUES (
                 @id,
+                @trip_code,
                 @driver_id,
                 @vehicle_id,
                 @origin_hub_id,
@@ -174,6 +176,7 @@ public sealed class PostgresTripRepository : ITripRepository
     private static void AddTripParameters(NpgsqlCommand command, Trip trip)
     {
         command.Parameters.AddWithValue("id", trip.Id);
+        command.Parameters.AddWithValue("trip_code", trip.TripCode ?? $"TRIP-{trip.Id.ToString()[..8]}");
         command.Parameters.AddWithValue("driver_id", trip.DriverId);
         command.Parameters.AddWithValue("vehicle_id", trip.VehicleId);
         command.Parameters.AddWithValue("origin_hub_id", trip.OriginHubId);
@@ -211,7 +214,8 @@ public sealed class PostgresTripRepository : ITripRepository
             reader.GetInt32(reader.GetOrdinal("version")),
             Enum.Parse<TripStatus>(reader.GetString(reader.GetOrdinal("status"))),
             reader.GetFieldValue<DateTimeOffset>(reader.GetOrdinal("created_at")),
-            reader.GetFieldValue<DateTimeOffset>(reader.GetOrdinal("updated_at")));
+            reader.GetFieldValue<DateTimeOffset>(reader.GetOrdinal("updated_at")),
+            reader.IsDBNull(reader.GetOrdinal("trip_code")) ? null : reader.GetString(reader.GetOrdinal("trip_code")));
     }
 
     private static DateTimeOffset? ReadNullableTimestamp(NpgsqlDataReader reader, string columnName)
@@ -224,6 +228,7 @@ public sealed class PostgresTripRepository : ITripRepository
     private const string SelectTripSql = """
         SELECT
             id,
+            trip_code,
             driver_id,
             vehicle_id,
             origin_hub_id,

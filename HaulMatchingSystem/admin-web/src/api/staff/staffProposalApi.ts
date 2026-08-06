@@ -11,6 +11,7 @@ export interface StaffProposalSummary {
   proposalId: string;
   code: string;
   status: string;
+  proposalSource?: string;
   shipmentId: string;
   shipmentCode: string;
   commodity: string;
@@ -38,6 +39,11 @@ export interface StaffProposalSummary {
   createdAt: string;
   quotationId?: string;
   quotationStatus?: string;
+  // Driver info (for Driver proposals)
+  driverId?: string;
+  driverName?: string;
+  driverPhone?: string;
+  vehiclePlate?: string;
 }
 
 export interface ShipmentInfoDto {
@@ -149,11 +155,13 @@ export interface PagedResult<T> {
 
 export async function getStaffProposals(params: {
   status?: string;
+  proposalSource?: string;
   page?: number;
   pageSize?: number;
 }): Promise<PagedResult<StaffProposalSummary>> {
   const url = new URL(`${API_BASE}/api/staff/proposals`);
   if (params.status) url.searchParams.set('status', params.status);
+  if (params.proposalSource) url.searchParams.set('proposalSource', params.proposalSource);
   if (params.page) url.searchParams.set('page', params.page.toString());
   if (params.pageSize) url.searchParams.set('pageSize', params.pageSize.toString());
 

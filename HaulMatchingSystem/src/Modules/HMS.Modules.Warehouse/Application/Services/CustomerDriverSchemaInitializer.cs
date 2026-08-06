@@ -137,12 +137,15 @@ public sealed class CustomerDriverSchemaInitializer
         """;
         await ExecuteSql(conn, paymentsIndexes, ct);
 
-        // 4. Extend shipment_proposals with review fields
+        // 4. Extend shipment_proposals with review fields and is_deleted
         const string extendProposals = """
             ALTER TABLE warehouse.shipment_proposals ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
             ALTER TABLE warehouse.shipment_proposals ADD COLUMN IF NOT EXISTS reviewed_by uuid;
             ALTER TABLE warehouse.shipment_proposals ADD COLUMN IF NOT EXISTS approved_at timestamptz;
             ALTER TABLE warehouse.shipment_proposals ADD COLUMN IF NOT EXISTS approved_by uuid;
+            ALTER TABLE warehouse.shipment_proposals ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT FALSE;
+            ALTER TABLE warehouse.shipment_proposals ADD COLUMN IF NOT EXISTS reviewer_id uuid;
+            ALTER TABLE warehouse.shipment_proposals ADD COLUMN IF NOT EXISTS reviewer_name text;
         """;
         await ExecuteSql(conn, extendProposals, ct);
 

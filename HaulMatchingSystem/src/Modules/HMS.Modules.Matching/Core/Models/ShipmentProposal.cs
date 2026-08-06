@@ -4,9 +4,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HMS.Modules.Matching.Core.Models
 {
     /// <summary>
-    /// Represents a customer's proposal to include a Shipment in a specific Trip.
+    /// Represents a proposal to include a Shipment in a specific Trip.
     /// A Shipment can have multiple proposals (one per TripPost), but at most one Accepted proposal.
     /// Pickup/sender info is stored here because different TripPosts may have different pickup locations.
+    ///
+    /// Two sources supported:
+    ///   Customer — created via TripPost marketplace (TripPostId + CustomerId required)
+    ///   Driver   — created via External Shipment Declaration (RequestedTripId + DriverId required)
     /// </summary>
     [Table("shipment_proposals", Schema = "warehouse")]
     public class ShipmentProposal
@@ -19,10 +23,20 @@ namespace HMS.Modules.Matching.Core.Models
         public Guid ShipmentId { get; set; }
 
         [Column("trip_post_id")]
-        public Guid TripPostId { get; set; }
+        public Guid? TripPostId { get; set; }
 
         [Column("customer_id")]
-        public Guid CustomerId { get; set; }
+        public Guid? CustomerId { get; set; }
+
+        // ── Driver External Shipment fields ──
+        [Column("proposal_source")]
+        public string ProposalSource { get; set; } = "Customer";
+
+        [Column("driver_id")]
+        public Guid? DriverId { get; set; }
+
+        [Column("requested_trip_id")]
+        public Guid? RequestedTripId { get; set; }
 
         // ── Sender / Pickup fields (per-proposal) ──
         [Column("sender_name")]

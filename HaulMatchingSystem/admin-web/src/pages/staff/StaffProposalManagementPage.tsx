@@ -40,6 +40,12 @@ const STATUS_LABELS: Record<string, string> = {
   Expired: 'Đã hết hạn',
 };
 
+const SOURCE_TABS = [
+  { key: '', label: 'Tất cả nguồn' },
+  { key: 'Customer', label: 'Khách hàng' },
+  { key: 'Driver', label: 'Tài xế' },
+];
+
 /* ─── Props ─────────────────────────────────────────────────────── */
 
 type Props = {
@@ -60,6 +66,7 @@ export default function StaffProposalManagementPage({
   const [data, setData] = useState<PagedResult<StaffProposalSummary> | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
   const [page, setPage] = useState(1);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -77,6 +84,7 @@ export default function StaffProposalManagementPage({
     try {
       const result = await getStaffProposals({
         status: activeTab || undefined,
+        proposalSource: sourceFilter || undefined,
         page,
         pageSize: 10,
       });
@@ -86,7 +94,7 @@ export default function StaffProposalManagementPage({
     } finally {
       setLoading(false);
     }
-  }, [activeTab, page]);
+  }, [activeTab, sourceFilter, page]);
 
   useEffect(() => {
     loadData();
@@ -157,12 +165,12 @@ export default function StaffProposalManagementPage({
             Quản lý đề xuất
           </h1>
           <p className="text-body-md text-on-surface-variant mt-1">
-            Duyệt và quản lý đề xuất từ khách hàng
+            Duyệt và quản lý đề xuất từ khách hàng và tài xế
           </p>
         </div>
 
         {/* Status Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.key}
@@ -174,6 +182,26 @@ export default function StaffProposalManagementPage({
                 activeTab === tab.key
                   ? 'bg-primary text-on-primary shadow-sm'
                   : 'bg-white text-on-surface-variant border border-outline-variant hover:bg-surface-container-low'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Source Tabs */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          {SOURCE_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => {
+                setSourceFilter(tab.key);
+                setPage(1);
+              }}
+              className={`px-4 py-1.5 rounded-lg text-label-sm font-medium whitespace-nowrap transition-all ${
+                sourceFilter === tab.key
+                  ? 'bg-secondary-container text-on-secondary-container shadow-sm'
+                  : 'bg-surface-container-low text-on-surface-variant border border-outline-variant hover:bg-surface-container'
               }`}
             >
               {tab.label}
@@ -216,10 +244,20 @@ export default function StaffProposalManagementPage({
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-primary text-xl">description</span>
+                        <span className="material-symbols-outlined text-primary text-xl">
+                          {p.proposalSource === 'Driver' ? 'local_shipping' : 'description'}
+                        </span>
                       </div>
                       <div>
-                        <p className="text-title-lg font-bold text-on-surface">{p.shipmentCode}</p>
+                        <p className="text-title-lg font-bold text-on-surface flex items-center gap-2">
+                          {p.shipmentCode}
+                          {p.proposalSource === 'Driver' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-label-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                              <span className="material-symbols-outlined text-[12px]">local_shipping</span>
+                              Tài xế khai báo
+                            </span>
+                          )}
+                        </p>
                         <p className="text-label-sm text-on-surface-variant">{p.code} • {formatDate(p.createdAt)}</p>
                       </div>
                     </div>
@@ -256,14 +294,29 @@ export default function StaffProposalManagementPage({
                       <p className="text-label-sm text-on-surface-variant truncate">{p.deliveryAddress}</p>
                     </div>
 
-                    {/* Trip */}
+                    {/* Trip / Driver */}
                     <div className="bg-surface-container-low rounded-xl p-3">
-                      <p className="text-label-sm text-on-surface-variant mb-1">
-                        <span className="material-symbols-outlined text-[14px] align-middle mr-1">route</span>
-                        Chuyến
-                      </p>
-                      <p className="text-body-md font-semibold">{p.tripCode || 'N/A'}</p>
-                      <p className="text-label-sm text-on-surface-variant truncate">{p.origin} → {p.destination}</p>
+                      {p.proposalSource === 'Driver' ? (
+                        <>
+                          <p className="text-label-sm text-on-surface-variant mb-1">
+                            <span className="material-symbols-outlined text-[14px] align-middle mr-1">local_shipping</span>
+                            Tài xế khai báo
+                          </p>
+                          <p className="text-body-md font-semibold">{p.driverName || 'N/A'}</p>
+                          <p className="text-label-sm text-on-surface-variant">
+                            {p.driverPhone && `${p.driverPhone} • `}{p.vehiclePlate || 'N/A'}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-label-sm text-on-surface-variant mb-1">
+                            <span className="material-symbols-outlined text-[14px] align-middle mr-1">route</span>
+                            Chuyến
+                          </p>
+                          <p className="text-body-md font-semibold">{p.tripCode || 'N/A'}</p>
+                          <p className="text-label-sm text-on-surface-variant truncate">{p.origin} → {p.destination}</p>
+                        </>
+                      )}
                     </div>
                   </div>
 

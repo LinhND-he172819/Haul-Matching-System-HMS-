@@ -57,7 +57,7 @@ public class CustomerShipmentController : ControllerBase
             const string listSql = """
                 SELECT s.id, s.qr_code, s.cargo_type, s.weight_kg, s.volume_cbm,
                        s.receiver_name, s.dest_address, s.status,
-                       t.trip_code,
+                       COALESCE(t.trip_code, 'TRIP-' || LEFT(t.id::text, 8)) AS trip_code,
                        oh.name AS origin_name, dh.name AS destination_name,
                        s.created_at
                 FROM warehouse.shipments s
@@ -136,7 +136,7 @@ public class CustomerShipmentController : ControllerBase
                    s.receiver_name, s.receiver_phone, s.dest_address,
                    s.cargo_type, s.weight_kg, s.volume_cbm, s.special_handling_note,
                    s.cancel_reason, s.cancelled_at, s.delivered_at, s.delivery_note,
-                   t.trip_code,
+                   COALESCE(t.trip_code, 'TRIP-' || LEFT(t.id::text, 8)) AS trip_code,
                    oh.name AS origin_name, dh.name AS destination_name,
                    t.started_at AS departure_time,
                    v.license_plate AS vehicle_plate

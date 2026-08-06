@@ -453,6 +453,9 @@ namespace HMS.Modules.Matching.Application.Services
                                 _logger.LogInformation("Proposal {ProposalId} transitioned Approved → Confirmed (deposit paid)", proposal.Value.Id);
                             }
 
+                            // ── Link shipment to trip: update trip_shipments Suggested → Matched ──
+                            await LinkShipmentToTripAfterDepositAsync(conn, tx, proposal.Value.Id, payment.ShipmentId, payment.CustomerId, ct);
+
                             // Save notification
                             await SaveNotificationAsync(conn, proposal.Value.CustomerId,
                                 "Thanh toán cọc thành công",
@@ -471,14 +474,14 @@ namespace HMS.Modules.Matching.Application.Services
                                     Timestamp = DateTime.UtcNow
                                 });
 
-                                // Also notify staff
+                                // Also notify staff — actual status is Matched
                                 await _dispatcher.SendShipmentStatusToStaffAsync(
                                     "Staff",
                                     new ShipmentStatusEventPayload
                                     {
                                         ShipmentId = payment.ShipmentId,
                                         OldStatus = ShipmentStatus.PendingDeposit,
-                                        NewStatus = ShipmentStatus.In_Warehouse,
+                                        NewStatus = ShipmentStatus.Matched,
                                         UpdatedAt = DateTime.UtcNow
                                     });
                             }
@@ -824,6 +827,257 @@ namespace HMS.Modules.Matching.Application.Services
             cmd.Parameters.AddWithValue("quotation_id", quotationId);
             var result = await cmd.ExecuteScalarAsync(ct);
             return result as Guid?;
+        }
+
+        /// <summary>
+        /// After deposit payment succeeds for a proposal-based shipment:
+        /// 1. Find the trip_shipments record (Suggested) via the proposal's trip_post_id → trip_id
+        /// 2. Update trip_shipments status Suggested → Matched
+        /// 3. Update trip's current_load_weight and current_load_volume
+        /// This ensures the shipment appears in the driver's trip detail page.
+        /// </summary>
+        private async Task LinkShipmentToTripAfterDepositAsync(
+            NpgsqlConnection conn, NpgsqlTransaction tx,
+            Guid proposalId, Guid shipmentId, Guid customerId,
+            CancellationToken ct)
+        {
+            // First: find trip_id and vehicle info via proposal → trip_post → trip
+            const string findTripInfoSql = """
+                SELECT tp.trip_id, t.current_load_weight, t.current_load_volume, t.vehicle_id
+                FROM warehouse.shipment_proposals sp
+                JOIN transport.trip_posts tp ON tp.id = sp.trip_post_id AND tp.is_deleted = FALSE
+                JOIN transport.trips t ON t.id = tp.trip_id AND t.is_deleted = FALSE
+                WHERE sp.id = @proposal_id
+                LIMIT 1;
+            """;
+
+            Guid tripId;
+            decimal currentLoadWeight, currentLoadVolume;
+            Guid vehicleId;
+
+            await using (var cmd = new NpgsqlCommand(findTripInfoSql, conn, tx))
+            {
+                cmd.Parameters.AddWithValue("proposal_id", proposalId);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+                if (!await reader.ReadAsync(ct))
+                {
+                    _logger.LogWarning(
+                        "No trip found for proposal {ProposalId}, shipment {ShipmentId}. " +
+                        "Shipment will be Matched but may not appear in trip detail.",
+                        proposalId, shipmentId);
+                    return;
+                }
+
+                tripId = reader.GetGuid(0);
+                currentLoadWeight = reader.GetDecimal(1);
+                currentLoadVolume = reader.GetDecimal(2);
+                vehicleId = reader.GetGuid(3);
+            }
+
+            // Try to find existing trip_shipments record (Suggested status)
+            const string findTripShipmentSql = """
+                SELECT ts.id FROM transport.trip_shipments ts
+                WHERE ts.trip_id = @trip_id AND ts.shipment_id = @shipment_id
+                    AND ts.is_deleted = FALSE AND ts.status = 'Suggested'
+                LIMIT 1;
+            """;
+
+            Guid tripShipmentId;
+            bool recordExisted = false;
+
+            await using (var cmd = new NpgsqlCommand(findTripShipmentSql, conn, tx))
+            {
+                cmd.Parameters.AddWithValue("trip_id", tripId);
+                cmd.Parameters.AddWithValue("shipment_id", shipmentId);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+                if (await reader.ReadAsync(ct))
+                {
+                    tripShipmentId = reader.GetGuid(0);
+                    recordExisted = true;
+                }
+                else
+                {
+                    // No Suggested record — check if any record exists (already Matched, etc.)
+                    await reader.CloseAsync();
+                    const string findAnySql = """
+                        SELECT ts.id FROM transport.trip_shipments ts
+                        WHERE ts.trip_id = @trip_id AND ts.shipment_id = @shipment_id
+                            AND ts.is_deleted = FALSE
+                        LIMIT 1;
+                    """;
+                    await using var cmd2 = new NpgsqlCommand(findAnySql, conn, tx)
+                    {
+                        Parameters =
+                        {
+                            new("trip_id", tripId),
+                            new("shipment_id", shipmentId)
+                        }
+                    };
+                    await using var reader2 = await cmd2.ExecuteReaderAsync(ct);
+
+                    if (await reader2.ReadAsync(ct))
+                    {
+                        // Already linked (e.g. Matched status) — just update capacity below
+                        tripShipmentId = reader2.GetGuid(0);
+                        recordExisted = true;
+                        _logger.LogInformation(
+                            "Trip_shipments record already exists for shipment {ShipmentId} in trip {TripId} (id={TripShipmentId}). Updating capacity only.",
+                            shipmentId, tripId, tripShipmentId);
+                    }
+                    else
+                    {
+                        await reader2.CloseAsync();
+
+                        // No record at all — CREATE one directly with Matched status
+                        // This happens when deposit is paid before driver views suggestions
+                        var maxSeqSql = await GetMaxDeliverySequenceAsync(conn, tx, tripId, ct);
+                        tripShipmentId = Guid.NewGuid();
+
+                        const string insertSql = """
+                            INSERT INTO transport.trip_shipments
+                                (id, trip_id, shipment_id, delivery_sequence, status,
+                                 accepted_at, accepted_by, created_at, updated_at, is_deleted)
+                            VALUES
+                                (@id, @trip_id, @shipment_id, @delivery_seq, 'Matched',
+                                 NOW(), @accepted_by, NOW(), NOW(), FALSE);
+                        """;
+                        await using (var cmd3 = new NpgsqlCommand(insertSql, conn, tx))
+                        {
+                            cmd3.Parameters.AddWithValue("id", tripShipmentId);
+                            cmd3.Parameters.AddWithValue("trip_id", tripId);
+                            cmd3.Parameters.AddWithValue("shipment_id", shipmentId);
+                            cmd3.Parameters.AddWithValue("delivery_seq", maxSeqSql + 1);
+                            cmd3.Parameters.AddWithValue("accepted_by", customerId);
+                            await cmd3.ExecuteNonQueryAsync(ct);
+                        }
+
+                        recordExisted = false;
+                        _logger.LogInformation(
+                            "Created new trip_shipments record for shipment {ShipmentId} in trip {TripId} (id={TripShipmentId}) with status Matched. " +
+                            "Driver had not yet viewed suggestions, so record was created directly on deposit payment.",
+                            shipmentId, tripId, tripShipmentId);
+                    }
+                }
+            }
+
+            // Read shipment weight/volume
+            const string shipmentSql = """
+                SELECT weight_kg, volume_cbm FROM warehouse.shipments
+                WHERE id = @shipment_id AND is_deleted = FALSE;
+            """;
+            decimal weightKg, volumeCbm;
+            await using (var sCmd = new NpgsqlCommand(shipmentSql, conn, tx))
+            {
+                sCmd.Parameters.AddWithValue("shipment_id", shipmentId);
+                await using var sReader = await sCmd.ExecuteReaderAsync(ct);
+                if (!await sReader.ReadAsync(ct))
+                {
+                    _logger.LogWarning("Shipment {ShipmentId} not found when linking to trip", shipmentId);
+                    return;
+                }
+                weightKg = sReader.GetDecimal(0);
+                volumeCbm = sReader.GetDecimal(1);
+            }
+
+            // Read vehicle capacity for validation
+            const string vehicleSql = """
+                SELECT max_weight_kg, max_volume_cbm FROM transport.vehicles
+                WHERE id = @vehicle_id AND is_deleted = FALSE;
+            """;
+            await using (var vCmd = new NpgsqlCommand(vehicleSql, conn, tx))
+            {
+                vCmd.Parameters.AddWithValue("vehicle_id", vehicleId);
+                await using var vReader = await vCmd.ExecuteReaderAsync(ct);
+                if (await vReader.ReadAsync(ct))
+                {
+                    var maxWeight = vReader.GetDecimal(0);
+                    var maxVolume = vReader.GetDecimal(1);
+
+                    if (currentLoadWeight + weightKg > maxWeight)
+                    {
+                        _logger.LogWarning(
+                            "Weight capacity exceeded when linking shipment {ShipmentId} to trip {TripId}. " +
+                            "Current={Current}, Shipment={Shipment}, Max={Max}. Still linking but trip load may exceed.",
+                            shipmentId, tripId, currentLoadWeight, weightKg, maxWeight);
+                    }
+
+                    if (currentLoadVolume + volumeCbm > maxVolume)
+                    {
+                        _logger.LogWarning(
+                            "Volume capacity exceeded when linking shipment {ShipmentId} to trip {TripId}. " +
+                            "Current={Current}, Shipment={Shipment}, Max={Max}. Still linking but trip load may exceed.",
+                            shipmentId, tripId, currentLoadVolume, volumeCbm, maxVolume);
+                    }
+                }
+            }
+
+            // 1. Update trip_shipments: Suggested → Matched (only if was Suggested, not if already Matched)
+            if (recordExisted)
+            {
+                const string updateTripShipmentSql = """
+                    UPDATE transport.trip_shipments
+                    SET status = 'Matched',
+                        accepted_at = NOW(),
+                        accepted_by = @accepted_by,
+                        updated_at = NOW()
+                    WHERE id = @id AND is_deleted = FALSE AND status = 'Suggested';
+                """;
+                await using (var cmd = new NpgsqlCommand(updateTripShipmentSql, conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("id", tripShipmentId);
+                    cmd.Parameters.AddWithValue("accepted_by", customerId);
+                    var affected = await cmd.ExecuteNonQueryAsync(ct);
+                    if (affected == 0)
+                    {
+                        // Already Matched — no need to update trip capacity
+                        _logger.LogInformation(
+                            "Trip_shipments {TripShipmentId} already Matched — skipping capacity update for shipment {ShipmentId}",
+                            tripShipmentId, shipmentId);
+                        return;
+                    }
+                }
+            }
+
+            // 2. Update trip load weight and volume
+            const string updateTripLoadSql = """
+                UPDATE transport.trips
+                SET current_load_weight = current_load_weight + @add_weight,
+                    current_load_volume = current_load_volume + @add_volume,
+                    updated_at = NOW()
+                WHERE id = @trip_id AND is_deleted = FALSE;
+            """;
+            await using (var cmd = new NpgsqlCommand(updateTripLoadSql, conn, tx))
+            {
+                cmd.Parameters.AddWithValue("trip_id", tripId);
+                cmd.Parameters.AddWithValue("add_weight", weightKg);
+                cmd.Parameters.AddWithValue("add_volume", volumeCbm);
+                await cmd.ExecuteNonQueryAsync(ct);
+            }
+
+            // 3. Audit
+            await InsertAuditAsync(conn, tx, "TripShipment", tripShipmentId, "Matched",
+                $"Suggested → Matched (deposit paid). Shipment {shipmentId} linked to trip {tripId}",
+                customerId, ct);
+
+            _logger.LogInformation(
+                "Linked shipment {ShipmentId} to trip {TripId}: trip_shipments {TripShipmentId} Suggested → Matched, " +
+                "trip load updated (+{Weight}kg, +{Volume}cbm)",
+                shipmentId, tripId, tripShipmentId, weightKg, volumeCbm);
+        }
+
+        private static async Task<int> GetMaxDeliverySequenceAsync(
+            NpgsqlConnection conn, NpgsqlTransaction tx, Guid tripId, CancellationToken ct)
+        {
+            const string sql = """
+                SELECT COALESCE(MAX(delivery_sequence), 0) FROM transport.trip_shipments
+                WHERE trip_id = @trip_id AND is_deleted = FALSE;
+            """;
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
+            cmd.Parameters.AddWithValue("trip_id", tripId);
+            var result = await cmd.ExecuteScalarAsync(ct);
+            return Convert.ToInt32(result ?? 0);
         }
 
         private static async Task<bool> AllFinalPaymentsPaidAsync(

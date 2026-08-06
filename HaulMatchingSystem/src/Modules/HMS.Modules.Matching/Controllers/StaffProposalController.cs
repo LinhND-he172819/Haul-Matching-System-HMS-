@@ -52,11 +52,13 @@ namespace HMS.Modules.Matching.Controllers
         }
 
         /// <summary>
-        /// List proposals with optional status filter and pagination.
+        /// List proposals with optional status/source/driver filter and pagination.
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetProposals(
             [FromQuery] string? status,
+            [FromQuery] string? proposalSource,
+            [FromQuery] Guid? driverId,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
             CancellationToken ct = default)
@@ -68,7 +70,7 @@ namespace HMS.Modules.Matching.Controllers
                 var hubId = GetStaffHubId();
 
                 var result = await _proposalService.GetProposalsAsync(
-                    staffId, role, hubId, status, page, pageSize, ct);
+                    staffId, role, hubId, status, proposalSource, driverId, page, pageSize, ct);
 
                 return Ok(result);
             }

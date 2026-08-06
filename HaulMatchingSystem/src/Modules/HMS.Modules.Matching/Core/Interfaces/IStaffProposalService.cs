@@ -9,11 +9,12 @@ namespace HMS.Modules.Matching.Core.Interfaces
     {
         /// <summary>
         /// List proposals filtered by status. Staff sees only their hub's proposals.
-        /// Admin sees all.
+        /// Admin sees all. Supports filtering by proposalSource and driverId.
         /// </summary>
         Task<PagedResult<StaffProposalSummaryDto>> GetProposalsAsync(
             Guid staffId, string? role, Guid? hubId,
-            string? status, int page, int pageSize,
+            string? status, string? proposalSource, Guid? driverId,
+            int page, int pageSize,
             CancellationToken ct);
 
         /// <summary>

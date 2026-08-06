@@ -1,4 +1,4 @@
-﻿using HMS.Modules.Matching.Application.DTOs;
+using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
@@ -420,7 +420,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             var trip = new Trip { Id = Guid.NewGuid(), DriverId = driverId, VehicleId = Guid.NewGuid(), Status = "Active" };
             var tripPost = new TripPostRecord
             {
-                Id = proposal.TripPostId, TripId = trip.Id, Status = "Open",
+                Id = proposal.TripPostId!.Value, TripId = trip.Id, Status = "Open",
                 PickupMode = "DirectPickup", AcceptUntil = DateTimeOffset.UtcNow.AddHours(2),
                 CreatedBy = driverId, Title = "Post", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
             };
@@ -429,7 +429,7 @@ namespace HMS.Modules.Matching.Tests.Integration
                 .ReturnsAsync(proposal);
             _repo.Setup(r => r.GetActiveTripForDriverAsync(driverId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(trip);
-            _repo.Setup(r => r.GetTripPostAsync(proposal.TripPostId, It.IsAny<CancellationToken>()))
+            _repo.Setup(r => r.GetTripPostAsync(proposal.TripPostId!.Value, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(tripPost);
             _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new Shipment
@@ -501,7 +501,7 @@ namespace HMS.Modules.Matching.Tests.Integration
             };
             var tripPost = new TripPostRecord
             {
-                Id = proposal.TripPostId, TripId = trip.Id, Status = "Open",
+                Id = proposal.TripPostId!.Value, TripId = trip.Id, Status = "Open",
                 PickupMode = "DirectPickup", AcceptUntil = DateTimeOffset.UtcNow.AddHours(2),
                 CreatedBy = driverId, Title = "Post", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
             };
@@ -517,7 +517,7 @@ namespace HMS.Modules.Matching.Tests.Integration
                 .ReturnsAsync(proposal);
             _repo.Setup(r => r.GetActiveTripForDriverAsync(driverId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(trip);
-            _repo.Setup(r => r.GetTripPostAsync(proposal.TripPostId, It.IsAny<CancellationToken>()))
+            _repo.Setup(r => r.GetTripPostAsync(proposal.TripPostId!.Value, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(tripPost);
             _repo.Setup(r => r.GetShipmentAsync(shipmentId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(shipment);
@@ -557,10 +557,10 @@ namespace HMS.Modules.Matching.Tests.Integration
                 .ReturnsAsync(proposal);
             _repo.Setup(r => r.GetActiveTripForDriverAsync(driverId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(trip);
-            _repo.Setup(r => r.GetTripPostAsync(proposal.TripPostId, It.IsAny<CancellationToken>()))
+            _repo.Setup(r => r.GetTripPostAsync(proposal.TripPostId!.Value, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new TripPostRecord
                 {
-                    Id = proposal.TripPostId,
+                    Id = proposal.TripPostId!.Value,
                     TripId = trip.Id,
                     Status = "Open",
                     CreatedBy = driverId,

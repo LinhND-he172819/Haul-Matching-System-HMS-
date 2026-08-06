@@ -96,7 +96,7 @@ export default function HomePage({ onNavigate, onNewProposal, onLogout }: HomePa
     // Proposal navigation — open CreateProposalPage with trip data
     const handleNewProposal = (trip: PublicTripPost) => {
         if (onNewProposal) {
-            onNewProposal(trip.id, trip.id, trip.pickupMode, trip);
+            onNewProposal(trip.id, trip.tripId, trip.pickupMode, trip);
         }
     };
 
