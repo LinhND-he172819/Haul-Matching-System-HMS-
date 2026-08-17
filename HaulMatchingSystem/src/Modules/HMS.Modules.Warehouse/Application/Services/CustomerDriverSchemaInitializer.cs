@@ -149,7 +149,11 @@ public sealed class CustomerDriverSchemaInitializer
         """;
         await ExecuteSql(conn, extendProposals, ct);
 
-        // 5. Create trip_incidents table for Driver incident reporting
+        // 5. Create/extend trip_incidents table for Driver incident reporting + management
+        // NOTE: index creation must happen AFTER extendIncidents below, because the
+        // table may already exist from a prior run without the newer columns (e.g. status).
+        // CREATE TABLE IF NOT EXISTS is a no-op when the table already exists, so any
+        // index referencing a not-yet-added column would fail.
         const string createIncidents = """
             CREATE TABLE IF NOT EXISTS transport.trip_incidents (
                 id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -161,9 +165,53 @@ public sealed class CustomerDriverSchemaInitializer
                 occurred_at         timestamptz NOT NULL,
                 created_at          timestamptz NOT NULL DEFAULT now()
             );
-            CREATE INDEX IF NOT EXISTS idx_trip_incidents_trip_id ON transport.trip_incidents (trip_id);
-        """;
+            """;
         await ExecuteSql(conn, createIncidents, ct);
+
+        // Ensure new columns exist even if table was created in a prior run
+        const string extendIncidents = """
+            ALTER TABLE transport.trip_incidents ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'Open';
+            ALTER TABLE transport.trip_incidents ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT FALSE;
+            ALTER TABLE transport.trip_incidents ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+            ALTER TABLE transport.trip_incidents ADD COLUMN IF NOT EXISTS assigned_to_user_id uuid;
+            ALTER TABLE transport.trip_incidents ADD COLUMN IF NOT EXISTS assigned_at timestamptz;
+            ALTER TABLE transport.trip_incidents ADD COLUMN IF NOT EXISTS resolution_note text;
+            ALTER TABLE transport.trip_incidents ADD COLUMN IF NOT EXISTS resolved_by_user_id uuid;
+            ALTER TABLE transport.trip_incidents ADD COLUMN IF NOT EXISTS resolved_at timestamptz;
+            ALTER TABLE transport.trip_incidents ADD COLUMN IF NOT EXISTS incident_code text;
+            """;
+        await ExecuteSql(conn, extendIncidents, ct);
+
+        // Create indexes AFTER columns are guaranteed to exist
+        const string incidentIndexes = """
+            CREATE INDEX IF NOT EXISTS idx_trip_incidents_trip_id ON transport.trip_incidents (trip_id);
+            CREATE INDEX IF NOT EXISTS idx_trip_incidents_status ON transport.trip_incidents (status);
+            CREATE INDEX IF NOT EXISTS idx_trip_incidents_reported_by ON transport.trip_incidents (reported_by);
+            """;
+        await ExecuteSql(conn, incidentIndexes, ct);
+        // Generate incident_code for existing incidents that don't have one
+        const string backfillIncidentCode = """
+            UPDATE transport.trip_incidents
+            SET incident_code = 'INC-' || SUBSTRING(id::text FROM 1 FOR 8)
+            WHERE incident_code IS NULL;
+        """;
+        await ExecuteSql(conn, backfillIncidentCode, ct);
+
+        // Create trip_incident_evidence table
+        const string createEvidence = """
+            CREATE TABLE IF NOT EXISTS transport.trip_incident_evidence (
+                id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                incident_id         uuid NOT NULL REFERENCES transport.trip_incidents(id) ON DELETE CASCADE,
+                storage_key         text NOT NULL,
+                original_file_name  text,
+                content_type        text,
+                file_size           bigint,
+                uploaded_by         uuid,
+                uploaded_at         timestamptz NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS idx_incident_evidence_incident_id ON transport.trip_incident_evidence (incident_id);
+        """;
+        await ExecuteSql(conn, createEvidence, ct);
 
         // 6. Extend trips with driver-trip management columns
         const string extendTrips = """

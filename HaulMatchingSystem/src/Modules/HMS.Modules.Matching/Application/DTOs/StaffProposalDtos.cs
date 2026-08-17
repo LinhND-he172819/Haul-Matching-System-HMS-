@@ -41,6 +41,10 @@ namespace HMS.Modules.Matching.Application.DTOs
         public DateTime? DepartureTime { get; set; }
 
         // Trip capacity
+        public decimal CurrentWeight { get; set; }
+        public decimal CurrentVolume { get; set; }
+        public decimal MaxWeight { get; set; }
+        public decimal MaxVolume { get; set; }
         public decimal RemainingWeight { get; set; }
         public decimal RemainingVolume { get; set; }
 
@@ -69,6 +73,7 @@ namespace HMS.Modules.Matching.Application.DTOs
         public string? ProposalCode { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public string ProposalSource { get; set; } = "Customer";
         public DateTime? ReviewedAt { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public DateTime? RejectedAt { get; set; }

@@ -1,8 +1,11 @@
 using System.Security.Claims;
 using HMS.Modules.Transport.Core.StateMachines;
 using HMS.Modules.Warehouse.Application.DTOs.Driver;
+using HMS.Modules.Warehouse.Application.Services;
 using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
@@ -15,10 +18,14 @@ namespace HMS.Modules.Warehouse.Controllers;
 public class DriverTripController : ControllerBase
 {
     private readonly IConfiguration _configuration;
+    private readonly IncidentService _incidentService;
+    private readonly IFileStorageService _fileStorage;
 
-    public DriverTripController(IConfiguration configuration)
+    public DriverTripController(IConfiguration configuration, IncidentService incidentService, IFileStorageService fileStorage)
     {
         _configuration = configuration;
+        _incidentService = incidentService;
+        _fileStorage = fileStorage;
     }
 
     private Guid GetCurrentUserId()
@@ -654,7 +661,192 @@ public class DriverTripController : ControllerBase
 
     // ─── POST /api/driver/trips/{tripId}/incidents ─────────────────────
     [HttpPost("trips/{tripId:guid}/incidents")]
-    public async Task<IActionResult> ReportIncident(Guid tripId, [FromBody] ReportIncidentRequest request, CancellationToken ct)
+    [RequestSizeLimit(25_000_000)] // 25 MB total
+    public async Task<IActionResult> ReportIncident(
+        Guid tripId,
+        [FromForm] string incidentType,
+        [FromForm] string description,
+        [FromForm] string? shipmentId,
+        [FromForm] List<IFormFile>? files,
+        CancellationToken ct)
+    {
+        var driverId = GetCurrentUserId();
+        await using var conn = new NpgsqlConnection(GetConnectionString());
+        await conn.OpenAsync(ct);
+
+        // ── Validate incident type ─────────────────────────────
+        if (string.IsNullOrWhiteSpace(incidentType) || !IncidentTypes.Allowed.Contains(incidentType))
+        {
+            return BadRequest(new { message = $"Loại sự cố không hợp lệ. Chỉ chấp nhận: {string.Join(", ", IncidentTypes.Allowed)}" });
+        }
+
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            return BadRequest(new { message = "Mô tả sự cố không được để trống." });
+        }
+
+        // ── Verify trip belongs to driver ──────────────────────
+        const string verifySql = """
+            SELECT id FROM transport.trips
+            WHERE id = @trip_id AND driver_id = @driver_id AND is_deleted = FALSE;
+        """;
+        await using (var cmd = new NpgsqlCommand(verifySql, conn))
+        {
+            cmd.Parameters.AddWithValue("trip_id", tripId);
+            cmd.Parameters.AddWithValue("driver_id", driverId);
+            if (await cmd.ExecuteScalarAsync(ct) == null)
+                return Forbid();
+        }
+
+        // ── Validate files ─────────────────────────────────────
+        var validFiles = new List<IFormFile>();
+        if (files != null && files.Count > 0)
+        {
+            var allowedExtensions = new HashSet<string> { ".jpg", ".jpeg", ".png", ".webp" };
+            var maxSize = 5 * 1024 * 1024L; // 5 MB per file
+            const int maxFiles = 5;
+
+            if (files.Count > maxFiles)
+                return BadRequest(new { message = $"Tối đa {maxFiles} hình ảnh." });
+
+            foreach (var file in files)
+            {
+                if (file.Length == 0) continue;
+                if (file.Length > maxSize)
+                    return BadRequest(new { message = $"File '{file.FileName}' vượt quá 5 MB." });
+
+                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(ext))
+                    return BadRequest(new { message = $"File '{file.FileName}' không phải hình ảnh hợp lệ (jpg/png/webp)." });
+
+                validFiles.Add(file);
+            }
+        }
+
+        // ── Generate incident code ─────────────────────────────
+        const string codeSql = "SELECT COUNT(*)::int FROM transport.trip_incidents;";
+        await using (var codeCmd = new NpgsqlCommand(codeSql, conn))
+        {
+            var count = (int)(await codeCmd.ExecuteScalarAsync(ct))!;
+            var incidentCode = $"INC-{(count + 1):D4}";
+        }
+
+        // Generate unique code
+        string finalCode;
+        const string countSql = "SELECT COUNT(*)::int FROM transport.trip_incidents;";
+        await using (var countCmd = new NpgsqlCommand(countSql, conn))
+        {
+            var totalCount = (int)(await countCmd.ExecuteScalarAsync(ct))!;
+            finalCode = $"INC-{(totalCount + 1):D4}";
+        }
+
+        // Ensure uniqueness
+        const string checkSql = "SELECT COUNT(*)::int FROM transport.trip_incidents WHERE incident_code = @code;";
+        await using (var checkCmd = new NpgsqlCommand(checkSql, conn))
+        {
+            checkCmd.Parameters.AddWithValue("code", finalCode);
+            if ((int)(await checkCmd.ExecuteScalarAsync(ct))! > 0)
+                finalCode = $"INC-{Guid.NewGuid().ToString()[..8].ToUpper()}";
+        }
+
+        // ── Insert incident ────────────────────────────────────
+        var now = DateTimeOffset.UtcNow;
+        const string insertSql = """
+            INSERT INTO transport.trip_incidents
+                (trip_id, shipment_id, reported_by, incident_type, description, occurred_at, created_at, status, incident_code, updated_at)
+            VALUES
+                (@trip_id, @shipment_id, @reported_by, @incident_type, @description, @occurred_at, @created_at, 'Open', @incident_code, @updated_at)
+            RETURNING id;
+        """;
+        Guid incidentId;
+        await using (var cmd2 = new NpgsqlCommand(insertSql, conn))
+        {
+            cmd2.Parameters.AddWithValue("trip_id", tripId);
+            cmd2.Parameters.AddWithValue("shipment_id", Guid.TryParse(shipmentId, out var sid) ? sid : (object)DBNull.Value);
+            cmd2.Parameters.AddWithValue("reported_by", driverId);
+            cmd2.Parameters.AddWithValue("incident_type", incidentType);
+            cmd2.Parameters.AddWithValue("description", description);
+            cmd2.Parameters.AddWithValue("occurred_at", now);
+            cmd2.Parameters.AddWithValue("created_at", now);
+            cmd2.Parameters.AddWithValue("incident_code", finalCode);
+            cmd2.Parameters.AddWithValue("updated_at", now);
+            incidentId = (Guid)(await cmd2.ExecuteScalarAsync(ct))!;
+        }
+
+        // ── Save evidence files ────────────────────────────────
+        var evidenceDtos = new List<object>();
+        if (validFiles.Count > 0)
+        {
+            const string insertEvidenceSql = """
+                INSERT INTO transport.trip_incident_evidence
+                    (incident_id, storage_key, original_file_name, content_type, file_size, uploaded_by, uploaded_at)
+                VALUES
+                    (@incident_id, @storage_key, @original_file_name, @content_type, @file_size, @uploaded_by, @uploaded_at)
+                RETURNING id;
+            """;
+
+            foreach (var file in validFiles)
+            {
+                var storageKey = await _fileStorage.SaveAsync(file.OpenReadStream(), file.FileName, file.ContentType, ct);
+
+                await using var evCmd = new NpgsqlCommand(insertEvidenceSql, conn);
+                evCmd.Parameters.AddWithValue("incident_id", incidentId);
+                evCmd.Parameters.AddWithValue("storage_key", storageKey);
+                evCmd.Parameters.AddWithValue("original_file_name", (object?)file.FileName ?? DBNull.Value);
+                evCmd.Parameters.AddWithValue("content_type", (object?)file.ContentType ?? DBNull.Value);
+                evCmd.Parameters.AddWithValue("file_size", file.Length);
+                evCmd.Parameters.AddWithValue("uploaded_by", driverId);
+                evCmd.Parameters.AddWithValue("uploaded_at", now);
+                var evidenceId = await evCmd.ExecuteScalarAsync(ct);
+
+                evidenceDtos.Add(new { id = evidenceId, fileName = file.FileName });
+            }
+        }
+
+        // ── Audit ──────────────────────────────────────────────
+        await InsertAuditLog(conn, "Trip", tripId, "IncidentReported", driverId, ct);
+
+        // ── Send email (with result tracking) ──────────────────
+        var emailSent = false;
+        var emailError = (string?)null;
+        try
+        {
+            using var emailConn = new NpgsqlConnection(GetConnectionString());
+            await emailConn.OpenAsync(ct);
+            var recipients = await _incidentService.GetIncidentRecipientsAsync(emailConn, incidentId, "Reported", ct);
+            if (recipients.Count > 0)
+            {
+                await _incidentService.SendIncidentReportedEmailAsync(emailConn, incidentId, ct);
+                emailSent = true;
+                Console.WriteLine($"[Incident] Reported email sent to {recipients.Count} recipients for {incidentId}");
+            }
+            else
+            {
+                emailError = "Không tìm thấy người nhận email";
+                Console.WriteLine($"[Incident] No email recipients found for Reported {incidentId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            emailError = ex.Message;
+            Console.Error.WriteLine($"[Incident] Email dispatch failed: {ex.Message}");
+        }
+
+        return StatusCode(201, new
+        {
+            id = incidentId,
+            incidentCode = finalCode,
+            status = "Open",
+            evidence = evidenceDtos,
+            emailSent,
+            emailError,
+            message = "Đã báo cáo sự cố thành công."
+        });
+    }
+
+    // ─── GET /api/driver/trips/{tripId}/incidents ─────────────────────
+    [HttpGet("trips/{tripId:guid}/incidents")]
+    public async Task<IActionResult> GetTripIncidents(Guid tripId, CancellationToken ct)
     {
         var driverId = GetCurrentUserId();
         await using var conn = new NpgsqlConnection(GetConnectionString());
@@ -673,25 +865,150 @@ public class DriverTripController : ControllerBase
                 return Forbid();
         }
 
-        // Insert incident
-        const string insertSql = """
-            INSERT INTO transport.trip_incidents (trip_id, shipment_id, reported_by, incident_type, description, occurred_at, created_at)
-            VALUES (@trip_id, @shipment_id, @reported_by, @incident_type, @description, @occurred_at, NOW())
-            RETURNING id;
+        const string sql = """
+            SELECT ti.id, ti.incident_code, ti.incident_type, ti.description, ti.status,
+                   ti.created_at, ti.updated_at,
+                   (SELECT COUNT(*) FROM transport.trip_incident_evidence WHERE incident_id = ti.id) AS evidence_count
+            FROM transport.trip_incidents ti
+            WHERE ti.trip_id = @trip_id AND ti.reported_by = @driver_id
+            ORDER BY ti.created_at DESC;
         """;
-        await using var cmd2 = new NpgsqlCommand(insertSql, conn);
-        cmd2.Parameters.AddWithValue("trip_id", tripId);
-        cmd2.Parameters.AddWithValue("shipment_id", (object?)request.ShipmentId ?? DBNull.Value);
-        cmd2.Parameters.AddWithValue("reported_by", driverId);
-        cmd2.Parameters.AddWithValue("incident_type", request.IncidentType);
-        cmd2.Parameters.AddWithValue("description", request.Description);
-        cmd2.Parameters.AddWithValue("occurred_at", request.OccurredAt);
-        var incidentId = await cmd2.ExecuteScalarAsync(ct);
+        await using var listCmd = new NpgsqlCommand(sql, conn);
+        listCmd.Parameters.AddWithValue("trip_id", tripId);
+        listCmd.Parameters.AddWithValue("driver_id", driverId);
 
-        // Audit
-        await InsertAuditLog(conn, "Trip", tripId, "IncidentReported", driverId, ct);
+        var incidents = new List<object>();
+        await using var reader = await listCmd.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+        {
+            incidents.Add(new
+            {
+                id = reader.GetGuid(0),
+                incidentCode = reader.IsDBNull(1) ? null : reader.GetString(1),
+                incidentType = reader.GetString(2),
+                description = reader.GetString(3),
+                status = reader.GetString(4),
+                createdAt = reader.GetDateTime(5),
+                updatedAt = reader.GetDateTime(6),
+                evidenceCount = reader.GetInt32(7)
+            });
+        }
 
-        return StatusCode(201, new { id = incidentId, message = "Đã báo cáo sự cố." });
+        return Ok(incidents);
+    }
+
+    // ─── GET /api/driver/incidents/{incidentId} ───────────────────────
+    [HttpGet("incidents/{incidentId:guid}")]
+    public async Task<IActionResult> GetIncidentDetail(Guid incidentId, CancellationToken ct)
+    {
+        var driverId = GetCurrentUserId();
+        await using var conn = new NpgsqlConnection(GetConnectionString());
+        await conn.OpenAsync(ct);
+
+        // Verify incident belongs to driver
+        const string verifySql = """
+            SELECT id FROM transport.trip_incidents
+            WHERE id = @incident_id AND reported_by = @driver_id;
+        """;
+        await using (var cmd = new NpgsqlCommand(verifySql, conn))
+        {
+            cmd.Parameters.AddWithValue("incident_id", incidentId);
+            cmd.Parameters.AddWithValue("driver_id", driverId);
+            if (await cmd.ExecuteScalarAsync(ct) == null)
+                return NotFound(new { message = "Không tìm thấy sự cố." });
+        }
+
+        var info = await _incidentService.GetIncidentInfoAsync(conn, incidentId, ct);
+
+        // Load evidence
+        const string evidenceSql = """
+            SELECT id, original_file_name, content_type, file_size, uploaded_at
+            FROM transport.trip_incident_evidence
+            WHERE incident_id = @incident_id
+            ORDER BY uploaded_at ASC;
+        """;
+        await using var evCmd = new NpgsqlCommand(evidenceSql, conn);
+        evCmd.Parameters.AddWithValue("incident_id", incidentId);
+        var evidence = new List<object>();
+        await using var evReader = await evCmd.ExecuteReaderAsync(ct);
+        while (await evReader.ReadAsync(ct))
+        {
+            evidence.Add(new
+            {
+                id = evReader.GetGuid(0),
+                fileName = evReader.IsDBNull(1) ? "unknown" : evReader.GetString(1),
+                contentType = evReader.IsDBNull(2) ? "image/jpeg" : evReader.GetString(2),
+                fileSize = evReader.IsDBNull(3) ? 0L : evReader.GetInt64(4),
+                uploadedAt = evReader.GetDateTime(4)
+            });
+        }
+
+        return Ok(new
+        {
+            id = incidentId,
+            incidentCode = info.IncidentCode,
+            tripId = info.TripId,
+            tripCode = info.TripCode,
+            incidentType = info.IncidentType,
+            description = info.Description,
+            status = info.Status,
+            reportedAt = info.ReportedAt,
+            route = info.Route,
+            vehiclePlate = info.Vehicle,
+            resolutionNote = info.ResolutionNote,
+            resolvedAt = info.ResolvedAt,
+            evidence
+        });
+    }
+
+    // ─── GET /api/driver/incidents/{incidentId}/evidence/{evidenceId} ──
+    [HttpGet("incidents/{incidentId:guid}/evidence/{evidenceId:guid}")]
+    public async Task<IActionResult> DownloadEvidence(Guid incidentId, Guid evidenceId, CancellationToken ct)
+    {
+        var driverId = GetCurrentUserId();
+        await using var conn = new NpgsqlConnection(GetConnectionString());
+        await conn.OpenAsync(ct);
+
+        // Verify incident belongs to driver
+        const string verifySql = """
+            SELECT id FROM transport.trip_incidents
+            WHERE id = @incident_id AND reported_by = @driver_id;
+        """;
+        await using (var vCmd = new NpgsqlCommand(verifySql, conn))
+        {
+            vCmd.Parameters.AddWithValue("incident_id", incidentId);
+            vCmd.Parameters.AddWithValue("driver_id", driverId);
+            if (await vCmd.ExecuteScalarAsync(ct) == null)
+                return Forbid();
+        }
+
+        const string sql = """
+            SELECT storage_key, original_file_name, content_type
+            FROM transport.trip_incident_evidence
+            WHERE id = @evidence_id AND incident_id = @incident_id;
+        """;
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("evidence_id", evidenceId);
+        cmd.Parameters.AddWithValue("incident_id", incidentId);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct))
+            return NotFound(new { message = "Không tìm thấy file." });
+
+        var storageKey = reader.GetString(0);
+        var fileName = reader.IsDBNull(1) ? "file" : reader.GetString(1);
+        var contentType = reader.IsDBNull(2) ? "application/octet-stream" : reader.GetString(2);
+
+        try
+        {
+            var result = await _fileStorage.OpenReadAsync(storageKey, ct);
+            if (result is null)
+                return NotFound(new { message = "File không tồn tại trên hệ thống." });
+            return File(result.Value.Stream, result.Value.ContentType, result.Value.FileName);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound(new { message = "File không tồn tại trên hệ thống." });
+        }
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────

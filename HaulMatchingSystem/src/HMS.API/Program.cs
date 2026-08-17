@@ -20,6 +20,7 @@ using HMS.Modules.Transport.Channels;
 using HMS.Modules.Transport.Workers;
 using HMS.Modules.Warehouse.Application.Services;
 using HMS.Shared.Core.Interfaces;
+using HMS.Shared.Infrastructure.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -57,12 +58,15 @@ builder.Services.AddSignalR();
 // Add controllers
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(HMS.Modules.Transport.Controllers.TripPostsController).Assembly)
+    .AddApplicationPart(typeof(HMS.Modules.Warehouse.Controllers.DriverTripController).Assembly)
     .AddJsonOptions(options =>
 {
+    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
@@ -127,6 +131,12 @@ builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IDriverExternalS
 builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IQuotationService, HMS.Modules.Matching.Application.Services.QuotationService>();
 builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IPaymentService, HMS.Modules.Matching.Application.Services.PaymentService>();
 builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IQuotationPaymentRepository, HMS.Modules.Matching.Infrastructure.QuotationPaymentRepository>();
+
+// Incident Management services
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+builder.Services.AddScoped<IncidentService>();
 
 // Exception middleware (registered as transient through pipeline)
 

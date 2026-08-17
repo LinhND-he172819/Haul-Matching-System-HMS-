@@ -83,13 +83,13 @@ namespace HMS.Modules.Matching.Application.Services
                 // Generate quotation code
                 var quotationCode = await GenerateQuotationCodeAsync(conn, ct);
 
-                // Insert quotation
+                // Insert quotation (shipment_id is required NOT NULL in the DB schema)
                 const string sql = """
                     INSERT INTO warehouse.quotations
-                        (id, shipment_id, proposal_id, quotation_code, shipping_fee, deposit_amount, currency,
+                        (id, proposal_id, shipment_id, quotation_code, shipping_fee, deposit_amount, currency,
                          status, quoted_by, quoted_at, expires_at, created_at, updated_at, is_deleted)
                     VALUES
-                        (@id, @shipment_id, @proposal_id, @quotation_code, @shipping_fee, @deposit_amount, @currency,
+                        (@id, @proposal_id, @shipment_id, @quotation_code, @shipping_fee, @deposit_amount, @currency,
                          'Draft', @quoted_by, NOW(), @expires_at, NOW(), NOW(), FALSE)
                     RETURNING id, created_at;
                 """;
@@ -98,8 +98,8 @@ namespace HMS.Modules.Matching.Application.Services
                 await using (var cmd = new NpgsqlCommand(sql, conn, tx))
                 {
                     cmd.Parameters.AddWithValue("id", id);
-                    cmd.Parameters.AddWithValue("shipment_id", proposal.ShipmentId);
                     cmd.Parameters.AddWithValue("proposal_id", proposalId);
+                    cmd.Parameters.AddWithValue("shipment_id", proposal.ShipmentId);
                     cmd.Parameters.AddWithValue("quotation_code", quotationCode);
                     cmd.Parameters.AddWithValue("shipping_fee", request.ShippingFee);
                     cmd.Parameters.AddWithValue("deposit_amount", request.DepositAmount);
@@ -303,15 +303,18 @@ namespace HMS.Modules.Matching.Application.Services
                 await tx.CommitAsync(ct);
 
                 // Notification
-                await SaveNotificationAsync(conn, proposal.CustomerId,
-                    "Báo giá mới",
-                    $"Bạn có báo giá mới cho đề xuất. Vui lòng xem và thanh toán tiền cọc.",
-                    "Quotation", quotationId, ct);
+                if (proposal.CustomerId.HasValue)
+                {
+                    await SaveNotificationAsync(conn, proposal.CustomerId.Value,
+                        "Báo giá mới",
+                        $"Bạn có báo giá mới cho đề xuất. Vui lòng xem và thanh toán tiền cọc.",
+                        "Quotation", quotationId, ct);
+                }
 
                 // SignalR
                 try
                 {
-                    await _dispatcher.SendQuotationToCustomerAsync(proposal.CustomerId, new QuotationEventPayload
+                    await _dispatcher.SendQuotationToCustomerAsync(proposal.CustomerId ?? Guid.Empty, new QuotationEventPayload
                     {
                         EventType = "QuotationSent",
                         QuotationId = quotationId,
@@ -573,7 +576,7 @@ namespace HMS.Modules.Matching.Application.Services
                     reader.GetDateTime(10), reader.GetGuid(1));
         }
 
-        private static async Task<(Guid Id, string Status, Guid ShipmentId, Guid CustomerId)?>
+        private static async Task<(Guid Id, string Status, Guid ShipmentId, Guid? CustomerId)?>
             ReadProposalAsync(NpgsqlConnection conn, NpgsqlTransaction tx,
             Guid proposalId, CancellationToken ct)
         {
@@ -586,7 +589,8 @@ namespace HMS.Modules.Matching.Application.Services
             cmd.Parameters.AddWithValue("id", proposalId);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             if (!await reader.ReadAsync()) return null;
-            return (reader.GetGuid(0), reader.GetString(1), reader.GetGuid(2), reader.GetGuid(3));
+            return (reader.GetGuid(0), reader.GetString(1), reader.GetGuid(2),
+                    reader.IsDBNull(3) ? null : reader.GetGuid(3));
         }
 
         private static async Task<bool> HasActiveQuotationAsync(

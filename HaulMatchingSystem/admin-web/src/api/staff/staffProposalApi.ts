@@ -87,7 +87,7 @@ export interface CustomerInfoDto {
   id: string;
   fullName: string;
   phone: string;
-  email: string;
+  email?: string;
 }
 
 export interface QuotationSummaryDto {
@@ -117,6 +117,7 @@ export interface StaffProposalDetail {
   proposalCode?: string | null;
   code?: string; // frontend alias fallback
   status: string;
+  proposalSource?: string;
   createdAt: string;
   reviewedAt?: string | null;
   approvedAt?: string | null;
@@ -156,12 +157,14 @@ export interface PagedResult<T> {
 export async function getStaffProposals(params: {
   status?: string;
   proposalSource?: string;
+  search?: string;
   page?: number;
   pageSize?: number;
 }): Promise<PagedResult<StaffProposalSummary>> {
   const url = new URL(`${API_BASE}/api/staff/proposals`);
   if (params.status) url.searchParams.set('status', params.status);
   if (params.proposalSource) url.searchParams.set('proposalSource', params.proposalSource);
+  if (params.search) url.searchParams.set('search', params.search);
   if (params.page) url.searchParams.set('page', params.page.toString());
   if (params.pageSize) url.searchParams.set('pageSize', params.pageSize.toString());
 

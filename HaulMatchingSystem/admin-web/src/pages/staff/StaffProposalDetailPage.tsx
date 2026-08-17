@@ -29,6 +29,15 @@ const STATUS_LABELS: Record<string, string> = {
   Expired: 'Đã hết hạn',
 };
 
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  Approved: 'Đã duyệt',
+  Rejected: 'Đã từ chối',
+  Created: 'Tạo đề xuất',
+  Submitted: 'Gửi đề xuất',
+  Cancelled: 'Đã hủy',
+  PendingReview: 'Chờ duyệt',
+};
+
 /* ─── Props ─────────────────────────────────────────────────────── */
 
 type Props = {
@@ -149,6 +158,7 @@ export default function StaffProposalDetailPage({
   }
 
   const { shipment, trip, tripCapacity, customer, quotations, audit } = detail;
+  const isDriverProposal = detail.proposalSource === 'Driver';
 
   return (
     <div className="min-h-screen bg-surface">
@@ -226,7 +236,7 @@ export default function StaffProposalDetailPage({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Người nhận</p>
-                  <p className="text-body-md font-semibold">{shipment.receiver}</p>
+                  <p className="text-body-md font-semibold">{shipment.receiverName || shipment.receiver || '—'}</p>
                 </div>
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Địa chỉ</p>
@@ -299,11 +309,11 @@ export default function StaffProposalDetailPage({
               </div>
             </div>
 
-            {/* Customer Info */}
+            {/* Customer/Driver Info */}
             <div className="bg-white rounded-2xl border border-outline-variant p-5">
               <h2 className="text-title-lg font-bold text-on-surface mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">person</span>
-                Thông tin khách hàng
+                {isDriverProposal ? 'Thông tin tài xế' : 'Thông tin khách hàng'}
               </h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -314,10 +324,7 @@ export default function StaffProposalDetailPage({
                   <p className="text-label-sm text-on-surface-variant">Số điện thoại</p>
                   <p className="text-body-md">{customer.phone}</p>
                 </div>
-                <div>
-                  <p className="text-label-sm text-on-surface-variant">Email</p>
-                  <p className="text-body-md">{customer.email}</p>
-                </div>
+
               </div>
             </div>
           </div>
@@ -425,11 +432,11 @@ export default function StaffProposalDetailPage({
                     <div key={i} className="flex gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <span className="material-symbols-outlined text-primary text-[14px]">
-                          {a.action.includes('Approve') ? 'check_circle' : a.action.includes('Reject') ? 'cancel' : 'edit'}
+                          {a.action.includes('Approve') || a.action === 'Approved' ? 'check_circle' : a.action.includes('Reject') || a.action === 'Rejected' ? 'cancel' : 'edit'}
                         </span>
                       </div>
                       <div>
-                        <p className="text-body-md font-semibold text-on-surface">{a.action}</p>
+                        <p className="text-body-md font-semibold text-on-surface">{AUDIT_ACTION_LABELS[a.action] || a.action}</p>
                         <p className="text-label-sm text-on-surface-variant">{a.details}</p>
                         <p className="text-label-sm text-on-surface-variant">
                           {a.performedByName} • {formatDate(a.occurredAt)}

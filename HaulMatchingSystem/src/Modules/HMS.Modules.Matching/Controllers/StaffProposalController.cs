@@ -59,6 +59,7 @@ namespace HMS.Modules.Matching.Controllers
             [FromQuery] string? status,
             [FromQuery] string? proposalSource,
             [FromQuery] Guid? driverId,
+            [FromQuery] string? search,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
             CancellationToken ct = default)
@@ -70,14 +71,14 @@ namespace HMS.Modules.Matching.Controllers
                 var hubId = GetStaffHubId();
 
                 var result = await _proposalService.GetProposalsAsync(
-                    staffId, role, hubId, status, proposalSource, driverId, page, pageSize, ct);
+                    staffId, role, hubId, status, proposalSource, driverId, search, page, pageSize, ct);
 
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting staff proposals");
-                return StatusCode(500, new { message = "Lỗi khi lấy danh sách đề xuất." });
+                _logger.LogError(ex, "Error getting staff proposals: {Type} - {Message}", ex.GetType().Name, ex.Message);
+                return StatusCode(500, new { message = "Lỗi khi lấy danh sách đề xuất.", detail = ex.Message, type = ex.GetType().Name });
             }
         }
 

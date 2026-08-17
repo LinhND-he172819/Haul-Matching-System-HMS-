@@ -14,6 +14,7 @@ namespace HMS.Modules.Matching.Core.Interfaces
         Task<PagedResult<StaffProposalSummaryDto>> GetProposalsAsync(
             Guid staffId, string? role, Guid? hubId,
             string? status, string? proposalSource, Guid? driverId,
+            string? search,
             int page, int pageSize,
             CancellationToken ct);
 

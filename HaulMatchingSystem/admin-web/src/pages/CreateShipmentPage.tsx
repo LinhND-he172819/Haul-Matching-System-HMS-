@@ -6,21 +6,25 @@ import {
     type DraftShipmentResponse,
 } from "../api/shipmentsApi";
 import { createProposal } from "../api/proposalApi";
+import AppHeader from "../components/AppHeader";
 
 interface CreateShipmentPageProps {
     onNavigate: (page: 'login' | 'register' | 'home' | 'create-shipment') => void;
+    onLogout?: () => void;
     proposalTripPostId?: string | null;
     proposalTripId?: string | null; // Kept for API compat, but only proposalTripPostId is used
     pickupMode?: string | null; // "Hub" | "DirectPickup"
 }
 
-export default function CreateShipmentPage({ onNavigate, proposalTripPostId, proposalTripId, pickupMode }: CreateShipmentPageProps) {
+export default function CreateShipmentPage({ onNavigate, onLogout, proposalTripPostId, proposalTripId, pickupMode }: CreateShipmentPageProps) {
     const isProposalMode = Boolean(proposalTripPostId);
     const isDirectPickup = pickupMode === 'DirectPickup';
 
     const [step, setStep] = useState(1);
     const [result, setResult] = useState<DraftShipmentResponse | null>(null);
     const [loading, setLoading] = useState(false);
+    const [geocoding, setGeocoding] = useState(false);
+    const [destResolvedName, setDestResolvedName] = useState("");
 
     const [form, setForm] = useState(() => ({
         customerId: localStorage.getItem('userId') ?? localStorage.getItem('customerId') ?? '',
@@ -46,6 +50,7 @@ export default function CreateShipmentPage({ onNavigate, proposalTripPostId, pro
 
     const update = (key: string, value: string) => {
         setForm((prev) => ({ ...prev, [key]: value }));
+        if (key === "destAddress") setDestResolvedName("");
     };
 
     const handleGeocodeAddress = async () => {
@@ -55,6 +60,7 @@ export default function CreateShipmentPage({ onNavigate, proposalTripPostId, pro
         }
 
         try {
+            setGeocoding(true);
             const result = await geocodeAddress(form.destAddress);
 
             setForm((prev) => ({
@@ -62,10 +68,11 @@ export default function CreateShipmentPage({ onNavigate, proposalTripPostId, pro
                 destLat: String(result.lat),
                 destLng: String(result.lng),
             }));
-
-            alert(`Đã xác định vị trí: ${result.displayName}`);
+            setDestResolvedName(result.displayName);
         } catch {
             alert("Không tìm thấy địa chỉ. Vui lòng nhập địa chỉ rõ hơn.");
+        } finally {
+            setGeocoding(false);
         }
     };
 
@@ -345,8 +352,15 @@ export default function CreateShipmentPage({ onNavigate, proposalTripPostId, pro
     }
 
     return (
-        <main className="min-h-screen bg-background flex items-center justify-center p-4">
-            <div className="w-full max-w-3xl bg-white rounded-xl shadow p-6 md:p-8">
+        <main className="min-h-screen bg-background">
+            <AppHeader
+                onLogout={onLogout}
+                pages={[
+                    { label: isProposalMode ? 'Tạo đề xuất ghép chuyến' : 'Tạo đơn gửi hàng', onClick: () => {}, active: true },
+                ]}
+            />
+            <div className="max-w-3xl mx-auto px-4 py-6">
+            <div className="w-full bg-white rounded-xl shadow p-6 md:p-8">
                 <h1 className="text-3xl font-bold text-center mb-8">
                     {isProposalMode ? 'Tạo đề xuất ghép chuyến' : 'Tạo Đơn Hàng Mới'}
                 </h1>
@@ -484,16 +498,18 @@ export default function CreateShipmentPage({ onNavigate, proposalTripPostId, pro
 
                                 <button
                                     type="button"
-                                    className="px-4 py-2 rounded-lg bg-blue-800 text-white"
+                                    className="px-4 py-2 rounded-lg bg-blue-800 text-white disabled:opacity-50"
                                     onClick={handleGeocodeAddress}
+                                    disabled={geocoding}
                                 >
-                                    Tìm vị trí
+                                    {geocoding ? "Đang tìm..." : "Tìm vị trí"}
                                 </button>
                             </div>
 
                             {form.destLat && form.destLng && (
-                                <p className="text-sm text-green-700">
-                                    ✓ Đã xác định vị trí giao hàng.
+                                <p className="text-sm text-green-700 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                                    {destResolvedName || "Đã xác định vị trí giao hàng."}
                                 </p>
                             )}
                         </div>
@@ -516,6 +532,7 @@ export default function CreateShipmentPage({ onNavigate, proposalTripPostId, pro
                         </div>
                     </div>
                 )}
+            </div>
             </div>
         </main>
     );
