@@ -79,6 +79,7 @@ export default function DriverTripDetailPage({ tripId, onBack, onLogout }: Props
   const [deliveryNote, setDeliveryNote] = useState('');
   const [incidentType, setIncidentType] = useState('Delay');
   const [incidentDescription, setIncidentDescription] = useState('');
+  const [incidentFiles, setIncidentFiles] = useState<File[]>([]);
 
   // Part 13: COD state
   const [codConfirming, setCodConfirming] = useState<string | null>(null);
@@ -175,18 +176,45 @@ export default function DriverTripDetailPage({ tripId, onBack, onLogout }: Props
         shipmentId: selectedShipment?.id,
         incidentType,
         description: incidentDescription,
-        occurredAt: new Date().toISOString(),
+        files: incidentFiles.length > 0 ? incidentFiles : undefined,
       });
       setToast({ message: 'Đã báo cáo sự cố.', type: 'success' });
       setShowIncidentDialog(false);
       setIncidentDescription('');
       setSelectedShipment(null);
+      setIncidentFiles([]);
       await loadDetail();
     } catch (err: any) {
       setToast({ message: err.message || 'Lỗi', type: 'error' });
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleIncidentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const maxSize = 5 * 1024 * 1024; // 5 MB
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.webp'];
+    const validFiles: File[] = [];
+    for (const file of Array.from(files)) {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!allowedExts.includes(ext)) {
+        setToast({ message: `File '${file.name}' không phải hình ảnh hợp lệ.`, type: 'error' });
+        continue;
+      }
+      if (file.size > maxSize) {
+        setToast({ message: `File '${file.name}' vượt quá 5 MB.`, type: 'error' });
+        continue;
+      }
+      validFiles.push(file);
+    }
+    setIncidentFiles(prev => [...prev, ...validFiles].slice(0, 5));
+    if (e.target) e.target.value = '';
+  };
+
+  const removeIncidentFile = (index: number) => {
+    setIncidentFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   // ─── Part 13: COD Confirmation ───
@@ -540,8 +568,12 @@ export default function DriverTripDetailPage({ tripId, onBack, onLogout }: Props
                   className="w-full px-4 py-3 rounded-xl border border-outline-variant bg-surface text-on-surface text-body-md focus:outline-none focus:border-primary"
                 >
                   <option value="Delay">Trễ hạn</option>
-                  <option value="Accident">Tai nạn</option>
                   <option value="VehicleBreakdown">Hỏng xe</option>
+                  <option value="Accident">Tai nạn</option>
+                  <option value="CargoDamage">Hư hỏng hàng hóa</option>
+                  <option value="CargoLost">Mất hàng</option>
+                  <option value="DeliveryProblem">Sự cố giao hàng</option>
+                  <option value="RouteProblem">Sự cố tuyến đường</option>
                   <option value="Weather">Thời tiết</option>
                   <option value="Other">Khác</option>
                 </select>
@@ -556,10 +588,44 @@ export default function DriverTripDetailPage({ tripId, onBack, onLogout }: Props
                   rows={3}
                 />
               </div>
+              <div>
+                <label className="text-label-md font-medium text-on-surface mb-1 block">Hình ảnh minh chứng</label>
+                <p className="text-caption text-on-surface-variant/70 mb-2">
+                  Hỗ trợ: <strong>.jpg</strong>, <strong>.jpeg</strong>, <strong>.png</strong>, <strong>.webp</strong> — tối đa <strong>5 MB</strong>/file, tối đa <strong>5</strong> ảnh
+                </p>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  multiple
+                  onChange={handleIncidentFileChange}
+                  className="w-full px-4 py-2 rounded-xl border border-outline-variant bg-surface text-on-surface text-body-md file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-primary file:text-on-primary file:text-label-md file:cursor-pointer hover:file:bg-primary/90"
+                />
+                {incidentFiles.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {incidentFiles.map((file, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          className="w-16 h-16 object-cover rounded-lg border border-outline-variant"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeIncidentFile(idx)}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-error text-on-error rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ✕
+                        </button>
+                        <p className="text-caption text-on-surface-variant truncate w-16 text-center" title={file.name}>{file.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex gap-3 mt-4">
               <button
-                onClick={() => { setShowIncidentDialog(false); setIncidentDescription(''); }}
+                onClick={() => { setShowIncidentDialog(false); setIncidentDescription(''); setIncidentFiles([]); }}
                 className="flex-1 px-4 py-3 rounded-xl border border-outline-variant text-on-surface hover:bg-surface-container-low transition-colors text-label-md font-bold"
               >
                 Đóng

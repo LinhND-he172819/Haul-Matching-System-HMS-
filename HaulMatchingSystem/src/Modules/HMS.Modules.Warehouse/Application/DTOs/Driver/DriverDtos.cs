@@ -188,5 +188,25 @@ public sealed record ReportIncidentRequest
     public Guid? ShipmentId { get; init; }
     public string IncidentType { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
-    public DateTimeOffset OccurredAt { get; init; }
+}
+
+// ─── Incident Type Constants ────────────────────────────────────────
+
+public static class IncidentTypes
+{
+    public const string Delay = "Delay";
+    public const string VehicleBreakdown = "VehicleBreakdown";
+    public const string Accident = "Accident";
+    public const string CargoDamage = "CargoDamage";
+    public const string CargoLost = "CargoLost";
+    public const string DeliveryProblem = "DeliveryProblem";
+    public const string RouteProblem = "RouteProblem";
+    public const string Weather = "Weather";
+    public const string Other = "Other";
+
+    public static readonly HashSet<string> Allowed = new()
+    {
+        Delay, VehicleBreakdown, Accident, CargoDamage, CargoLost,
+        DeliveryProblem, RouteProblem, Weather, Other
+    };
 }

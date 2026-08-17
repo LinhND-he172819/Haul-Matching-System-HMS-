@@ -16,14 +16,11 @@ namespace HMS.Modules.Matching.Application.DTOs
         public string ReceiverPhone { get; init; } = string.Empty;
         public string DestAddress { get; init; } = string.Empty;
 
-        // Shipment
+        // Shipment (same fields as customer proposal form)
         public string Category { get; init; } = string.Empty;
-        public string? Description { get; init; }
         public decimal WeightKg { get; init; }
         public decimal VolumeCbm { get; init; }
-        public int Quantity { get; init; } = 1;
-        public bool CodRequired { get; init; }
-        public string? Note { get; init; }
+        public string? SpecialHandlingNote { get; init; }
     }
 
     /// <summary>
@@ -83,12 +80,9 @@ namespace HMS.Modules.Matching.Application.DTOs
 
         // Shipment details
         public string Category { get; init; } = string.Empty;
-        public string? Description { get; init; }
         public decimal WeightKg { get; init; }
         public decimal VolumeCbm { get; init; }
-        public int Quantity { get; init; }
-        public bool CodRequired { get; init; }
-        public string? Note { get; init; }
+        public string? SpecialHandlingNote { get; init; }
         public decimal CodAmount { get; init; }
 
         // Statuses

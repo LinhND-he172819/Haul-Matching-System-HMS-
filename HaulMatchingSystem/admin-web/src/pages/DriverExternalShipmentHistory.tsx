@@ -101,7 +101,7 @@ export default function DriverExternalShipmentHistory({
       <AppHeader
         onLogout={onLogout}
         pages={[
-          { label: 'Chuyến đi', onClick: () => onNavigate?.('driver-trips') },
+          { label: 'Chuyến đi của tôi', onClick: () => onNavigate?.('driver-trips-v2') },
           { label: 'Đơn ngoài hệ thống', onClick: () => {}, active: true },
         ]}
       />

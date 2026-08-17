@@ -90,8 +90,8 @@ namespace HMS.Modules.Matching.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting external shipments for driver");
-                return StatusCode(500, new { message = "Lỗi khi lấy danh sách hàng ngoài." });
+                _logger.LogError(ex, "Error getting external shipments for driver. Type: {Type}, Message: {Msg}", ex.GetType().Name, ex.Message);
+                return StatusCode(500, new { message = "Lỗi khi lấy danh sách hàng ngoài.", detail = ex.Message, type = ex.GetType().Name });
             }
         }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import {
     createDraftShipment,
@@ -7,6 +7,8 @@ import {
 } from "../api/shipmentsApi";
 import { createProposal } from "../api/proposalApi";
 import type { PublicTripPost } from "../api/tripPostApi";
+import ShipmentFormFields from "../components/ShipmentFormFields";
+import type { ShipmentFormData } from "../components/ShipmentFormFields";
 
 interface CreateProposalPageProps {
     trip: PublicTripPost;
@@ -97,30 +99,31 @@ export default function CreateProposalPage({ trip, tripPostId, onBack, onLogout 
     const [geocoding, setGeocoding] = useState(false);
     const [destResolved, setDestResolved] = useState(false);
 
-    const [form, setForm] = useState(() => ({
-        // Sender info (DirectPickup)
+    /* ── Shared shipment form data ── */
+    const [form, setForm] = useState<ShipmentFormData>({
         senderName: "",
         senderPhone: "",
         pickupAddress: "",
-        pickupLatitude: "",
-        pickupLongitude: "",
-        pickupNote: "",
-        // Receiver info
         receiverName: "",
         receiverPhone: "",
         destAddress: "",
-        destLat: "",
-        destLng: "",
-        // Cargo info
         cargoType: "",
         weightKg: "",
         volumeCbm: "",
-        specialHandlingNote: "",
-    }));
+    });
 
-    const update = (key: string, value: string) => {
+    /* ── Customer-only extra fields ── */
+    const [pickupNote, setPickupNote] = useState("");
+    const [pickupLatitude, setPickupLatitude] = useState("");
+    const [pickupLongitude, setPickupLongitude] = useState("");
+    const [destLat, setDestLat] = useState("");
+    const [destLng, setDestLng] = useState("");
+    const [destResolvedName, setDestResolvedName] = useState("");
+    const [specialHandlingNote, setSpecialHandlingNote] = useState("");
+
+    const handleFieldChange = <K extends keyof ShipmentFormData>(key: K, value: string | number) => {
         setForm((prev) => ({ ...prev, [key]: value }));
-        if (key === "destAddress") setDestResolved(false);
+        if (key === "destAddress") { setDestResolved(false); setDestResolvedName(""); }
     };
 
     /* ── Geocode destination ── */
@@ -132,11 +135,9 @@ export default function CreateProposalPage({ trip, tripPostId, onBack, onLogout 
         try {
             setGeocoding(true);
             const result = await geocodeAddress(form.destAddress);
-            setForm((prev) => ({
-                ...prev,
-                destLat: String(result.lat),
-                destLng: String(result.lng),
-            }));
+            setDestLat(String(result.lat));
+            setDestLng(String(result.lng));
+            setDestResolvedName(result.displayName);
             setDestResolved(true);
         } catch {
             alert("Không tìm thấy địa chỉ. Vui lòng nhập địa chỉ rõ hơn.");
@@ -157,7 +158,7 @@ export default function CreateProposalPage({ trip, tripPostId, onBack, onLogout 
         if (!form.cargoType.trim()) { alert("Vui lòng nhập loại hàng."); return; }
         if (Number(form.weightKg) <= 0) { alert("Cân nặng phải lớn hơn 0."); return; }
         if (Number(form.volumeCbm) <= 0) { alert("Thể tích phải lớn hơn 0."); return; }
-        if (!form.destLat || !form.destLng) { alert("Vui lòng xác định vị trí giao hàng trước khi gửi."); return; }
+        if (!destLat || !destLng) { alert("Vui lòng xác định vị trí giao hàng trước khi gửi."); return; }
 
         const customerId = localStorage.getItem('userId') ?? localStorage.getItem('customerId') ?? '';
 
@@ -170,18 +171,18 @@ export default function CreateProposalPage({ trip, tripPostId, onBack, onLogout 
                 senderName: form.senderName,
                 senderPhone: form.senderPhone,
                 pickupAddress: form.pickupAddress,
-                pickupLatitude: form.pickupLatitude ? Number(form.pickupLatitude) : undefined,
-                pickupLongitude: form.pickupLongitude ? Number(form.pickupLongitude) : undefined,
-                pickupNote: form.pickupNote || undefined,
+                pickupLatitude: pickupLatitude ? Number(pickupLatitude) : undefined,
+                pickupLongitude: pickupLongitude ? Number(pickupLongitude) : undefined,
+                pickupNote: pickupNote || undefined,
                 cargoType: form.cargoType,
                 weightKg: Number(form.weightKg),
                 volumeCbm: Number(form.volumeCbm),
                 receiverName: form.receiverName,
                 receiverPhone: form.receiverPhone,
                 destAddress: form.destAddress,
-                destLat: Number(form.destLat),
-                destLng: Number(form.destLng),
-                specialHandlingNote: form.specialHandlingNote || undefined,
+                destLat: Number(destLat),
+                destLng: Number(destLng),
+                specialHandlingNote: specialHandlingNote || undefined,
             });
 
             // Step 2: Create proposal
@@ -190,9 +191,9 @@ export default function CreateProposalPage({ trip, tripPostId, onBack, onLogout 
                 senderName: form.senderName,
                 senderPhone: form.senderPhone,
                 pickupAddress: form.pickupAddress,
-                pickupLatitude: form.pickupLatitude ? Number(form.pickupLatitude) : undefined,
-                pickupLongitude: form.pickupLongitude ? Number(form.pickupLongitude) : undefined,
-                pickupNote: form.pickupNote || undefined,
+                pickupLatitude: pickupLatitude ? Number(pickupLatitude) : undefined,
+                pickupLongitude: pickupLongitude ? Number(pickupLongitude) : undefined,
+                pickupNote: pickupNote || undefined,
             });
 
             setResult(shipment);
@@ -274,184 +275,24 @@ export default function CreateProposalPage({ trip, tripPostId, onBack, onLogout 
                     </div>
                 </div>
 
-                {/* ── Sender Info ── */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                    <div className="flex items-center gap-2.5 mb-4">
-                        <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-                            <span className="material-symbols-outlined text-amber-600 text-[18px]">person_pin_circle</span>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-gray-800">Thông tin người gửi</h3>
-                            <p className="text-[11px] text-amber-600 font-medium">Tài xế sẽ đến nhận hàng tại địa chỉ của bạn</p>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Họ tên người gửi *</label>
-                            <input
-                                type="text"
-                                value={form.senderName}
-                                onChange={(e) => update("senderName", e.target.value)}
-                                placeholder="Nguyễn Văn A"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Số điện thoại *</label>
-                            <input
-                                type="tel"
-                                value={form.senderPhone}
-                                onChange={(e) => update("senderPhone", e.target.value)}
-                                placeholder="0912 345 678"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                            />
-                        </div>
-                        <div className="sm:col-span-2">
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Địa chỉ nhận hàng *</label>
-                            <input
-                                type="text"
-                                value={form.pickupAddress}
-                                onChange={(e) => update("pickupAddress", e.target.value)}
-                                placeholder="123 Đường ABC, Quận XYZ, TP.HCM"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                            />
-                        </div>
-                        <div className="sm:col-span-2">
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Ghi chú nhận hàng</label>
-                            <input
-                                type="text"
-                                value={form.pickupNote}
-                                onChange={(e) => update("pickupNote", e.target.value)}
-                                placeholder="Ghi chú thêm cho tài xế (tùy chọn)"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* ── Receiver Info ── */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                    <div className="flex items-center gap-2.5 mb-4">
-                        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                            <span className="material-symbols-outlined text-blue-600 text-[18px]">where_to_vote</span>
-                        </div>
-                        <h3 className="text-sm font-bold text-gray-800">Thông tin người nhận</h3>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Họ và tên *</label>
-                            <input
-                                type="text"
-                                value={form.receiverName}
-                                onChange={(e) => update("receiverName", e.target.value)}
-                                placeholder="Trần Thị B"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Số điện thoại *</label>
-                            <input
-                                type="tel"
-                                value={form.receiverPhone}
-                                onChange={(e) => update("receiverPhone", e.target.value)}
-                                placeholder="0987 654 321"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                            />
-                        </div>
-                        <div className="sm:col-span-2">
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Địa chỉ giao hàng *</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={form.destAddress}
-                                    onChange={(e) => update("destAddress", e.target.value)}
-                                    placeholder="456 Đường DEF, Quận UVW, Đà Nẵng"
-                                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={handleGeocode}
-                                    disabled={geocoding}
-                                    className="px-4 py-2.5 rounded-xl bg-[#00288e] text-white text-sm font-bold hover:bg-[#001f6e] transition-all disabled:opacity-50 whitespace-nowrap"
-                                >
-                                    {geocoding ? (
-                                        <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>
-                                    ) : (
-                                        "Tìm vị trí"
-                                    )}
-                                </button>
-                            </div>
-                            {destResolved && (
-                                <p className="text-xs text-emerald-600 font-medium mt-1.5 flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                                    Đã xác định vị trí giao hàng.
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* ── Cargo Info ── */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                    <div className="flex items-center gap-2.5 mb-4">
-                        <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                            <span className="material-symbols-outlined text-purple-600 text-[18px]">inventory_2</span>
-                        </div>
-                        <h3 className="text-sm font-bold text-gray-800">Thông tin hàng hóa</h3>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="sm:col-span-3">
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Loại hàng *</label>
-                            <input
-                                type="text"
-                                value={form.cargoType}
-                                onChange={(e) => update("cargoType", e.target.value)}
-                                placeholder="Ví dụ: Nội thất, Quần áo, Thực phẩm..."
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Cân nặng (kg) *</label>
-                            <input
-                                type="number"
-                                min="0.1"
-                                step="0.1"
-                                value={form.weightKg}
-                                onChange={(e) => update("weightKg", e.target.value)}
-                                placeholder="0"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                            />
-                            {form.weightKg && Number(form.weightKg) > remainingWeight && (
-                                <p className="text-[11px] text-amber-600 font-medium mt-1">Vượt quá dung tích còn lại ({remainingWeight} kg)</p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Thể tích (m³) *</label>
-                            <input
-                                type="number"
-                                min="0.01"
-                                step="0.01"
-                                value={form.volumeCbm}
-                                onChange={(e) => update("volumeCbm", e.target.value)}
-                                placeholder="0"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                            />
-                            {form.volumeCbm && Number(form.volumeCbm) > remainingVolume && (
-                                <p className="text-[11px] text-amber-600 font-medium mt-1">Vượt quá thể tích còn lại ({remainingVolume} m³)</p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Ghi chú đặc biệt</label>
-                            <input
-                                type="text"
-                                value={form.specialHandlingNote}
-                                onChange={(e) => update("specialHandlingNote", e.target.value)}
-                                placeholder="Hàng dễ vỡ, cần cẩn thận..."
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00288e]/30 focus:border-[#00288e] transition-all"
-                            />
-                        </div>
-                    </div>
-                </div>
+                {/* ── Shared Form Fields ── */}
+                <ShipmentFormFields
+                    data={form}
+                    onChange={handleFieldChange}
+                    showPickupNote
+                    pickupNote={pickupNote}
+                    onPickupNoteChange={setPickupNote}
+                    showSpecialHandlingNote
+                    specialHandlingNote={specialHandlingNote}
+                    onSpecialHandlingNoteChange={setSpecialHandlingNote}
+                    showGeocode
+                    geocoding={geocoding}
+                    destResolved={destResolved}
+                    onGeocode={handleGeocode}
+                    remainingWeight={remainingWeight}
+                    remainingVolume={remainingVolume}
+                    destResolvedName={destResolvedName}
+                />
 
                 {/* ── Submit Button (Fixed bottom bar) ── */}
                 <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-100 px-4 py-3 z-30">

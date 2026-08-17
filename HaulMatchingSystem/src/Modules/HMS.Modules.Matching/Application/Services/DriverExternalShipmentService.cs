@@ -89,7 +89,7 @@ namespace HMS.Modules.Matching.Application.Services
                         @dest_address,
                         @cargo_type,
                         @weight_kg, @volume_cbm,
-                        @note,
+                        @special_handling_note,
                         'Draft',
                         NOW(), NOW(), FALSE
                     );
@@ -107,7 +107,7 @@ namespace HMS.Modules.Matching.Application.Services
                     shipmentCmd.Parameters.AddWithValue("cargo_type", request.Category);
                     shipmentCmd.Parameters.AddWithValue("weight_kg", request.WeightKg);
                     shipmentCmd.Parameters.AddWithValue("volume_cbm", request.VolumeCbm);
-                    shipmentCmd.Parameters.AddWithValue("note", (object?)request.Note ?? DBNull.Value);
+                    shipmentCmd.Parameters.AddWithValue("special_handling_note", (object?)request.SpecialHandlingNote ?? DBNull.Value);
                     await shipmentCmd.ExecuteNonQueryAsync(ct);
                 }
 
@@ -226,13 +226,16 @@ namespace HMS.Modules.Matching.Application.Services
                 FROM warehouse.shipment_proposals sp
                 WHERE {whereSql};
             """;
+            int totalCount = 0;
             await using (var countCmd = new NpgsqlCommand(countSql, conn))
             {
-                countCmd.Parameters.AddRange(parameters.ToArray());
+                foreach (var p in parameters) countCmd.Parameters.AddWithValue(p.ParameterName, p.Value);
                 var result = await countCmd.ExecuteScalarAsync(ct);
-                var totalCount = Convert.ToInt32(result ?? 0);
+                totalCount = Convert.ToInt32(result ?? 0);
+            }
 
-                // Paged query
+            // Paged query (fresh parameters to avoid Npgsql "parameter already belongs" error)
+            {
                 var offset = (page - 1) * pageSize;
                 var querySql = $"""
                     SELECT
@@ -257,7 +260,8 @@ namespace HMS.Modules.Matching.Application.Services
                     LIMIT @limit OFFSET @offset;
                 """;
 
-                var allParams = parameters.ToList();
+                var allParams = new List<NpgsqlParameter>();
+                foreach (var p in parameters) allParams.Add(new NpgsqlParameter(p.ParameterName, p.Value));
                 allParams.Add(new NpgsqlParameter("limit", pageSize));
                 allParams.Add(new NpgsqlParameter("offset", offset));
 
@@ -384,9 +388,8 @@ namespace HMS.Modules.Matching.Application.Services
                 Category = category,
                 WeightKg = weightKg,
                 VolumeCbm = volumeCbm,
-                CodRequired = codAmountRaw.HasValue && codAmountRaw.Value > 0,
+                SpecialHandlingNote = note,
                 CodAmount = codAmountRaw ?? 0m,
-                Note = note,
                 ProposalStatus = proposalStatus,
                 ShipmentStatus = shipmentStatus,
                 QuotationStatus = quotationStatus,

@@ -267,16 +267,26 @@ export async function reportIncident(
     shipmentId?: string;
     incidentType: string;
     description: string;
-    occurredAt: string;
+    files?: File[];
   }
-): Promise<{ id: string; message: string }> {
+): Promise<{ id: string; incidentCode: string; status: string; evidence: { id: string; fileName: string }[]; message: string }> {
+  const formData = new FormData();
+  formData.append('incidentType', payload.incidentType);
+  formData.append('description', payload.description);
+  if (payload.shipmentId) formData.append('shipmentId', payload.shipmentId);
+  if (payload.files) {
+    for (const file of payload.files) {
+      formData.append('files', file);
+    }
+  }
+
   const res = await authFetch(
     `${API_BASE_URL}/api/driver/trips/${tripId}/incidents`,
     {
       method: 'POST',
-      body: JSON.stringify(payload),
-    },
-    { includeJson: true }
+      body: formData,
+      // Don't set Content-Type – browser sets it with boundary for FormData
+    }
   );
 
   if (!res.ok) {
@@ -285,4 +295,71 @@ export async function reportIncident(
   }
 
   return res.json();
+}
+
+// ── Driver Incident List ───────────────────────────────────────────
+
+export type DriverIncidentListItem = {
+  id: string;
+  incidentCode?: string;
+  incidentType: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  evidenceCount: number;
+};
+
+export type DriverIncidentDetail = {
+  id: string;
+  incidentCode: string;
+  tripId: string;
+  tripCode: string;
+  incidentType: string;
+  description: string;
+  status: string;
+  reportedAt: string;
+  route: string;
+  vehiclePlate: string;
+  resolutionNote?: string;
+  resolvedAt?: string;
+  evidence: DriverIncidentEvidence[];
+};
+
+export type DriverIncidentEvidence = {
+  id: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  uploadedAt: string;
+};
+
+export async function getTripIncidents(
+  tripId: string
+): Promise<DriverIncidentListItem[]> {
+  const res = await authFetch(
+    `${API_BASE_URL}/api/driver/trips/${tripId}/incidents`
+  );
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ message: 'Không thể tải danh sách sự cố.' }));
+    throw new Error(data.message || 'Không thể tải danh sách sự cố.');
+  }
+  return res.json();
+}
+
+export async function getIncidentDetail(
+  incidentId: string
+): Promise<DriverIncidentDetail> {
+  const res = await authFetch(
+    `${API_BASE_URL}/api/driver/incidents/${incidentId}`
+  );
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ message: 'Không thể tải chi tiết sự cố.' }));
+    throw new Error(data.message || 'Không thể tải chi tiết sự cố.');
+  }
+  return res.json();
+}
+
+export function getEvidenceDownloadUrl(incidentId: string, evidenceId: string): string {
+  return `${API_BASE_URL}/api/driver/incidents/${incidentId}/evidence/${evidenceId}`;
 }

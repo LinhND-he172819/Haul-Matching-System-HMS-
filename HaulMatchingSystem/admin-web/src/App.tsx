@@ -28,6 +28,8 @@ import StaffPaymentMonitoringPage from './pages/staff/StaffPaymentMonitoringPage
 import DriverExternalShipmentForm from './pages/DriverExternalShipmentForm';
 import DriverExternalShipmentHistory from './pages/DriverExternalShipmentHistory';
 import DriverExternalShipmentDetail from './pages/DriverExternalShipmentDetail';
+import IncidentListPage from './pages/IncidentListPage';
+import IncidentDetailPage from './pages/IncidentDetailPage';
 import type { PublicTripPost } from './api/tripPostApi';
 
 type Page =
@@ -58,9 +60,11 @@ type Page =
   | 'staff-create-quotation'
   | 'staff-quotations'
   | 'staff-quotation-detail'
-  | 'staff-payments';
-type StaffTab = 'staff-proposals' | 'staff-quotations' | 'staff-payments';
-type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hub-inventory' | 'hubs' | 'trip-posts' | 'admin-proposals' | 'admin-quotations' | 'admin-payments';
+  | 'staff-payments'
+  | 'staff-incidents'
+  | 'staff-incident-detail';
+type StaffTab = 'staff-proposals' | 'staff-quotations' | 'staff-payments' | 'staff-incidents';
+type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hub-inventory' | 'hubs' | 'trip-posts' | 'admin-proposals' | 'admin-quotations' | 'admin-payments' | 'admin-incidents';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -93,6 +97,9 @@ function App() {
   const [selectedShipmentId, setSelectedShipmentId] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [selectedExternalProposalId, setSelectedExternalProposalId] = useState<string | null>(null);
+
+  // Incident detail state
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
 
   // Sync state if user changes localStorage directly or on mount
   useEffect(() => {
@@ -217,6 +224,12 @@ function App() {
   const handleSelectTrip = (tripId: string) => {
     setSelectedTripId(tripId);
     setCurrentPage('driver-trip-detail');
+  };
+
+  // Navigate to Incident Detail (Admin/Staff)
+  const handleSelectIncident = (incidentId: string) => {
+    setSelectedIncidentId(incidentId);
+    setCurrentPage(`${getPortalPrefix()}-incident-detail` as Page);
   };
 
   // Handle proposal creation from Trip Marketplace
@@ -406,6 +419,18 @@ function App() {
             <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">payments</span>
             <span className="text-label-lg font-bold">Thanh toán</span>
           </button>
+
+          <button
+            onClick={() => setAdminTab('admin-incidents')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+              adminTab === 'admin-incidents'
+                ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+                : 'text-on-surface-variant hover:bg-surface-container-low/60'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">warning</span>
+            <span className="text-label-lg font-bold">Sự cố</span>
+          </button>
         </div>
 
         <div className="pt-4 border-t border-outline-variant/30 mt-4">
@@ -497,6 +522,18 @@ function App() {
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">payments</span>
           <span className="text-label-lg font-bold">Thanh toán</span>
+        </button>
+
+        <button
+          onClick={() => { setStaffTab('staff-incidents'); setCurrentPage('staff'); }}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+            staffTab === 'staff-incidents'
+              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">warning</span>
+          <span className="text-label-lg font-bold">Sự cố</span>
         </button>
       </div>
 
@@ -659,6 +696,7 @@ function App() {
       return (
         <CreateShipmentPage
           onNavigate={handleNavigate}
+          onLogout={handleLogout}
           proposalTripPostId={proposalTripPostId}
           proposalTripId={proposalTripId}
           pickupMode={proposalPickupMode}
@@ -725,6 +763,18 @@ function App() {
               {renderStaffSidebar()}
               <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
                 <StaffPaymentMonitoringPage onLogout={handleLogout} />
+              </div>
+            </div>
+          );
+        case 'staff-incidents':
+          return (
+            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+              {renderStaffSidebar()}
+              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+                <IncidentListPage
+                  onLogout={handleLogout}
+                  onSelectIncident={handleSelectIncident}
+                />
               </div>
             </div>
           );
@@ -872,6 +922,46 @@ function App() {
         </div>
       );
 
+    case 'admin-incident-detail':
+      if (!selectedIncidentId) {
+        setCurrentPage('admin');
+        setAdminTab('admin-incidents');
+        return null;
+      }
+      return (
+        <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+          {renderSidebar()}
+          <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+            <IncidentDetailPage
+              incidentId={selectedIncidentId}
+              onBack={() => { setAdminTab('admin-incidents'); setCurrentPage('admin'); }}
+              onLogout={handleLogout}
+              isAdmin={true}
+            />
+          </div>
+        </div>
+      );
+
+    case 'staff-incident-detail':
+      if (!selectedIncidentId) {
+        setCurrentPage('staff');
+        setStaffTab('staff-incidents');
+        return null;
+      }
+      return (
+        <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+          {renderStaffSidebar()}
+          <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+            <IncidentDetailPage
+              incidentId={selectedIncidentId}
+              onBack={() => { setStaffTab('staff-incidents'); setCurrentPage('staff'); }}
+              onLogout={handleLogout}
+              isAdmin={false}
+            />
+          </div>
+        </div>
+      );
+
     case 'admin':
       if (role !== 'Admin') {
         // Enforce admin permission restriction
@@ -981,6 +1071,19 @@ function App() {
               {renderSidebar()}
               <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
                 <StaffPaymentMonitoringPage onLogout={handleLogout} />
+              </div>
+            </div>
+          );
+
+        case 'admin-incidents':
+          return (
+            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+              {renderSidebar()}
+              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+                <IncidentListPage
+                  onLogout={handleLogout}
+                  onSelectIncident={handleSelectIncident}
+                />
               </div>
             </div>
           );

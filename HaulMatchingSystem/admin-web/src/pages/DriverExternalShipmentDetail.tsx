@@ -122,7 +122,7 @@ export default function DriverExternalShipmentDetail({
       <AppHeader
         onLogout={onLogout}
         pages={[
-          { label: 'Chuyến đi', onClick: () => onNavigate?.('driver-trips') },
+          { label: 'Chuyến đi của tôi', onClick: () => onNavigate?.('driver-trips-v2') },
           { label: 'Đơn ngoài hệ thống', onClick: () => onNavigate?.('driver-external-history') },
           { label: 'Chi tiết', onClick: () => {}, active: true },
         ]}
@@ -178,13 +178,9 @@ export default function DriverExternalShipmentDetail({
                   <p className="font-semibold text-on-surface text-title-sm">{detail.volumeCbm.toFixed(2)} m³</p>
                 </div>
                 <div>
-                  <span className="text-on-surface-variant">Số kiện</span>
-                  <p className="font-semibold text-on-surface text-title-sm">{detail.quantity}</p>
-                </div>
-                <div>
                   <span className="text-on-surface-variant">COD</span>
                   <p className="font-semibold text-on-surface text-title-sm">
-                    {detail.codRequired ? formatCurrency(detail.codAmount) : 'Không'}
+                    {detail.codAmount > 0 ? formatCurrency(detail.codAmount) : 'Không'}
                   </p>
                 </div>
               </div>
@@ -236,25 +232,17 @@ export default function DriverExternalShipmentDetail({
             </div>
 
             {/* Description & Note */}
-            {(detail.description || detail.note) && (
+            {detail.specialHandlingNote && (
               <div className="bg-surface-container-low rounded-2xl p-5">
                 <h3 className="text-title-sm font-semibold text-on-surface mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-[20px] text-primary">notes</span>
                   Ghi chú
                 </h3>
                 <div className="space-y-2 text-body-sm">
-                  {detail.description && (
-                    <div>
-                      <span className="text-on-surface-variant">Mô tả:</span>
-                      <p className="text-on-surface mt-0.5">{detail.description}</p>
-                    </div>
-                  )}
-                  {detail.note && (
-                    <div>
-                      <span className="text-on-surface-variant">Ghi chú đặc biệt:</span>
-                      <p className="text-on-surface mt-0.5 italic">{detail.note}</p>
-                    </div>
-                  )}
+                  <div>
+                    <span className="text-on-surface-variant">Ghi chú đặc biệt:</span>
+                    <p className="text-on-surface mt-0.5 italic">{detail.specialHandlingNote}</p>
+                  </div>
                 </div>
               </div>
             )}

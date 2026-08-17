@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Core.Interfaces;
+using HMS.Shared.Core.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -96,17 +97,24 @@ namespace HMS.Modules.Matching.Controllers
             try
             {
                 var staffId = GetCurrentUserId();
-                var result = await _quotationService.CreateQuotationAsync(proposalId, request, staffId, null, null, ct);
+                var role = GetCurrentUserRole();
+                var hubId = GetStaffHubId();
+                var result = await _quotationService.CreateQuotationAsync(proposalId, request, staffId, role, hubId, ct);
                 return CreatedAtAction(nameof(GetQuotation), new { quotationId = result.Id }, result);
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (ForbiddenException ex)
+            {
+                _logger.LogWarning(ex, "Forbidden creating quotation for proposal {ProposalId}", proposalId);
+                return StatusCode(403, new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating quotation for proposal {ProposalId}", proposalId);
-                return StatusCode(500, new { message = "Lỗi khi tạo báo giá." });
+                return StatusCode(500, new { message = ex.Message });
             }
         }
 
@@ -122,17 +130,24 @@ namespace HMS.Modules.Matching.Controllers
             try
             {
                 var staffId = GetCurrentUserId();
-                var result = await _quotationService.UpdateQuotationAsync(quotationId, request, staffId, null, null, ct);
+                var role = GetCurrentUserRole();
+                var hubId = GetStaffHubId();
+                var result = await _quotationService.UpdateQuotationAsync(quotationId, request, staffId, role, hubId, ct);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (ForbiddenException ex)
+            {
+                _logger.LogWarning(ex, "Forbidden updating quotation {QuotationId}", quotationId);
+                return StatusCode(403, new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating quotation {QuotationId}", quotationId);
-                return StatusCode(500, new { message = "Lỗi khi cập nhật báo giá." });
+                return StatusCode(500, new { message = ex.Message });
             }
         }
 
@@ -147,17 +162,24 @@ namespace HMS.Modules.Matching.Controllers
             try
             {
                 var staffId = GetCurrentUserId();
-                await _quotationService.SendQuotationAsync(quotationId, staffId, null, null, ct);
+                var role = GetCurrentUserRole();
+                var hubId = GetStaffHubId();
+                await _quotationService.SendQuotationAsync(quotationId, staffId, role, hubId, ct);
                 return Ok(new { message = "Gửi báo giá thành công." });
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (ForbiddenException ex)
+            {
+                _logger.LogWarning(ex, "Forbidden sending quotation {QuotationId}", quotationId);
+                return StatusCode(403, new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending quotation {QuotationId}", quotationId);
-                return StatusCode(500, new { message = "Lỗi khi gửi báo giá." });
+                return StatusCode(500, new { message = ex.Message });
             }
         }
 
@@ -173,17 +195,24 @@ namespace HMS.Modules.Matching.Controllers
             try
             {
                 var staffId = GetCurrentUserId();
-                await _quotationService.CancelQuotationAsync(quotationId, staffId, null, null, request?.Reason, ct);
+                var role = GetCurrentUserRole();
+                var hubId = GetStaffHubId();
+                await _quotationService.CancelQuotationAsync(quotationId, staffId, role, hubId, request?.Reason, ct);
                 return Ok(new { message = "Hủy báo giá thành công." });
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (ForbiddenException ex)
+            {
+                _logger.LogWarning(ex, "Forbidden cancelling quotation {QuotationId}", quotationId);
+                return StatusCode(403, new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error cancelling quotation {QuotationId}", quotationId);
-                return StatusCode(500, new { message = "Lỗi khi hủy báo giá." });
+                return StatusCode(500, new { message = ex.Message });
             }
         }
 
@@ -197,15 +226,20 @@ namespace HMS.Modules.Matching.Controllers
         {
             try
             {
-                var result = await _quotationService.GetQuotationAsync(quotationId, null, null, ct);
+                var result = await _quotationService.GetQuotationAsync(quotationId, GetCurrentUserRole(), GetStaffHubId(), ct);
                 if (result == null)
                     return NotFound(new { message = "Không tìm thấy báo giá." });
                 return Ok(result);
             }
+            catch (ForbiddenException ex)
+            {
+                _logger.LogWarning(ex, "Forbidden getting quotation {QuotationId}", quotationId);
+                return StatusCode(403, new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting quotation {QuotationId}", quotationId);
-                return StatusCode(500, new { message = "Lỗi khi lấy thông tin báo giá." });
+                return StatusCode(500, new { message = ex.Message });
             }
         }
     }

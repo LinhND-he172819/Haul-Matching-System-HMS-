@@ -15,12 +15,9 @@ export interface CreateExternalShipmentRequest {
   receiverPhone: string;
   destAddress: string;
   category: string;
-  description?: string;
   weightKg: number;
   volumeCbm: number;
-  quantity: number;
-  codRequired: boolean;
-  note?: string;
+  specialHandlingNote?: string;
 }
 
 export interface CreateExternalShipmentResponse {
@@ -40,7 +37,6 @@ export interface ExternalShipmentListItem {
   category: string;
   weightKg: number;
   volumeCbm: number;
-  quantity: number;
   receiverName: string;
   destAddress?: string;
   proposalStatus: string;
@@ -69,12 +65,9 @@ export interface ExternalShipmentDetail {
   receiverPhone: string;
   destAddress: string;
   category: string;
-  description?: string;
+  specialHandlingNote?: string;
   weightKg: number;
   volumeCbm: number;
-  quantity: number;
-  codRequired: boolean;
-  note?: string;
   codAmount: number;
   proposalStatus: string;
   shipmentStatus: string;

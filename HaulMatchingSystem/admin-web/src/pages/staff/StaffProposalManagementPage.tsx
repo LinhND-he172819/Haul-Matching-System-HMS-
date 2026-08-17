@@ -12,8 +12,8 @@ import {
 
 /* ─── Constants ─────────────────────────────────────────────────── */
 
-const STATUS_TABS = [
-  { key: '', label: 'Tất cả' },
+const STATUS_OPTIONS = [
+  { key: '', label: 'Tất cả trạng thái' },
   { key: 'PendingReview', label: 'Chờ duyệt' },
   { key: 'Approved', label: 'Đã duyệt' },
   { key: 'Confirmed', label: 'Đã xác nhận' },
@@ -40,7 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
   Expired: 'Đã hết hạn',
 };
 
-const SOURCE_TABS = [
+const SOURCE_OPTIONS = [
   { key: '', label: 'Tất cả nguồn' },
   { key: 'Customer', label: 'Khách hàng' },
   { key: 'Driver', label: 'Tài xế' },
@@ -67,8 +67,19 @@ export default function StaffProposalManagementPage({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Reject dialog state
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -85,6 +96,7 @@ export default function StaffProposalManagementPage({
       const result = await getStaffProposals({
         status: activeTab || undefined,
         proposalSource: sourceFilter || undefined,
+        search: search || undefined,
         page,
         pageSize: 10,
       });
@@ -94,7 +106,7 @@ export default function StaffProposalManagementPage({
     } finally {
       setLoading(false);
     }
-  }, [activeTab, sourceFilter, page]);
+  }, [activeTab, sourceFilter, search, page]);
 
   useEffect(() => {
     loadData();
@@ -169,44 +181,58 @@ export default function StaffProposalManagementPage({
           </p>
         </div>
 
-        {/* Status Tabs */}
-        <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setActiveTab(tab.key);
-                setPage(1);
-              }}
-              className={`px-4 py-2 rounded-xl text-label-md font-semibold whitespace-nowrap transition-all ${
-                activeTab === tab.key
-                  ? 'bg-primary text-on-primary shadow-sm'
-                  : 'bg-white text-on-surface-variant border border-outline-variant hover:bg-surface-container-low'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Filter Bar: Search + Dropdowns */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
+              search
+            </span>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Tìm mã đề xuất, mã lô, người gửi, người nhận..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-outline-variant
+                         text-body-md text-on-surface placeholder:text-on-surface-variant/60
+                         focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
+                         transition-all"
+            />
+            {searchInput && (
+              <button
+                onClick={() => { setSearchInput(''); setSearch(''); setPage(1); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            )}
+          </div>
 
-        {/* Source Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {SOURCE_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setSourceFilter(tab.key);
-                setPage(1);
-              }}
-              className={`px-4 py-1.5 rounded-lg text-label-sm font-medium whitespace-nowrap transition-all ${
-                sourceFilter === tab.key
-                  ? 'bg-secondary-container text-on-secondary-container shadow-sm'
-                  : 'bg-surface-container-low text-on-surface-variant border border-outline-variant hover:bg-surface-container'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {/* Status Dropdown */}
+          <select
+            value={activeTab}
+            onChange={(e) => { setActiveTab(e.target.value); setPage(1); }}
+            className="px-4 py-2.5 rounded-xl bg-white border border-outline-variant text-body-md text-on-surface
+                       focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
+                       transition-all min-w-[180px] cursor-pointer appearance-auto"
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.key} value={opt.key}>{opt.label}</option>
+            ))}
+          </select>
+
+          {/* Source Dropdown */}
+          <select
+            value={sourceFilter}
+            onChange={(e) => { setSourceFilter(e.target.value); setPage(1); }}
+            className="px-4 py-2.5 rounded-xl bg-white border border-outline-variant text-body-md text-on-surface
+                       focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
+                       transition-all min-w-[150px] cursor-pointer appearance-auto"
+          >
+            {SOURCE_OPTIONS.map((opt) => (
+              <option key={opt.key} value={opt.key}>{opt.label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Loading */}
@@ -226,7 +252,7 @@ export default function StaffProposalManagementPage({
               Không có đề xuất nào
             </p>
             <p className="text-body-md text-on-surface-variant mt-1">
-              {activeTab ? 'Thử chuyển tab khác' : 'Chưa có đề xuất từ khách hàng'}
+              {search ? `Không tìm thấy kết quả cho "${search}"` : activeTab ? 'Thử chuyển trạng thái khác' : 'Chưa có đề xuất nào'}
             </p>
           </div>
         )}
