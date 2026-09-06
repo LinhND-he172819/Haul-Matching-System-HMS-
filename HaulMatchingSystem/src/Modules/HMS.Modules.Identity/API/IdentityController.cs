@@ -1,6 +1,7 @@
 using HMS.Modules.Identity.Application.DTOs;
 using HMS.Modules.Identity.Core.Entities;
 using HMS.Modules.Identity.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ public sealed class IdentityController : ControllerBase
         _context = context;
     }
 
+    // Public: the registration flow needs the hub list.
     [HttpGet("hubs")]
     public async Task<IActionResult> GetHubs(CancellationToken cancellationToken)
     {
@@ -29,6 +31,8 @@ public sealed class IdentityController : ControllerBase
         return Ok(hubs);
     }
 
+    // User management is Admin-only (previously anonymous — allowed role escalation and account deletion).
+    [Authorize(Roles = "Admin")]
     [HttpGet("users")]
     public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
     {
@@ -50,6 +54,7 @@ public sealed class IdentityController : ControllerBase
         return Ok(users);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("users")]
     public async Task<IActionResult> CreateUser(
         [FromBody] CreateUserDto request,
@@ -87,6 +92,7 @@ public sealed class IdentityController : ControllerBase
         return Created($"/api/identity/users/{user.Id}", ToDto(user));
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("users/{id:guid}")]
     public async Task<IActionResult> UpdateUser(
         Guid id,
@@ -129,6 +135,7 @@ public sealed class IdentityController : ControllerBase
         return Ok(ToDto(user));
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("users/{id:guid}")]
     public async Task<IActionResult> DeleteUser(Guid id, CancellationToken cancellationToken)
     {

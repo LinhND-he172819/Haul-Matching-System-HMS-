@@ -1,4 +1,5 @@
 using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Events;
 
 namespace HMS.Shared.Core.Interfaces;
 
@@ -19,6 +20,12 @@ public interface IShipmentStateService
     /// <param name="transaction">Optional shared NpgsqlTransaction (caller's transaction).</param>
     /// <param name="performedBy">User who performed the action.</param>
     /// <param name="reason">Optional reason (required for cancellations).</param>
+    /// <param name="onEventPublished">
+    /// Optional callback invoked after the event is published (outside the DB transaction).
+    /// When the caller owns the transaction, it should pass a hook that fires after commit
+    /// so that the ShipmentStatusChangedEvent is never dispatched inside an open transaction.
+    /// When null (default), the event is published immediately inside TransitionAsync.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
     Task<ShipmentStatus> TransitionAsync(
         Guid shipmentId,
@@ -27,6 +34,7 @@ public interface IShipmentStateService
         object? transaction = null,
         Guid? performedBy = null,
         string? reason = null,
+        Func<ShipmentStatusChangedEvent, CancellationToken, Task>? onEventPublished = null,
         CancellationToken ct = default);
 
     /// <summary>

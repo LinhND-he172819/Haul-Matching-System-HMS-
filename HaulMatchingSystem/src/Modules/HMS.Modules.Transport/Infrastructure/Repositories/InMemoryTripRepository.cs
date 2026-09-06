@@ -19,6 +19,9 @@ public sealed class InMemoryTripRepository : ITripRepository
         return Task.CompletedTask;
     }
 
+    public Task AddAsync(Trip trip, object? connection, object? transaction, CancellationToken cancellationToken = default)
+        => AddAsync(trip, cancellationToken);
+
     public Task<IReadOnlyCollection<Trip>> ListAsync(
         Guid? driverId,
         TripStatus? status,
@@ -53,8 +56,51 @@ public sealed class InMemoryTripRepository : ITripRepository
         return Task.CompletedTask;
     }
 
+    public Task UpdateAsync(Trip trip, object? connection, object? transaction, CancellationToken cancellationToken = default)
+        => UpdateAsync(trip, cancellationToken);
+
     public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(_trips.TryRemove(id, out _));
+    }
+
+    public Task<int> CountActiveTripsForDriverAsync(Guid driverId, Guid? excludeTripId = null, CancellationToken cancellationToken = default)
+    {
+        var count = _trips.Values.Count(trip =>
+            trip.DriverId == driverId &&
+            trip.Status is TripStatus.Active or TripStatus.Scheduled or TripStatus.Ready &&
+            (excludeTripId == null || trip.Id != excludeTripId.Value));
+
+        return Task.FromResult(count);
+    }
+
+    public Task<int> CountActiveTripsForVehicleAsync(Guid vehicleId, Guid? excludeTripId = null, CancellationToken cancellationToken = default)
+    {
+        var count = _trips.Values.Count(trip =>
+            trip.VehicleId == vehicleId &&
+            trip.Status is TripStatus.Active or TripStatus.Scheduled or TripStatus.Ready &&
+            (excludeTripId == null || trip.Id != excludeTripId.Value));
+
+        return Task.FromResult(count);
+    }
+
+    public Task<int> CountInProgressTripsForDriverAsync(Guid driverId, Guid? excludeTripId = null, CancellationToken cancellationToken = default)
+    {
+        var count = _trips.Values.Count(trip =>
+            trip.DriverId == driverId &&
+            trip.Status == TripStatus.InProgress &&
+            (excludeTripId == null || trip.Id != excludeTripId.Value));
+
+        return Task.FromResult(count);
+    }
+
+    public Task<int> CountInProgressTripsForVehicleAsync(Guid vehicleId, Guid? excludeTripId = null, CancellationToken cancellationToken = default)
+    {
+        var count = _trips.Values.Count(trip =>
+            trip.VehicleId == vehicleId &&
+            trip.Status == TripStatus.InProgress &&
+            (excludeTripId == null || trip.Id != excludeTripId.Value));
+
+        return Task.FromResult(count);
     }
 }

@@ -1,0 +1,2 @@
+# Local secrets override — never commit
+src/HMS.API/appsettings.Local.json

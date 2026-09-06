@@ -1,4 +1,4 @@
-import type { PaymentTimelineEntry } from '../../api/customer/customerQuotationApi';
+import type { PaymentTimelineEntry } from '../../../api/customer/customerQuotationApi';
 
 const STATUS_ICONS: Record<string, string> = {
   Pending: 'schedule',

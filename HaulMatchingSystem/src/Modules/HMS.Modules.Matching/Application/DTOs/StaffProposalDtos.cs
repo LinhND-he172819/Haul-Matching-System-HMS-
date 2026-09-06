@@ -219,7 +219,7 @@ namespace HMS.Modules.Matching.Application.DTOs
     {
         public Guid Id { get; set; }
         public string? PaymentCode { get; set; }
-        public Guid QuotationId { get; set; }
+        public Guid? QuotationId { get; set; }
         public string? QuotationCode { get; set; }
         public Guid ShipmentId { get; set; }
         public string? ShipmentCode { get; set; }

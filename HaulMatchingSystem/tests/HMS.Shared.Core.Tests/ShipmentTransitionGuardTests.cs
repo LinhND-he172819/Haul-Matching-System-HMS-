@@ -73,9 +73,15 @@ public class ShipmentTransitionGuardTests
         Assert.True(ShipmentTransitionGuard.CanTransition(ShipmentStatus.Matched, ShipmentStatus.Cancelled));
     }
 
+    [Fact]
+    public void Matched_CanTransition_To_InWarehouse_WhenUnlinkedFromTrip()
+    {
+        // Admin removes a shipment from a trip -> back to warehouse.
+        Assert.True(ShipmentTransitionGuard.CanTransition(ShipmentStatus.Matched, ShipmentStatus.In_Warehouse));
+    }
+
     [Theory]
     [InlineData(ShipmentStatus.Draft)]
-    [InlineData(ShipmentStatus.In_Warehouse)]
     [InlineData(ShipmentStatus.Delivered)]
     public void Matched_CannotTransition_To_Unallowed(ShipmentStatus target)
     {
@@ -390,7 +396,6 @@ public class ShipmentTransitionGuardTests
     [InlineData(ShipmentStatus.In_Warehouse, ShipmentStatus.Draft)]
     [InlineData(ShipmentStatus.In_Warehouse, ShipmentStatus.In_Transit)]
     [InlineData(ShipmentStatus.Matched, ShipmentStatus.Draft)]
-    [InlineData(ShipmentStatus.Matched, ShipmentStatus.In_Warehouse)]
     [InlineData(ShipmentStatus.In_Transit, ShipmentStatus.Draft)]
     [InlineData(ShipmentStatus.In_Transit, ShipmentStatus.Cancelled)]
     [InlineData(ShipmentStatus.Delivered, ShipmentStatus.Draft)]

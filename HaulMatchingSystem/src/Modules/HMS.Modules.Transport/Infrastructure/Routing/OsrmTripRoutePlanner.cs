@@ -1,10 +1,13 @@
+using System.Globalization;
 using HMS.Modules.Transport.Application.Services;
+using Microsoft.Extensions.Logging;
 
 namespace HMS.Modules.Transport.Infrastructure.Routing;
 
 public sealed class OsrmTripRoutePlanner(
     IHubLocationRepository hubLocationRepository,
-    IOsrmRouteClient osrmRouteClient) : ITripRoutePlanner
+    IOsrmRouteClient osrmRouteClient,
+    ILogger<OsrmTripRoutePlanner> logger) : ITripRoutePlanner
 {
     public async Task<string> ResolveRouteLineStringAsync(
         Guid originHubId,
@@ -33,6 +36,24 @@ public sealed class OsrmTripRoutePlanner(
         var destination = await hubLocationRepository.GetCoordinateAsync(destHubId, cancellationToken)
             ?? throw new ArgumentException("Destination hub location was not found.", nameof(destHubId));
 
-        return await osrmRouteClient.GetRouteLineStringAsync(origin, destination, cancellationToken);
+        try
+        {
+            return await osrmRouteClient.GetRouteLineStringAsync(origin, destination, cancellationToken);
+        }
+        catch (RoutePlanningException ex)
+        {
+            // Fallback: generate a straight-line route when OSRM is unavailable
+            logger.LogWarning(ex, "OSRM routing failed, falling back to straight-line route between hubs {Origin} and {Dest}",
+                originHubId, destHubId);
+
+            return BuildStraightLineString(origin, destination);
+        }
+    }
+
+    private static string BuildStraightLineString(HubCoordinate origin, HubCoordinate destination)
+    {
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"LINESTRING ({origin.Longitude:0.######} {origin.Latitude:0.######}, {destination.Longitude:0.######} {destination.Latitude:0.######})");
     }
 }

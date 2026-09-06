@@ -39,9 +39,9 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             INSERT INTO transport.trip_posts
-                (id, trip_id, created_by, title, description, accept_until, status, published_at, closed_at, created_at, updated_at, is_deleted)
+                (id, trip_id, created_by, title, description, accept_until, status, pickup_mode, published_at, closed_at, created_at, updated_at, is_deleted)
             VALUES
-                (@id, @trip_id, @created_by, @title, @description, @accept_until, @status, @published_at, @closed_at, @created_at, @updated_at, FALSE);
+                (@id, @trip_id, @created_by, @title, @description, @accept_until, @status, @pickup_mode, @published_at, @closed_at, @created_at, @updated_at, FALSE);
             """;
         cmd.Parameters.AddWithValue("id", id);
         cmd.Parameters.AddWithValue("trip_id", post.TripId);
@@ -50,6 +50,7 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
         cmd.Parameters.Add("description", NpgsqlDbType.Text).Value = (object?)post.Description ?? DBNull.Value;
         cmd.Parameters.Add("accept_until", NpgsqlDbType.TimestampTz).Value = post.AcceptUntil.ToUniversalTime();
         cmd.Parameters.AddWithValue("status", post.Status);
+        cmd.Parameters.AddWithValue("pickup_mode", post.PickupMode);
         cmd.Parameters.Add("published_at", NpgsqlDbType.TimestampTz).Value = post.PublishedAt.HasValue
             ? post.PublishedAt.Value.ToUniversalTime() : (object)DBNull.Value;
         cmd.Parameters.Add("closed_at", NpgsqlDbType.TimestampTz).Value = post.ClosedAt.HasValue
@@ -268,6 +269,7 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
                 tp.id, tp.trip_id, tp.title, tp.description,
                 oh.name, dh.name,
                 t.started_at,
+                t.scheduled_departure_at,
                 tp.accept_until,
                 (v.max_weight_kg - t.current_load_weight) AS remaining_weight,
                 (v.max_volume_cbm - t.current_load_volume) AS remaining_volume,
@@ -295,8 +297,8 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
         {
-            var remainingWeight = reader.GetDecimal(8);   // ordinal 8 = remaining_weight
-            var remainingVolume = reader.GetDecimal(9);   // ordinal 9 = remaining_volume
+            var remainingWeight = reader.GetDecimal(9);   // ordinal 9 = remaining_weight
+            var remainingVolume = reader.GetDecimal(10);  // ordinal 10 = remaining_volume
 
             // Skip posts with zero remaining capacity
             if (remainingWeight <= 0 || remainingVolume <= 0) continue;
@@ -309,15 +311,16 @@ public sealed class PostgresTripPostRepository : ITripPostRepository
                 OriginHubName: reader.GetString(4),
                 DestinationHubName: reader.GetString(5),
                 DepartureTime: reader.IsDBNull(6) ? null : reader.GetDateTime(6),
-                AcceptUntil: reader.GetDateTime(7),
+                ScheduledDepartureAt: reader.IsDBNull(7) ? null : reader.GetFieldValue<DateTimeOffset>(7),
+                AcceptUntil: reader.GetDateTime(8),
                 RemainingWeightKg: remainingWeight,
                 RemainingVolumeCbm: remainingVolume,
-                MaxWeightKg: reader.GetDecimal(10),
-                MaxVolumeCbm: reader.GetDecimal(11),
-                TruckType: reader.GetString(12),
-                LicensePlate: reader.GetString(13),
-                DriverName: reader.GetString(14),
-                PickupMode: reader.GetString(15)
+                MaxWeightKg: reader.GetDecimal(11),
+                MaxVolumeCbm: reader.GetDecimal(12),
+                TruckType: reader.GetString(13),
+                LicensePlate: reader.GetString(14),
+                DriverName: reader.GetString(15),
+                PickupMode: reader.GetString(16)
             ));
         }
 

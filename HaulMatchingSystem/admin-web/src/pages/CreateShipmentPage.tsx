@@ -16,7 +16,7 @@ interface CreateShipmentPageProps {
     pickupMode?: string | null; // "Hub" | "DirectPickup"
 }
 
-export default function CreateShipmentPage({ onNavigate, onLogout, proposalTripPostId, proposalTripId, pickupMode }: CreateShipmentPageProps) {
+export default function CreateShipmentPage({ onNavigate, onLogout, proposalTripPostId, proposalTripId: _proposalTripId, pickupMode }: CreateShipmentPageProps) {
     const isProposalMode = Boolean(proposalTripPostId);
     const isDirectPickup = pickupMode === 'DirectPickup';
 
@@ -217,6 +217,7 @@ export default function CreateShipmentPage({ onNavigate, onLogout, proposalTripP
                         </div>
                     </div>
 
+                    {!isProposalMode && (
                     <div className="w-full bg-[#f8f9ff] p-5 rounded-lg border border-[#c4c5d5] flex flex-col items-center gap-2 mb-4">
                         <p className="text-sm font-semibold text-[#444653]">
                             Mã đơn hàng của bạn
@@ -230,6 +231,7 @@ export default function CreateShipmentPage({ onNavigate, onLogout, proposalTripP
                             <QRCodeCanvas value={result.qrCode} size={190} />
                         </div>
                     </div>
+                    )}
 
                     <div className="w-full text-left">
                         <h2 className="text-xl leading-7 font-semibold text-[#0b1c30] mb-4">
@@ -248,7 +250,7 @@ export default function CreateShipmentPage({ onNavigate, onLogout, proposalTripP
                                                 1. Đề xuất đã được gửi
                                             </p>
                                             <p className="text-sm text-[#444653] mt-1">
-                                                Tài xế sẽ xem và chấp nhận/từ chối đề xuất ghép chuyến của bạn.
+                                                Warehouse staff sẽ xem và duyệt/từ chối đề xuất ghép chuyến của bạn.
                                             </p>
                                         </div>
                                     </li>
@@ -267,14 +269,14 @@ export default function CreateShipmentPage({ onNavigate, onLogout, proposalTripP
                                     </li>
                                     <li className="flex items-start gap-3 p-3 rounded-lg hover:bg-[#f8f9ff]">
                                         <span className="material-symbols-outlined text-[#00288e] mt-0.5">
-                                            qr_code_scanner
+                                            local_shipping
                                         </span>
                                         <div>
                                             <p className="text-sm font-semibold text-[#0b1c30]">
-                                                3. Đưa mã QR cho nhân viên
+                                                3. Giao hàng cho tài xế
                                             </p>
                                             <p className="text-sm text-[#444653] mt-1">
-                                                Nhân viên sẽ quét mã QR trên điện thoại của bạn để nhận hàng.
+                                                Tài xế sẽ đến nhận hàng trực tiếp tại địa chỉ của bạn.
                                             </p>
                                         </div>
                                     </li>

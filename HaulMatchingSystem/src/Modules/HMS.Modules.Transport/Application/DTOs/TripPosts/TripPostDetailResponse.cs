@@ -22,6 +22,7 @@ public sealed record TripPostDetailResponse(
     decimal RemainingWeightKg,
     decimal RemainingVolumeCbm,
     DateTimeOffset? TripStartedAt,
+    DateTimeOffset? ScheduledDepartureAt,
     string TripStatus,
     // Post info
     string Status,

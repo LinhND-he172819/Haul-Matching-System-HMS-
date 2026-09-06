@@ -17,8 +17,8 @@ interface TripSearchBarProps {
 
 export default function TripSearchBar({
     keyword: initKeyword,
-    originHubName: initOrigin,
-    destinationHubName: initDest,
+    originHubName: _initOrigin,
+    destinationHubName: _initDest,
     departureDate: initDate,
     onSearch,
 }: TripSearchBarProps) {

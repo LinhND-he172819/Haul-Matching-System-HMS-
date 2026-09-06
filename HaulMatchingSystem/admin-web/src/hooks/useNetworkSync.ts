@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db, OfflineActionType, type OfflineAction } from '../services/offlineDb';
+import { offlineDb as db, OfflineActionType, type OfflineAction } from '../services/offlineDb';
 import { v4 as uuidv4 } from 'uuid';
 
 export function useNetworkSync() {

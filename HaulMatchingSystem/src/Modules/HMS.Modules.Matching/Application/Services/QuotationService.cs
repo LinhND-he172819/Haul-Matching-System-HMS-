@@ -5,6 +5,7 @@ using HMS.Shared.Core.Enums;
 using HMS.Shared.Core.Exceptions;
 using HMS.Shared.Core.Interfaces;
 using HMS.Shared.Core.Models.Realtime;
+using HMS.Shared.Core.Sms;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -21,18 +22,21 @@ namespace HMS.Modules.Matching.Application.Services
         private readonly string _connStr;
         private readonly IShipmentStateService _shipmentStateService;
         private readonly IRealtimeDispatcher _dispatcher;
+        private readonly ISmsNotificationService _smsNotificationService;
         private readonly ILogger<QuotationService> _logger;
 
         public QuotationService(
             IConfiguration configuration,
             IShipmentStateService shipmentStateService,
             IRealtimeDispatcher dispatcher,
+            ISmsNotificationService smsNotificationService,
             ILogger<QuotationService> logger)
         {
             _connStr = configuration.GetConnectionString("DefaultConnection")
                 ?? "Host=localhost;Database=hms_matching;Username=postgres;Password=123";
             _shipmentStateService = shipmentStateService;
             _dispatcher = dispatcher;
+            _smsNotificationService = smsNotificationService;
             _logger = logger;
         }
 
@@ -329,7 +333,32 @@ namespace HMS.Modules.Matching.Application.Services
                 {
                     _logger.LogWarning(ex, "Failed to send SignalR for quotation sent");
                 }
+                // SMS notification (after commit, non-blocking)
+                if (proposal.CustomerId.HasValue)
+                {
+                    try
+                    {
+                        // Read shipment code for the SMS message
+                        string shipmentCode = "";
+                        const string readShipmentCodeSql = "SELECT shipment_code FROM warehouse.shipments WHERE id = @id;";
+                        await using (var scCmd = new NpgsqlCommand(readShipmentCodeSql, conn))
+                        {
+                            scCmd.Parameters.AddWithValue("id", proposal.ShipmentId);
+                            shipmentCode = (await scCmd.ExecuteScalarAsync(ct)) as string ?? "";
+                        }
 
+                        await _smsNotificationService.SendQuotationAvailableAsync(
+                            proposal.CustomerId.Value,
+                            shipmentCode,
+                            quotation.ShippingFee,
+                            quotation.Currency,
+                            ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send QuotationAvailable SMS for quotation {QuotationId}", quotationId);
+                    }
+                }
                 _logger.LogInformation("Quotation {QuotationId} sent to customer for proposal {ProposalId}",
                     quotationId, quotation.ProposalId);
             }

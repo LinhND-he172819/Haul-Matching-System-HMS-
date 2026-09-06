@@ -32,6 +32,7 @@ async function doRefreshToken(): Promise<string> {
     const data = await res.json();
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
+    if (data.userId) localStorage.setItem('userId', data.userId);
     return data.accessToken;
 }
 

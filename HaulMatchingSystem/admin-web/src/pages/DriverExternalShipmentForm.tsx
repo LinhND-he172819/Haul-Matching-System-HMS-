@@ -29,8 +29,8 @@ export default function DriverExternalShipmentForm({ onLogout, onNavigate, onCre
   const [geocoding, setGeocoding] = useState(false);
   const [destResolved, setDestResolved] = useState(false);
   const [destResolvedName, setDestResolvedName] = useState('');
-  const [destLat, setDestLat] = useState('');
-  const [destLng, setDestLng] = useState('');
+  const [_destLat, setDestLat] = useState('');
+  const [_destLng, setDestLng] = useState('');
 
   /* ── Form data — identical shape to customer proposal form ── */
   const [form, setForm] = useState<ShipmentFormData>({

@@ -22,7 +22,7 @@ namespace HMS.Modules.Matching.Infrastructure
         public async Task<Trip?> GetActiveTripForDriverAsync(Guid driverId, CancellationToken ct)
         {
             return await _db.Trips.FirstOrDefaultAsync(
-                t => t.DriverId == driverId && t.Status == "Active" && !t.IsDeleted,
+                t => t.DriverId == driverId && (t.Status == "Active" || t.Status == "Scheduled") && !t.IsDeleted,
                 ct);
         }
 

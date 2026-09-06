@@ -5,7 +5,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   listIncidents,
-  type AdminIncidentListItem,
   type AdminIncidentPagedResult,
 } from '../api/incidentApi';
 
@@ -21,7 +20,7 @@ const STATUS_BADGE: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   Open: 'Mới',
   InProgress: 'Đang xử lý',
-  Resolved: 'Đã xử lý',
+  Resolved: 'Đã giải quyết',
   Rejected: 'Đã từ chối',
 };
 
@@ -58,7 +57,7 @@ type Props = {
 
 /* ─── Component ─────────────────────────────────────────────────── */
 
-export default function IncidentListPage({ onLogout, onSelectIncident }: Props) {
+export default function IncidentListPage({ onLogout: _onLogout, onSelectIncident }: Props) {
   const [data, setData] = useState<AdminIncidentPagedResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -158,7 +157,7 @@ export default function IncidentListPage({ onLogout, onSelectIncident }: Props) 
             <option value="">Tất cả trạng thái</option>
             <option value="Open">Mới</option>
             <option value="InProgress">Đang xử lý</option>
-            <option value="Resolved">Đã xử lý</option>
+            <option value="Resolved">Đã giải quyết</option>
             <option value="Rejected">Đã từ chối</option>
           </select>
 

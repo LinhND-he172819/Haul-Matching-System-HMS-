@@ -1,6 +1,6 @@
 import type { TripPostStatus } from '../../api/tripPostApi';
 
-const statusConfig: Record<TripPostStatus, { label: string; className: string }> = {
+const statusConfig: Record<TripPostStatus, string> = {
     Open: 'border-emerald-400/30 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
     Closed: 'border-slate-300 bg-slate-100 text-slate-600 ring-1 ring-slate-500/20',
     Expired: 'border-amber-300 bg-amber-50 text-amber-700 ring-1 ring-amber-500/20',

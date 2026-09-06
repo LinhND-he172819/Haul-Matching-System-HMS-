@@ -216,7 +216,11 @@ namespace HMS.Modules.Matching.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (ForbiddenException)
             {
                 return Forbid();
             }
@@ -247,7 +251,11 @@ namespace HMS.Modules.Matching.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (ForbiddenException)
             {
                 return Forbid();
             }

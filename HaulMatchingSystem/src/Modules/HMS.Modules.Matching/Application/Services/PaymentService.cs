@@ -5,6 +5,7 @@ using HMS.Shared.Core.Enums;
 using HMS.Shared.Core.Exceptions;
 using HMS.Shared.Core.Interfaces;
 using HMS.Shared.Core.Models.Realtime;
+using HMS.Shared.Core.Sms;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -22,18 +23,21 @@ namespace HMS.Modules.Matching.Application.Services
         private readonly string _connStr;
         private readonly IShipmentStateService _shipmentStateService;
         private readonly IRealtimeDispatcher _dispatcher;
+        private readonly ISmsNotificationService _smsNotificationService;
         private readonly ILogger<PaymentService> _logger;
 
         public PaymentService(
             IConfiguration configuration,
             IShipmentStateService shipmentStateService,
             IRealtimeDispatcher dispatcher,
+            ISmsNotificationService smsNotificationService,
             ILogger<PaymentService> logger)
         {
             _connStr = configuration.GetConnectionString("DefaultConnection")
                 ?? "Host=localhost;Database=hms_matching;Username=postgres;Password=123";
             _shipmentStateService = shipmentStateService;
             _dispatcher = dispatcher;
+            _smsNotificationService = smsNotificationService;
             _logger = logger;
         }
 
@@ -350,6 +354,14 @@ namespace HMS.Modules.Matching.Application.Services
             await conn.OpenAsync(ct);
             await using var tx = await conn.BeginTransactionAsync(IsolationLevel.Serializable, ct);
 
+            // Track transitions for post-commit SMS
+            SmsMessageType? pendingSmsType = null;
+            Guid? smsShipmentId = null;
+            string smsShipmentCode = "";
+
+            // Post-commit SignalR dispatch (outbox pattern: never dispatch inside transaction)
+            var postCommitActions = new List<Func<Task>>();
+
             try
             {
                 // 1. Find payment by transaction reference
@@ -364,6 +376,17 @@ namespace HMS.Modules.Matching.Application.Services
                     _logger.LogInformation("Payment {PaymentId} already processed as Paid", payment.Id);
                     await tx.RollbackAsync(ct);
                     return;
+                }
+
+                // 2b. SECURITY: verify the gateway-reported amount matches the stored payment amount.
+                // Without this, a valid transaction reference could mark a payment as Paid with a wrong amount.
+                if (webhook.Amount.HasValue && webhook.Amount.Value != payment.Amount)
+                {
+                    _logger.LogWarning(
+                        "Webhook amount mismatch for payment {PaymentId}: expected={Expected}, got={Got}, ref={Ref}",
+                        payment.Id, payment.Amount, webhook.Amount.Value, webhook.TransactionReference);
+                    throw new InvalidOperationException(
+                        $"Số tiền webhook ({webhook.Amount.Value}) không khớp với số tiền payment ({payment.Amount}).");
                 }
 
                 PaymentTransitionGuard.EnsureCanTransition(
@@ -398,7 +421,7 @@ namespace HMS.Modules.Matching.Application.Services
                     $"Webhook: {webhook.TransactionReference}, amount={webhook.Amount}", null, ct);
 
                 // 5. If deposit paid → transition shipment PendingDeposit → Matched, quotation → Accepted
-                if (newStatus == "Paid" && payment.PaymentType == "Deposit")
+                if (newStatus == "Paid" && payment.PaymentType == "Deposit" && payment.QuotationId.HasValue)
                 {
                     _logger.LogInformation("Deposit paid for payment {PaymentId}, updating shipment and quotation", payment.Id);
 
@@ -412,7 +435,7 @@ namespace HMS.Modules.Matching.Application.Services
                     """;
                     await using (var cmd2 = new NpgsqlCommand(updateQuotationSql, conn, tx))
                     {
-                        cmd2.Parameters.AddWithValue("quotation_id", payment.QuotationId);
+                        cmd2.Parameters.AddWithValue("quotation_id", payment.QuotationId.Value);
                         await cmd2.ExecuteNonQueryAsync(ct);
                     }
 
@@ -431,10 +454,10 @@ namespace HMS.Modules.Matching.Application.Services
                         "PendingDeposit → Matched (deposit paid)", payment.CustomerId, ct);
 
                     // Transition proposal: Approved → Confirmed
-                    var proposalId = await GetProposalIdByQuotationAsync(conn, tx, payment.QuotationId, ct);
+                    var proposalId = await GetProposalIdByQuotationAsync(conn, tx, payment.QuotationId.Value, ct);
                     if (proposalId.HasValue)
                     {
-                        var proposal = await ReadProposalAsync(conn, tx, proposalId.Value, ct);
+                        var proposal = await ReadProposalWithTripPostAsync(conn, tx, proposalId.Value, ct);
                         if (proposal.HasValue)
                         {
                             if (proposal.Value.Status == ProposalStatusConstants.Approved)
@@ -453,6 +476,101 @@ namespace HMS.Modules.Matching.Application.Services
                                 _logger.LogInformation("Proposal {ProposalId} transitioned Approved → Confirmed (deposit paid)", proposal.Value.Id);
                             }
 
+                            // ── Create transport.trip_shipments linkage ──
+                            if (proposal.Value.TripPostId.HasValue)
+                            {
+                                try
+                                {
+                                    // Get trip_id from trip_post
+                                    var tripPost = await ReadTripPostForLinkageAsync(conn, tx, proposal.Value.TripPostId.Value, ct);
+                                    if (tripPost.HasValue)
+                                    {
+                                        // Get shipment weight/volume
+                                        var shipmentInfo = await ReadShipmentForUpdateAsync(conn, tx, payment.ShipmentId, ct);
+                                        if (shipmentInfo.HasValue)
+                                        {
+                                            // Create trip_shipments row (idempotent — skip if already exists)
+                                            const string insertTripShipmentSql = """
+                                                INSERT INTO transport.trip_shipments
+                                                    (id, trip_id, shipment_id, delivery_sequence, status, suggested_at, accepted_at, accepted_by)
+                                                SELECT
+                                                    gen_random_uuid(), @trip_id, @shipment_id,
+                                                    COALESCE((SELECT MAX(delivery_sequence) + 1 FROM transport.trip_shipments WHERE trip_id = @trip_id AND is_deleted = FALSE), 1),
+                                                    'Matched', NOW(), NOW(), @accepted_by
+                                                WHERE NOT EXISTS (
+                                                    SELECT 1 FROM transport.trip_shipments
+                                                    WHERE trip_id = @trip_id AND shipment_id = @shipment_id AND is_deleted = FALSE
+                                                );
+                                            """;
+                                            await using (var cmdTs = new NpgsqlCommand(insertTripShipmentSql, conn, tx))
+                                            {
+                                                cmdTs.Parameters.AddWithValue("trip_id", tripPost.Value);
+                                                cmdTs.Parameters.AddWithValue("shipment_id", payment.ShipmentId);
+                                                cmdTs.Parameters.AddWithValue("accepted_by", payment.CustomerId);
+                                                await cmdTs.ExecuteNonQueryAsync(ct);
+                                            }
+
+                                            // Update trip current_load_weight/volume with capacity guard.
+                                            // The trip row is locked via FOR UPDATE to serialize concurrent load updates.
+                                            const string updateTripLoadSql = """
+                                                SELECT current_load_weight, current_load_volume
+                                                FROM transport.trips
+                                                WHERE id = @trip_id
+                                                FOR UPDATE;
+                                            """;
+                                            decimal currentWeight, currentVolume;
+                                            await using (var cmdLock = new NpgsqlCommand(updateTripLoadSql, conn, tx))
+                                            {
+                                                cmdLock.Parameters.AddWithValue("trip_id", tripPost.Value);
+                                                await using var reader = await cmdLock.ExecuteReaderAsync(ct);
+                                                if (!await reader.ReadAsync(ct))
+                                                    throw new InvalidOperationException($"Trip {tripPost.Value} không tồn tại khi cập nhật tải trọng.");
+                                                currentWeight = reader.GetDecimal(0);
+                                                currentVolume = reader.GetDecimal(1);
+                                            }
+
+                                            var vehicleCap = await ReadVehicleCapacityForTripAsync(conn, tx, tripPost.Value, ct);
+                                            if (vehicleCap.HasValue)
+                                            {
+                                                if (currentWeight + shipmentInfo.Value.WeightKg > vehicleCap.Value.MaxWeightKg)
+                                                    throw new InvalidOperationException(
+                                                        $"Tải trọng xe vượt quá giới hạn: hiện tại {currentWeight}kg + {shipmentInfo.Value.WeightKg}kg > max {vehicleCap.Value.MaxWeightKg}kg.");
+                                                if (currentVolume + shipmentInfo.Value.VolumeCbm > vehicleCap.Value.MaxVolumeCbm)
+                                                    throw new InvalidOperationException(
+                                                        $"Thể tích xe vượt quá giới hạn: hiện tại {currentVolume}m³ + {shipmentInfo.Value.VolumeCbm}m³ > max {vehicleCap.Value.MaxVolumeCbm}m³.");
+                                            }
+
+                                            const string applyTripLoadSql = """
+                                                UPDATE transport.trips
+                                                SET current_load_weight = current_load_weight + @add_weight,
+                                                    current_load_volume = current_load_volume + @add_volume,
+                                                    updated_at = NOW()
+                                                WHERE id = @trip_id;
+                                            """;
+                                            await using (var cmdTrip = new NpgsqlCommand(applyTripLoadSql, conn, tx))
+                                            {
+                                                cmdTrip.Parameters.AddWithValue("trip_id", tripPost.Value);
+                                                cmdTrip.Parameters.AddWithValue("add_weight", shipmentInfo.Value.WeightKg);
+                                                cmdTrip.Parameters.AddWithValue("add_volume", shipmentInfo.Value.VolumeCbm);
+                                                await cmdTrip.ExecuteNonQueryAsync(ct);
+                                            }
+
+                                            _logger.LogInformation(
+                                                "Linked shipment {ShipmentId} to trip {TripId} via trip_shipments (deposit paid). Weight={Weight}, Volume={Volume}",
+                                                payment.ShipmentId, tripPost.Value, shipmentInfo.Value.WeightKg, shipmentInfo.Value.VolumeCbm);
+                                        }
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    // Atomicity: the whole Serializable transaction (payment update + state
+                                    // transitions + linkage) rolls back so we never mark a payment Paid while
+                                    // leaving the shipment/trip in an inconsistent state. The gateway can retry.
+                                    _logger.LogError(ex, "Trip linkage failed for shipment {ShipmentId} after deposit payment — rolling back webhook transaction", payment.ShipmentId);
+                                    throw;
+                                }
+                            } // end if TripPostId.HasValue
+
                             if (proposal.Value.CustomerId.HasValue)
                             {
                                 await SaveNotificationAsync(conn, proposal.Value.CustomerId.Value,
@@ -460,45 +578,56 @@ namespace HMS.Modules.Matching.Application.Services
                                     $"Thanh toán cọc cho đơn hàng đã thành công. Hàng hóa sẽ được xử lý tại kho.",
                                     "Payment", payment.Id, ct);
 
-                                // SignalR
-                                try
+                                // Queue SignalR for post-commit (outbox pattern)
+                                var capturedCustomerId = proposal.Value.CustomerId.Value;
+                                var capturedPaymentId = payment.Id;
+                                var capturedShipmentId = payment.ShipmentId;
+                                var capturedAmount = payment.Amount;
+                                postCommitActions.Add(async () =>
                                 {
-                                    await _dispatcher.SendPaymentUpdateToCustomerAsync(proposal.Value.CustomerId.Value, new PaymentEventPayload
+                                    try
                                     {
-                                        EventType = "DepositPaid",
-                                        PaymentId = payment.Id,
-                                        ShipmentId = payment.ShipmentId,
-                                        Amount = payment.Amount,
-                                        Timestamp = DateTime.UtcNow
-                                    });
-
-                                    // Also notify staff
-                                    await _dispatcher.SendShipmentStatusToStaffAsync(
-                                        "Staff",
-                                        new ShipmentStatusEventPayload
+                                        await _dispatcher.SendPaymentUpdateToCustomerAsync(capturedCustomerId, new PaymentEventPayload
                                         {
-                                            ShipmentId = payment.ShipmentId,
-                                            OldStatus = ShipmentStatus.PendingDeposit,
-                                            NewStatus = ShipmentStatus.In_Warehouse,
-                                            UpdatedAt = DateTime.UtcNow
+                                            EventType = "DepositPaid",
+                                            PaymentId = capturedPaymentId,
+                                            ShipmentId = capturedShipmentId,
+                                            Amount = capturedAmount,
+                                            Timestamp = DateTime.UtcNow
                                         });
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogWarning(ex, "Failed to send SignalR for deposit payment");
-                                }
+
+                                        // Also notify staff
+                                        await _dispatcher.SendShipmentStatusToStaffAsync(
+                                            "Staff",
+                                            new ShipmentStatusEventPayload
+                                            {
+                                                ShipmentId = capturedShipmentId,
+                                                OldStatus = ShipmentStatus.PendingDeposit,
+                                                NewStatus = ShipmentStatus.In_Warehouse,
+                                                UpdatedAt = DateTime.UtcNow
+                                            });
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogWarning(ex, "Failed to send SignalR for deposit payment");
+                                    }
+                                });
                             } // end if CustomerId.HasValue
                         } // end if proposal.HasValue
                     } // end if proposalId.HasValue
+
+                    // Track SMS for post-commit
+                    pendingSmsType = SmsMessageType.ShipmentMatched;
+                    smsShipmentId = payment.ShipmentId;
                 }
 
                 // 6. If final payment paid → transition shipment Completed
-                if (newStatus == "Paid" && payment.PaymentType == "FinalPayment")
+                if (newStatus == "Paid" && payment.PaymentType == "FinalPayment" && payment.QuotationId.HasValue)
                 {
                     _logger.LogInformation("Final payment paid for payment {PaymentId}, completing shipment", payment.Id);
 
                     // Check all final payments are paid for this quotation
-                    var allFinalPaid = await AllFinalPaymentsPaidAsync(conn, tx, payment.QuotationId, ct);
+                    var allFinalPaid = await AllFinalPaymentsPaidAsync(conn, tx, payment.QuotationId.Value, ct);
                     if (!allFinalPaid)
                     {
                         _logger.LogInformation("Not all final payments paid yet for quotation {QuotationId}", payment.QuotationId);
@@ -521,7 +650,7 @@ namespace HMS.Modules.Matching.Application.Services
                         "Delivered → Completed (final payment received)", payment.CustomerId, ct);
 
                     // Get proposal → customer for notification
-                    var proposalId = await GetProposalIdByQuotationAsync(conn, tx, payment.QuotationId, ct);
+                    var proposalId = await GetProposalIdByQuotationAsync(conn, tx, payment.QuotationId.Value, ct);
                     if (proposalId.HasValue)
                     {
                         var proposal = await ReadProposalAsync(conn, tx, proposalId.Value, ct);
@@ -534,24 +663,36 @@ namespace HMS.Modules.Matching.Application.Services
                                     $"Thanh toán cuối cùng đã thành công. Đơn hàng đã hoàn tất.",
                                     "Payment", payment.Id, ct);
 
-                                try
+                                // Queue SignalR for post-commit (outbox pattern)
+                                var capturedCustomerId = proposal.Value.CustomerId.Value;
+                                var capturedPaymentId = payment.Id;
+                                var capturedShipmentId = payment.ShipmentId;
+                                var capturedAmount = payment.Amount;
+                                postCommitActions.Add(async () =>
                                 {
-                                    await _dispatcher.SendPaymentUpdateToCustomerAsync(proposal.Value.CustomerId.Value, new PaymentEventPayload
+                                    try
                                     {
-                                        EventType = "FinalPaymentPaid",
-                                        PaymentId = payment.Id,
-                                        ShipmentId = payment.ShipmentId,
-                                        Amount = payment.Amount,
-                                        Timestamp = DateTime.UtcNow
-                                    });
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogWarning(ex, "Failed to send SignalR for final payment");
-                                }
+                                        await _dispatcher.SendPaymentUpdateToCustomerAsync(capturedCustomerId, new PaymentEventPayload
+                                        {
+                                            EventType = "FinalPaymentPaid",
+                                            PaymentId = capturedPaymentId,
+                                            ShipmentId = capturedShipmentId,
+                                            Amount = capturedAmount,
+                                            Timestamp = DateTime.UtcNow
+                                        });
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogWarning(ex, "Failed to send SignalR for final payment");
+                                    }
+                                });
                             } // end if CustomerId.HasValue
                         } // end if proposal.HasValue
                     } // end if proposalId.HasValue
+
+                    // Track SMS for post-commit
+                    pendingSmsType = SmsMessageType.ShipmentCompleted;
+                    smsShipmentId = payment.ShipmentId;
                 }
 
                 await tx.CommitAsync(ct);
@@ -560,6 +701,37 @@ namespace HMS.Modules.Matching.Application.Services
             {
                 await tx.RollbackAsync(ct);
                 throw;
+            }
+
+            // SignalR notifications (after commit, outbox pattern)
+            foreach (var action in postCommitActions)
+            {
+                await action();
+            }
+
+            // SMS notifications (after commit, non-blocking)
+            if (pendingSmsType.HasValue && smsShipmentId.HasValue)
+            {
+                try
+                {
+                    // Resolve shipment_code
+                    const string readCodeSql = "SELECT shipment_code FROM warehouse.shipments WHERE id = @id;";
+                    await using (var scCmd = new NpgsqlCommand(readCodeSql, conn))
+                    {
+                        scCmd.Parameters.AddWithValue("id", smsShipmentId.Value);
+                        smsShipmentCode = (await scCmd.ExecuteScalarAsync(ct)) as string ?? "";
+                    }
+
+                    if (!string.IsNullOrEmpty(smsShipmentCode))
+                    {
+                        await _smsNotificationService.SendShipmentStatusAsync(
+                            smsShipmentId.Value, pendingSmsType.Value, smsShipmentCode, ct);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send {MessageType} SMS for shipment {ShipmentId}", pendingSmsType, smsShipmentId);
+                }
             }
         }
 
@@ -704,7 +876,7 @@ namespace HMS.Modules.Matching.Application.Services
         // ── Private helpers ──
 
         private static async Task<(Guid Id, string Status, string PaymentType, decimal Amount,
-            string Currency, Guid QuotationId, Guid ShipmentId, Guid CustomerId)?>
+            string Currency, Guid? QuotationId, Guid ShipmentId, Guid CustomerId)?>
             ReadPaymentByTransactionRefAsync(NpgsqlConnection conn, NpgsqlTransaction tx,
             string transactionRef, CancellationToken ct)
         {
@@ -718,7 +890,8 @@ namespace HMS.Modules.Matching.Application.Services
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             if (!await reader.ReadAsync()) return null;
             return (reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetDecimal(3),
-                    reader.GetString(4), reader.GetGuid(5), reader.GetGuid(6), reader.GetGuid(7));
+                    reader.GetString(4), reader.IsDBNull(5) ? (Guid?)null : reader.GetGuid(5),
+                    reader.GetGuid(6), reader.GetGuid(7));
         }
 
         private static async Task<(Guid Id, string Status, string QuotationCode, decimal ShippingFee,
@@ -754,6 +927,60 @@ namespace HMS.Modules.Matching.Application.Services
             if (!await reader.ReadAsync()) return null;
             return (reader.GetGuid(0), reader.GetString(1), reader.GetGuid(2),
                     reader.IsDBNull(3) ? null : reader.GetGuid(3));
+        }
+
+        private static async Task<(Guid Id, string Status, Guid ShipmentId, Guid? CustomerId, Guid? TripPostId)?>
+            ReadProposalWithTripPostAsync(NpgsqlConnection conn, NpgsqlTransaction tx,
+            Guid proposalId, CancellationToken ct)
+        {
+            const string sql = """
+                SELECT id, status, shipment_id, customer_id, trip_post_id
+                FROM warehouse.shipment_proposals
+                WHERE id = @id AND is_deleted = FALSE FOR UPDATE;
+            """;
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
+            cmd.Parameters.AddWithValue("id", proposalId);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync()) return null;
+            return (reader.GetGuid(0), reader.GetString(1), reader.GetGuid(2),
+                    reader.IsDBNull(3) ? null : reader.GetGuid(3),
+                    reader.IsDBNull(4) ? null : reader.GetGuid(4));
+        }
+
+        private static async Task<Guid?>
+            ReadTripPostForLinkageAsync(NpgsqlConnection conn, NpgsqlTransaction tx,
+            Guid tripPostId, CancellationToken ct)
+        {
+            const string sql = """
+                SELECT trip_id FROM transport.trip_posts
+                WHERE id = @id AND is_deleted = FALSE;
+            """;
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
+            cmd.Parameters.AddWithValue("id", tripPostId);
+            var result = await cmd.ExecuteScalarAsync(ct);
+            if (result is Guid tripId) return tripId;
+            return null;
+        }
+
+        /// <summary>
+        /// Reads the vehicle capacity limits for the trip linked to a trip_post.
+        /// Returns null when no vehicle is linked (capacity guard is skipped).
+        /// </summary>
+        private static async Task<(decimal MaxWeightKg, decimal MaxVolumeCbm)?>
+            ReadVehicleCapacityForTripAsync(NpgsqlConnection conn, NpgsqlTransaction tx,
+            Guid tripId, CancellationToken ct)
+        {
+            const string sql = """
+                SELECT v.max_weight_kg, v.max_volume_cbm
+                FROM transport.trips t
+                JOIN transport.vehicles v ON v.id = t.vehicle_id
+                WHERE t.id = @trip_id;
+            """;
+            await using var cmd = new NpgsqlCommand(sql, conn, tx);
+            cmd.Parameters.AddWithValue("trip_id", tripId);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct)) return null;
+            return (reader.GetDecimal(0), reader.GetDecimal(1));
         }
 
         private static async Task<(Guid Id, string Status, decimal WeightKg, decimal VolumeCbm)?>
@@ -1418,17 +1645,20 @@ namespace HMS.Modules.Matching.Application.Services
                             "Matched → PendingReview (deposit refund)", staffId, ct);
 
                         // Also cancel quotation
-                        var quotation = await ReadQuotationForUpdateAsync(conn, tx, payment.QuotationId, ct);
-                        if (quotation.HasValue && quotation.Value.Status == "Accepted")
+                        if (payment.QuotationId.HasValue)
                         {
-                            const string cancelQSql = """
-                                UPDATE warehouse.quotations
-                                SET status = 'Cancelled', cancelled_at = NOW(), updated_at = NOW()
-                                WHERE id = @quotation_id AND is_deleted = FALSE;
-                            """;
-                            await using var qCmd = new NpgsqlCommand(cancelQSql, conn, tx);
-                            qCmd.Parameters.AddWithValue("quotation_id", payment.QuotationId);
-                            await qCmd.ExecuteNonQueryAsync(ct);
+                            var quotation = await ReadQuotationForUpdateAsync(conn, tx, payment.QuotationId.Value, ct);
+                            if (quotation.HasValue && quotation.Value.Status == "Accepted")
+                            {
+                                const string cancelQSql = """
+                                    UPDATE warehouse.quotations
+                                    SET status = 'Cancelled', cancelled_at = NOW(), updated_at = NOW()
+                                    WHERE id = @quotation_id AND is_deleted = FALSE;
+                                """;
+                                await using var qCmd = new NpgsqlCommand(cancelQSql, conn, tx);
+                                qCmd.Parameters.AddWithValue("quotation_id", payment.QuotationId.Value);
+                                await qCmd.ExecuteNonQueryAsync(ct);
+                            }
                         }
                     }
                 }
@@ -1541,7 +1771,24 @@ namespace HMS.Modules.Matching.Application.Services
                     $"COD confirmed by driver {driverId}", driverId, ct);
 
                 // Check all final payments for this quotation
-                var allFinalPaid = await AllFinalPaymentsPaidAsync(conn, tx, payment.QuotationId, ct);
+                if (!payment.QuotationId.HasValue)
+                {
+                    _logger.LogWarning("COD payment {PaymentId} has no quotation_id", paymentId);
+                    await tx.CommitAsync(ct);
+                    return new PaymentResponseDto
+                    {
+                        Id = paymentId,
+                        PaymentCode = payment.PaymentCode,
+                        QuotationId = payment.QuotationId,
+                        ShipmentId = payment.ShipmentId,
+                        PaymentType = payment.PaymentType,
+                        Amount = payment.Amount,
+                        Currency = payment.Currency,
+                        Status = "Paid",
+                        CreatedAt = payment.CreatedAt
+                    };
+                }
+                var allFinalPaid = await AllFinalPaymentsPaidAsync(conn, tx, payment.QuotationId.Value, ct);
                 if (allFinalPaid)
                 {
                     // Transition shipment: Delivered → Completed
@@ -1579,6 +1826,29 @@ namespace HMS.Modules.Matching.Application.Services
                 }
                 catch (Exception ex) { _logger.LogWarning(ex, "SignalR failed for COD confirmation"); }
 
+                // SMS notification (after commit, non-blocking)
+                if (allFinalPaid)
+                {
+                    try
+                    {
+                        const string readCodeSql = "SELECT shipment_code FROM warehouse.shipments WHERE id = @id;";
+                        await using (var scCmd = new NpgsqlCommand(readCodeSql, conn))
+                        {
+                            scCmd.Parameters.AddWithValue("id", payment.ShipmentId);
+                            var smsCode = (await scCmd.ExecuteScalarAsync(ct)) as string ?? "";
+                            if (!string.IsNullOrEmpty(smsCode))
+                            {
+                                await _smsNotificationService.SendShipmentStatusAsync(
+                                    payment.ShipmentId, SmsMessageType.ShipmentCompleted, smsCode, ct);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send ShipmentCompleted SMS for shipment {ShipmentId}", payment.ShipmentId);
+                    }
+                }
+
                 return new PaymentResponseDto
                 {
                     Id = paymentId,
@@ -1605,7 +1875,7 @@ namespace HMS.Modules.Matching.Application.Services
         // ═══════════════════════════════════════════════════════
 
         private async Task<(Guid Id, string Status, string PaymentType, decimal Amount,
-            string Currency, Guid QuotationId, Guid ShipmentId, Guid CustomerId,
+            string Currency, Guid? QuotationId, Guid ShipmentId, Guid CustomerId,
             string PaymentCode, string? PaymentMethod, DateTime CreatedAt)?
             > ReadPaymentForUpdateAsync(NpgsqlConnection conn, NpgsqlTransaction tx,
             Guid paymentId, CancellationToken ct)
@@ -1621,7 +1891,8 @@ namespace HMS.Modules.Matching.Application.Services
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             if (!await reader.ReadAsync()) return null;
             return (reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetDecimal(3),
-                    reader.GetString(4), reader.GetGuid(5), reader.GetGuid(6), reader.GetGuid(7),
+                    reader.GetString(4), reader.IsDBNull(5) ? (Guid?)null : reader.GetGuid(5),
+                    reader.GetGuid(6), reader.GetGuid(7),
                     reader.GetString(8), reader.IsDBNull(9) ? null : reader.GetString(9), reader.GetDateTime(10));
         }
 

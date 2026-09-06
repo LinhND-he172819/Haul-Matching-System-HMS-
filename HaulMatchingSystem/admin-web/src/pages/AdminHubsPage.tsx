@@ -56,7 +56,7 @@ interface AdminHubsPageProps {
     sidebar?: React.ReactNode;
 }
 
-export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
+export default function AdminHubsPage({ sidebar: _sidebar }: AdminHubsPageProps) {
     const [hubs, setHubs] = useState<Hub[]>([]);
     const [search, setSearch] = useState('');
     const [form, setForm] = useState<HubFormState>(emptyForm);
@@ -67,8 +67,8 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
     const [isLoadingHubs, setIsLoadingHubs] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
-    const [status, setStatus] = useState('Ready');
-    const [message, setMessage] = useState(`Connected to ${apiBaseUrl}/api/hubs`);
+    const [status, setStatus] = useState('Sẵn sàng');
+    const [message, setMessage] = useState(`Kết nối với ${apiBaseUrl}/api/hubs`);
 
     const latitude = toCoordinate(form.latitude, defaultCenter.latitude);
     const longitude = toCoordinate(form.longitude, defaultCenter.longitude);
@@ -82,13 +82,13 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
             setIsLoadingHubs(true);
             const data = await fetchHubs(query);
             setHubs(data);
-            setStatus('Connected');
-            setMessage(`${data.length} hubs loaded`);
+            setStatus('Đã kết nối');
+            setMessage(`${data.length} hub đã tải`);
         } catch (error) {
             console.error(error);
             setHubs([]);
-            setStatus('API offline');
-            setMessage(error instanceof Error ? error.message : 'Cannot load hubs.');
+            setStatus('API ngoại tuyến');
+            setMessage(error instanceof Error ? error.message : 'Không thể tải danh sách hub.');
         } finally {
             setIsLoadingHubs(false);
         }
@@ -166,8 +166,8 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
         setPlaces([]);
         setLocationConfirmed(false);
         setFlyToVersion((current) => current + 1);
-        setStatus('Location selected');
-        setMessage('Review the pin or drag it before confirming.');
+        setStatus('Đã chọn địa điểm');
+        setMessage('Kiểm tra ghim hoặc kéo điều chỉnh trước khi xác nhận.');
     };
 
     const handleMapLocationChange = useCallback((nextLatitude: number, nextLongitude: number) => {
@@ -177,19 +177,19 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
             longitude: formatCoordinate(nextLongitude)
         }));
         setLocationConfirmed(false);
-        setStatus('Pin moved');
-        setMessage('Confirm the adjusted hub location before saving.');
+        setStatus('Đã di chuyển ghim');
+        setMessage('Xác nhận vị trí hub đã điều chỉnh trước khi lưu.');
     }, []);
 
     const confirmLocation = () => {
         if (!form.latitude || !form.longitude) {
-            setStatus('Missing location');
-            setMessage('Search an address or drag the pin first.');
+            setStatus('Thiếu vị trí');
+            setMessage('Tìm kiếm địa chỉ hoặc kéo ghim trước.');
             return;
         }
 
         setLocationConfirmed(true);
-        setStatus('Location confirmed');
+        setStatus('Đã xác nhận vị trí');
         setMessage(`${form.latitude}, ${form.longitude}`);
     };
 
@@ -204,7 +204,7 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
         setLocationConfirmed(true);
         setPlaces([]);
         setFlyToVersion((current) => current + 1);
-        setStatus('Editing hub');
+        setStatus('Đang chỉnh sửa hub');
         setMessage(hub.name);
     };
 
@@ -214,8 +214,8 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
         setPlaces([]);
         setLocationConfirmed(false);
         setFlyToVersion((current) => current + 1);
-        setStatus('Ready');
-        setMessage('Create a hub or select one to edit.');
+        setStatus('Sẵn sàng');
+        setMessage('Tạo hub mới hoặc chọn hub để chỉnh sửa.');
     };
     
     const buildPayload = (): HubPayload | null => {
@@ -223,26 +223,26 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
         const longitudeValue = Number(form.longitude);
 
         if (!form.name.trim()) {
-            setStatus('Validation failed');
-            setMessage('Hub name is required.');
+            setStatus('Lỗi xác thực');
+            setMessage('Tên hub là bắt buộc.');
             return null;
         }
 
         if (!form.address.trim()) {
-            setStatus('Validation failed');
-            setMessage('Address is required.');
+            setStatus('Lỗi xác thực');
+            setMessage('Địa chỉ là bắt buộc.');
             return null;
         }
 
         if (!Number.isFinite(latitudeValue) || !Number.isFinite(longitudeValue)) {
-            setStatus('Validation failed');
-            setMessage('Hub coordinates are required.');
+            setStatus('Lỗi xác thực');
+            setMessage('Tọa độ hub là bắt buộc.');
             return null;
         }
 
         if (!locationConfirmed) {
-            setStatus('Location not confirmed');
-            setMessage('Confirm the map pin before saving.');
+            setStatus('Chưa xác nhận vị trí');
+            setMessage('Xác nhận ghim trên bản đồ trước khi lưu.');
             return null;
         }
 
@@ -269,13 +269,13 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
             }
 
             await loadHubs(search);
-            setStatus(editingHubId ? 'Hub updated' : 'Hub created');
+            setStatus(editingHubId ? 'Đã cập nhật hub' : 'Đã tạo hub');
             setMessage(payload.name);
             resetForm();
         } catch (error) {
             console.error(error);
-            setStatus('Save failed');
-            setMessage(error instanceof Error ? error.message : 'Cannot save hub.');
+            setStatus('Lưu thất bại');
+            setMessage(error instanceof Error ? error.message : 'Không thể lưu hub.');
         } finally {
             setIsSaving(false);
         }
@@ -292,8 +292,8 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                             <span className="material-symbols-outlined text-[22px]">warehouse</span>
                         </div>
                         <div>
-                            <h1 className="font-headline-md text-2xl font-semibold text-primary">Hub Management</h1>
-                            <p className="text-sm text-on-surface-variant">Admin Operations</p>
+                            <h1 className="font-headline-md text-2xl font-semibold text-primary">Quản lý Hub</h1>
+                            <p className="text-sm text-on-surface-variant">Thao tác quản trị</p>
                         </div>
                     </div>
 
@@ -310,25 +310,25 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
             <main className="mx-auto grid max-w-[1440px] grid-cols-1 gap-4 px-4 py-4 md:px-8 xl:grid-cols-[minmax(0,1fr)_480px]">
                 <section className="space-y-4 xl:contents">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:col-start-1 xl:row-start-1">
-                        <MetricCard icon="hub" label="Active hubs" value={String(activeHubs)} />
-                        <MetricCard icon="pin_drop" label="PostGIS points" value={String(activeHubs)} />
+                        <MetricCard icon="hub" label="Hub đang hoạt động" value={String(activeHubs)} />
+                        <MetricCard icon="pin_drop" label="Điểm PostGIS" value={String(activeHubs)} />
                         <MetricCard icon="travel_explore" label="Geocoder" value="Nominatim" />
                     </div>
 
                     <section className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-card-padding card-shadow xl:col-start-1 xl:row-start-2">
                         <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
                             <div>
-                                <h2 className="font-headline-md text-xl font-semibold text-on-surface">Hub Map</h2>
+                                <h2 className="font-headline-md text-xl font-semibold text-on-surface">Bản đồ Hub</h2>
                                 <p className="text-sm text-on-surface-variant">
                                     {form.latitude && form.longitude
                                         ? `${form.latitude}, ${form.longitude}`
-                                        : 'Search an address to position the pin'}
+                                        : 'Tìm địa chỉ để đặt ghim'}
                                 </p>
                             </div>
 
                             <div className="flex items-center gap-2 rounded-lg border border-outline-variant/50 bg-surface-container-low px-3 py-2 text-sm text-on-surface-variant">
                                 <span className="material-symbols-outlined text-[20px] text-primary">open_with</span>
-                                Drag the pin to adjust
+                                Kéo ghim để điều chỉnh
                             </div>
                         </div>
 
@@ -345,8 +345,8 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                     <section className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-card-padding card-shadow xl:col-span-2 xl:row-start-3">
                         <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
                             <div>
-                                <h2 className="font-headline-md text-xl font-semibold text-on-surface">Hub List</h2>
-                                <p className="text-sm text-on-surface-variant">{isLoadingHubs ? 'Loading...' : `${hubs.length} rows`}</p>
+                                <h2 className="font-headline-md text-xl font-semibold text-on-surface">Danh sách Hub</h2>
+                                <p className="text-sm text-on-surface-variant">{isLoadingHubs ? 'Đang tải...' : `${hubs.length} bản ghi`}</p>
                             </div>
 
                             <label className="flex w-full items-center gap-2 rounded-lg border border-outline-variant/50 bg-surface-container-low px-3 py-2 md:max-w-sm">
@@ -354,7 +354,7 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                                 <input
                                     className="w-full bg-transparent text-sm outline-none"
                                     onChange={(event) => setSearch(event.target.value)}
-                                    placeholder="Search hubs"
+                                    placeholder="Tìm kiếm hub"
                                     value={search}
                                 />
                             </label>
@@ -365,10 +365,10 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                                 <thead>
                                     <tr className="border-b border-outline-variant/30 text-sm font-semibold text-on-surface-variant">
                                         <th className="py-3 pr-4">Hub</th>
-                                        <th className="py-3 pr-4">Address</th>
-                                        <th className="py-3 pr-4">Coordinates</th>
-                                        <th className="py-3 pr-4">Updated</th>
-                                        <th className="py-3 pr-4 text-right">Actions</th>
+                                        <th className="py-3 pr-4">Địa chỉ</th>
+                                        <th className="py-3 pr-4">Tọa độ</th>
+                                        <th className="py-3 pr-4">Cập nhật</th>
+                                        <th className="py-3 pr-4 text-right">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -390,7 +390,7 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                                                     <button
                                                         className="flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant/40 bg-surface-container-low text-primary transition-colors hover:bg-surface-container"
                                                         onClick={() => editHub(hub)}
-                                                        title="Edit hub"
+                                                        title="Chỉnh sửa hub"
                                                         type="button"
                                                     >
                                                         <span className="material-symbols-outlined text-[20px]">edit</span>
@@ -405,7 +405,7 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                             {!isLoadingHubs && hubs.length === 0 && (
                                 <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
                                     <span className="material-symbols-outlined mb-2 text-[36px] text-on-surface-variant">warehouse</span>
-                                    <p className="font-semibold text-on-surface">No hubs loaded</p>
+                                    <p className="font-semibold text-on-surface">Chưa có hub nào</p>
                                     <p className="mt-1 text-sm text-on-surface-variant">{message}</p>
                                 </div>
                             )}
@@ -418,16 +418,16 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                         <div className="mb-4 flex items-start justify-between gap-3">
                             <div>
                                 <h2 className="font-headline-md text-xl font-semibold text-on-surface">
-                                    {editingHubId ? 'Update Hub' : 'Create Hub'}
+                                    {editingHubId ? 'Cập nhật Hub' : 'Tạo Hub'}
                                 </h2>
                                 <p className="text-sm text-on-surface-variant">
-                                    {selectedHub ? selectedHub.id : 'New hub record'}
+                                    {selectedHub ? selectedHub.id : 'Tạo hub mới'}
                                 </p>
                             </div>
                             <button
                                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant/40 bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
                                 onClick={resetForm}
-                                title="Reset form"
+                                title="Đặt lại form"
                                 type="button"
                             >
                                 <span className="material-symbols-outlined text-[20px]">refresh</span>
@@ -436,17 +436,17 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
 
                         <div className="space-y-4">
                             <TextField
-                                label="Hub name"
+                                label="Tên hub"
                                 onChange={(value) => updateForm('name', value)}
-                                placeholder="HMS HCMC Hub"
+                                placeholder="VD: Hub HCM"
                                 value={form.name}
                             />
 
                             <div className="relative">
                                 <TextField
-                                    label="Address"
+                                    label="Địa chỉ"
                                     onChange={(value) => updateForm('address', value)}
-                                    placeholder="Enter address"
+                                    placeholder="Nhập địa chỉ"
                                     value={form.address}
                                 />
 
@@ -455,7 +455,7 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                                         {isSearchingPlaces && (
                                             <div className="flex items-center gap-2 px-3 py-3 text-sm text-on-surface-variant">
                                                 <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-                                                Searching
+                                                Đang tìm kiếm
                                             </div>
                                         )}
                                         {places.map((place) => (
@@ -475,7 +475,7 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
 
                             <div className="grid grid-cols-2 gap-3">
                                 <TextField
-                                    label="Latitude"
+                                    label="Vĩ độ"
                                     onChange={(value) => {
                                         updateForm('latitude', value);
                                         setLocationConfirmed(false);
@@ -483,7 +483,7 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                                     value={form.latitude}
                                 />
                                 <TextField
-                                    label="Longitude"
+                                    label="Kinh độ"
                                     onChange={(value) => {
                                         updateForm('longitude', value);
                                         setLocationConfirmed(false);
@@ -505,7 +505,7 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                                     <span className="material-symbols-outlined text-[20px]">
                                         {locationConfirmed ? 'check_circle' : 'add_location_alt'}
                                     </span>
-                                    {locationConfirmed ? 'Location Confirmed' : 'Confirm Location'}
+                                    {locationConfirmed ? 'Đã xác nhận vị trí' : 'Xác nhận vị trí'}
                                 </button>
 
                                 <button
@@ -515,7 +515,7 @@ export default function AdminHubsPage({ sidebar }: AdminHubsPageProps) {
                                     type="button"
                                 >
                                     <span className="material-symbols-outlined text-[20px]">save</span>
-                                    {isSaving ? 'Saving...' : editingHubId ? 'Update Hub' : 'Create Hub'}
+                                    {isSaving ? 'Đang lưu...' : editingHubId ? 'Cập nhật Hub' : 'Tạo Hub'}
                                 </button>
                             </div>
                         </div>

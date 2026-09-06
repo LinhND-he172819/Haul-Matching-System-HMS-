@@ -57,10 +57,14 @@ namespace HMS.Modules.Matching.Controllers
             {
                 return Forbid();
             }
+            catch (HMS.Shared.Core.Exceptions.ForbiddenException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating proposal for TripPost {TripPostId}", tripPostId);
-                return StatusCode(500, new { message = "Loi tao de xuat: " + ex.Message });
+                return StatusCode(500, new { message = "Lỗi tạo đề xuất: " + ex.Message });
             }
         }
 

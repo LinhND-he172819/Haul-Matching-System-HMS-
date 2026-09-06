@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 /* ─── Shared Data Shape ───────────────────────────────────────────── */
 
 export interface ShipmentFormData {

@@ -1,4 +1,4 @@
-using HMS.Modules.Matching.Application.DTOs;
+﻿using HMS.Modules.Matching.Application.DTOs;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Modules.Matching.Infrastructure.Redis;
@@ -14,13 +14,13 @@ namespace HMS.Modules.Matching.Application.Services
     /// 
     /// Flow:
     ///   Staff/Admin creates TripPost (existing)
-    ///   Customer views TripPost marketplace → creates Proposal for existing Shipment
-    ///   Driver views pending Proposals → Accept/Reject
+    ///   Customer views TripPost marketplace â†’ creates Proposal for existing Shipment
+    ///   Driver views pending Proposals â†’ Accept/Reject
     ///   
     /// Key invariants:
     ///   - A Shipment can have multiple Pending proposals for different TripPosts
     ///   - At most one Accepted proposal per Shipment at any time
-    ///   - Accept triggers: Proposal→Accepted, Shipment→Matched, cancel other Pending proposals
+    ///   - Accept triggers: Proposalâ†’Accepted, Shipmentâ†’Matched, cancel other Pending proposals
     ///   - Accept All validates total capacity before accepting any
     /// </summary>
     public class ProposalService : IProposalService
@@ -50,25 +50,23 @@ namespace HMS.Modules.Matching.Application.Services
         {
             // 1. Validate Shipment exists and belongs to customer
             var shipment = await _repo.GetShipmentAsync(request.ShipmentId, ct)
-                ?? throw new InvalidOperationException("Shipment không tồn tại.");
+                ?? throw new InvalidOperationException("Shipment khÃ´ng tá»“n táº¡i.");
             if (shipment.CustomerId != customerId)
-                throw new ForbiddenException("Shipment nÃ y khÃ´ng thuá»™c báº¡n.");
-
+                throw new ForbiddenException("Shipment nÃ y khÃ´ng thuá»™c báº¡n.");
             // 2. Validate Shipment is Draft
             if (shipment.Status != ShipmentStatus.Draft.ToString())
                 throw new InvalidOperationException(
                     $"Shipment đang ở trạng thái {shipment.Status}. Chỉ Shipment ở trạng thái Draft mới có thể đề xuất.");
 
-
             // 3. Validate Weight and Volume > 0
             if (shipment.WeightKg <= 0)
-                throw new InvalidOperationException("Weight của Shipment phải lớn hơn 0.");
+                throw new InvalidOperationException("Weight cá»§a Shipment pháº£i lá»›n hÆ¡n 0.");
             if (shipment.VolumeCbm <= 0)
-                throw new InvalidOperationException("Volume của Shipment phải lớn hơn 0.");
+                throw new InvalidOperationException("Volume cá»§a Shipment pháº£i lá»›n hÆ¡n 0.");
 
             // 4. Validate TripPost exists and is Open
             var tripPost = await _repo.GetTripPostAsync(tripPostId, ct)
-                ?? throw new InvalidOperationException("Trip Post không tồn tại.");
+                ?? throw new InvalidOperationException("Trip Post khÃ´ng tá»“n táº¡i.");
 
             if (tripPost.Status != "Open")
                 throw new InvalidOperationException("Trip Post không còn mở. Không thể tạo đề xuất.");
@@ -83,11 +81,11 @@ namespace HMS.Modules.Matching.Application.Services
 
             // 7. Validate required fields
             if (string.IsNullOrWhiteSpace(request.SenderName))
-                throw new InvalidOperationException("Sender Name không được để trống.");
+                throw new InvalidOperationException("Sender Name khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.");
             if (string.IsNullOrWhiteSpace(request.SenderPhone))
-                throw new InvalidOperationException("Sender Phone không được để trống.");
+                throw new InvalidOperationException("Sender Phone khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.");
             if (string.IsNullOrWhiteSpace(request.PickupAddress))
-                throw new InvalidOperationException("Pickup Address không được để trống.");
+                throw new InvalidOperationException("Pickup Address khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.");
 
             // 8. Check no duplicate Pending proposal for same Shipment + TripPost
             var existing = await _repo.GetPendingByShipmentAndTripPostAsync(request.ShipmentId, tripPostId, ct);
@@ -118,7 +116,7 @@ namespace HMS.Modules.Matching.Application.Services
             // 10. Notify driver via SignalR (NewShipmentProposal event)
             try
             {
-                // Resolve DriverId from TripPost → Trip
+                // Resolve DriverId from TripPost â†’ Trip
                 var trip = await _repo.GetTripByIdAsync(tripPost.TripId, ct);
                 if (trip != null)
                 {
@@ -141,7 +139,7 @@ namespace HMS.Modules.Matching.Application.Services
             }
 
             _logger.LogInformation(
-                "Proposal {ProposalId} created: Shipment {ShipmentId} → TripPost {TripPostId} by Customer {CustomerId}",
+                "Proposal {ProposalId} created: Shipment {ShipmentId} â†’ TripPost {TripPostId} by Customer {CustomerId}",
                 proposal.Id, request.ShipmentId, tripPostId, customerId);
 
             return new CreateProposalResponse
@@ -160,13 +158,13 @@ namespace HMS.Modules.Matching.Application.Services
         public async Task CancelProposalAsync(Guid proposalId, Guid customerId, CancellationToken ct)
         {
             var proposal = await _repo.GetByIdAsync(proposalId, ct)
-                ?? throw new InvalidOperationException("Proposal không tồn tại.");
+                ?? throw new InvalidOperationException("Proposal khÃ´ng tá»“n táº¡i.");
 
             if (proposal.CustomerId != customerId)
-                throw new ForbiddenException("Bạn không có quyền hủy đề xuất này.");
+                throw new ForbiddenException("Báº¡n khÃ´ng cÃ³ quyá»n há»§y Ä‘á» xuáº¥t nÃ y.");
 
             if (proposal.Status != ProposalStatusConstants.PendingReview)
-                throw new InvalidOperationException($"Proposal đang ở trạng thái {proposal.Status}. Chỉ có thể hủy Proposal PendingReview.");
+                throw new InvalidOperationException($"Proposal Ä‘ang á»Ÿ tráº¡ng thÃ¡i {proposal.Status}. Chá»‰ cÃ³ thá»ƒ há»§y Proposal PendingReview.");
 
             proposal.Status = ProposalStatusConstants.Cancelled;
             proposal.CancelledAt = DateTime.UtcNow;
@@ -179,21 +177,21 @@ namespace HMS.Modules.Matching.Application.Services
             {
                 if (proposal.TripPostId.HasValue)
                 {
-                var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId.Value, ct);
-                if (tripPost != null)
-                {
-                    var trip = await _repo.GetTripByIdAsync(tripPost.TripId, ct);
-                    if (trip != null)
+                    var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId.Value, ct);
+                    if (tripPost != null)
                     {
-                        await _dispatcher.SendProposalCancelledToDriverAsync(trip.DriverId, new Shared.Core.Models.Realtime.ProposalEventPayload
+                        var trip = await _repo.GetTripByIdAsync(tripPost.TripId, ct);
+                        if (trip != null)
                         {
-                            EventType = "ShipmentProposalCancelled",
-                            ProposalId = proposalId,
-                            TripPostId = proposal.TripPostId,
-                            Timestamp = DateTime.UtcNow
-                        });
+                            await _dispatcher.SendProposalCancelledToDriverAsync(trip.DriverId, new Shared.Core.Models.Realtime.ProposalEventPayload
+                            {
+                                EventType = "ShipmentProposalCancelled",
+                                ProposalId = proposalId,
+                                TripPostId = proposal.TripPostId,
+                                Timestamp = DateTime.UtcNow
+                            });
+                        }
                     }
-                }
                 }
             }
             catch (Exception ex)
@@ -250,37 +248,37 @@ namespace HMS.Modules.Matching.Application.Services
             {
                 // 1. Load proposal
                 var proposal = await _repo.GetByIdAsync(proposalId, ct)
-                    ?? throw new InvalidOperationException("Proposal không tồn tại.");
+                    ?? throw new InvalidOperationException("Proposal khÃ´ng tá»“n táº¡i.");
 
                 // 2. Check proposal is PendingReview
                 if (proposal.Status != ProposalStatusConstants.PendingReview)
-                    throw new InvalidOperationException($"Proposal đang ở trạng thái {proposal.Status}. Không thể chấp nhận.");
+                    throw new InvalidOperationException($"Proposal Ä‘ang á»Ÿ tráº¡ng thÃ¡i {proposal.Status}. KhÃ´ng thá»ƒ cháº¥p nháº­n.");
 
                 // 3. Get driver's active trip
                 var trip = await _repo.GetActiveTripForDriverAsync(driverId, ct)
-                    ?? throw new InvalidOperationException("Không có chuyến đang hoạt động.");
+                    ?? throw new InvalidOperationException("KhÃ´ng cÃ³ chuyáº¿n Ä‘ang hoáº¡t Ä‘á»™ng.");
 
                 // 4. Get trip post to verify it's still open and belongs to this trip
                 if (!proposal.TripPostId.HasValue)
-                    throw new InvalidOperationException("Proposal không liên kết với Trip Post.");
+                    throw new InvalidOperationException("Proposal khÃ³ng liÃªn ká»¹t vá»›i Trip Post.");
                 var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId.Value, ct);
                 if (tripPost == null || tripPost.Status != "Open")
-                    throw new InvalidOperationException("Trip Post không còn mở.");
+                    throw new InvalidOperationException("Trip Post khÃ´ng cÃ²n mÃ¡ÅŸ.");
 
                 if (tripPost.TripId != trip.Id)
-                    throw new ForbiddenException("Proposal này không thuộc chuyến của bạn.");
+                    throw new ForbiddenException("Proposal nÃ y khÃ´ng thuá»™c chuyáº¿n cÃ»a báº¡n.");
 
                 // 5. Check acceptUntil
                 if (tripPost.AcceptUntil < DateTimeOffset.UtcNow)
-                    throw new InvalidOperationException("Trip Post đã hết hạn nhận đề xuất.");
+                    throw new InvalidOperationException("Trip Post Ä‘Ã£ hÃ¡Æ¡t hÃ¡n nhÃ¡ÅŸn Ä‘Ã¡Â» xuáº¥t.");
 
                 // 6. Get shipment and verify it's Draft
                 var shipment = await _repo.GetShipmentAsync(proposal.ShipmentId, ct)
-                    ?? throw new InvalidOperationException("Shipment không tồn tại.");
+                    ?? throw new InvalidOperationException("Shipment khÃ´ng tá»“n táº¡i.");
 
                 if (shipment.Status != ShipmentStatus.Draft.ToString())
                     throw new InvalidOperationException(
-                        $"Shipment đang ở trạng thái {shipment.Status}. Chỉ Shipment Draft mới có thể chấp nhận.");
+                        $"Shipment Ä‘ang á»Ÿ tráº¡ng thÃ¡i {shipment.Status}. Chá»‰ Shipment Draft má»›i cÃ³ thá»ƒ cháº¥p nháº­n.");
 
                 // 7. Check shipment doesn't already have an Accepted proposal
                 if (await _repo.HasAcceptedProposalForShipmentAsync(proposal.ShipmentId, ct))
@@ -288,13 +286,13 @@ namespace HMS.Modules.Matching.Application.Services
 
                 // 8. Check capacity
                 var vehicle = await _repo.GetVehicleAsync(trip.VehicleId, ct)
-                    ?? throw new InvalidOperationException("Vehicle không tồn tại.");
+                    ?? throw new InvalidOperationException("Vehicle khÃ´ng tá»“n táº¡i.");
 
                 if (trip.CurrentLoadWeight + shipment.WeightKg > vehicle.MaxWeightKg)
                     throw new InvalidOperationException("Xe không còn đủ tải trọng.");
 
                 if (trip.CurrentLoadVolume + shipment.VolumeCbm > vehicle.MaxVolumeCbm)
-                    throw new InvalidOperationException("Xe không còn đủ thể tích.");
+                    throw new InvalidOperationException("Xe khÃ´ng cÃ²n Ä‘á»§ thá»ƒ tÃ­ch.");
 
                 // 9. Accept the proposal
                 proposal.Status = ProposalStatusConstants.Approved;
@@ -302,7 +300,7 @@ namespace HMS.Modules.Matching.Application.Services
                 proposal.AcceptedBy = driverId;
                 await _repo.UpdateAsync(proposal, ct);
 
-                // 10. Transition Shipment: Draft → Matched
+                // 10. Transition Shipment: Draft â†’ Matched
                 var dbConn = _repo.GetUnderlyingConnection();
                 var dbTxn = _repo.GetUnderlyingTransaction();
 
@@ -332,7 +330,10 @@ namespace HMS.Modules.Matching.Application.Services
 
                 await _repo.SaveChangesAsync(ct);
 
-                // 14. SignalR: Notify capacity update to driver
+                await _repo.CommitTransactionAsync(ct);
+
+                // ── SignalR notifications (after commit, non-blocking) ──
+                // 14. Notify capacity update to driver
                 try
                 {
                     var newRemainingWeight = vehicle.MaxWeightKg - trip.CurrentLoadWeight - shipment.WeightKg;
@@ -341,7 +342,7 @@ namespace HMS.Modules.Matching.Application.Services
                     {
                         EventType = "TripCapacityUpdated",
                         ProposalId = proposalId,
-                        TripPostId = proposal.TripPostId,
+                        TripPostId = proposal.TripPostId.Value,
                         RemainingWeightKg = newRemainingWeight,
                         RemainingVolumeCbm = newRemainingVolume,
                         Timestamp = DateTime.UtcNow
@@ -372,10 +373,8 @@ namespace HMS.Modules.Matching.Application.Services
                     }
                 }
 
-                await _repo.CommitTransactionAsync(ct);
-
                 _logger.LogInformation(
-                    "Proposal {ProposalId} accepted by Driver {DriverId}. Shipment {ShipmentId} → Matched",
+                    "Proposal {ProposalId} accepted by Driver {DriverId}. Shipment {ShipmentId} â†’ Matched",
                     proposalId, driverId, proposal.ShipmentId);
 
                 var shipmentAfter = await _repo.GetShipmentAsync(proposal.ShipmentId, ct);
@@ -398,22 +397,22 @@ namespace HMS.Modules.Matching.Application.Services
             try
             {
                 var proposal = await _repo.GetByIdAsync(proposalId, ct)
-                    ?? throw new InvalidOperationException("Proposal không tồn tại.");
+                    ?? throw new InvalidOperationException("Proposal khÃ´ng tá»“n táº¡i.");
 
                 if (proposal.Status != ProposalStatusConstants.PendingReview)
-                    throw new InvalidOperationException($"Proposal đang ở trạng thái {proposal.Status}. Không thể từ chối.");
+                    throw new InvalidOperationException($"Proposal Ä‘ang á»Ÿ tráº¡ng thÃ¡i {proposal.Status}. KhÃ´ng thá»ƒ tá»« chá»‘i.");
 
                 // Verify driver owns the trip
                 var trip = await _repo.GetActiveTripForDriverAsync(driverId, ct);
                 if (trip == null)
-                    throw new InvalidOperationException("Không có chuyến đang hoạt động.");
+                    throw new InvalidOperationException("KhÃ´ng cÃ³ chuyáº¿n Ä‘ang hoáº¡t Ä‘á»™ng.");
 
                 // Verify the proposal is for a trip post linked to this driver's trip
                 if (!proposal.TripPostId.HasValue)
-                    throw new InvalidOperationException("Proposal không liên kết với Trip Post.");
+                    throw new InvalidOperationException("Proposal khÃ³ng liÃªn ká»¹t vá»›i Trip Post.");
                 var tripPost = await _repo.GetTripPostAsync(proposal.TripPostId.Value, ct);
                 if (tripPost == null || tripPost.TripId != trip.Id)
-                    throw new ForbiddenException("Proposal không thuộc chuyến của bạn.");
+                    throw new ForbiddenException("Proposal khÃ´ng thuá»™c chuyáº¿n cá»§a báº¡n.");
 
                 // 1. Reject the proposal
                 proposal.Status = ProposalStatusConstants.Rejected;
@@ -424,6 +423,9 @@ namespace HMS.Modules.Matching.Application.Services
 
                 await _repo.SaveChangesAsync(ct);
 
+                await _repo.CommitTransactionAsync(ct);
+
+                // ── SignalR notifications (after commit, non-blocking) ──
                 // 2. Notify customer
                 try
                 {
@@ -440,8 +442,6 @@ namespace HMS.Modules.Matching.Application.Services
                 {
                     _logger.LogWarning(ex, "Failed to send rejection notification to customer");
                 }
-
-                await _repo.CommitTransactionAsync(ct);
 
                 _logger.LogInformation(
                     "Proposal {ProposalId} rejected by Driver {DriverId}. Reason: {Reason}",
@@ -468,10 +468,10 @@ namespace HMS.Modules.Matching.Application.Services
             try
             {
                 var trip = await _repo.GetActiveTripForDriverAsync(driverId, ct)
-                    ?? throw new InvalidOperationException("Không có chuyến đang hoạt động.");
+                    ?? throw new InvalidOperationException("KhÃ´ng cÃ³ chuyáº¿n Ä‘ang hoáº¡t Ä‘á»™ng.");
 
                 var vehicle = await _repo.GetVehicleAsync(trip.VehicleId, ct)
-                    ?? throw new InvalidOperationException("Vehicle không tồn tại.");
+                    ?? throw new InvalidOperationException("Vehicle khÃ´ng tá»“n táº¡i.");
 
                 // Get all pending proposals for this driver
                 var proposals = await _repo.GetPendingByDriverAsync(driverId, ct);
@@ -487,15 +487,15 @@ namespace HMS.Modules.Matching.Application.Services
                 {
                     var shipment = await _repo.GetShipmentAsync(p.ShipmentId, ct);
                     if (shipment == null)
-                        throw new InvalidOperationException($"Shipment {p.ShipmentId} không tồn tại.");
+                        throw new InvalidOperationException($"Shipment {p.ShipmentId} khÃ´ng tá»“n táº¡i.");
 
                     if (shipment.Status != ShipmentStatus.Draft.ToString())
                         throw new InvalidOperationException(
-                            $"Shipment {shipment.Id} đang ở trạng thái {shipment.Status}. Chỉ Shipment Draft mới có thể chấp nhận.");
+                            $"Shipment {shipment.Id} Ä‘ang á»Ÿ tráº¡ng thÃ¡i {shipment.Status}. Chá»‰ Shipment Draft má»›i cÃ³ thá»ƒ cháº¥p nháº­n.");
 
                     if (shipment.WeightKg <= 0 || shipment.VolumeCbm <= 0)
                         throw new InvalidOperationException(
-                            $"Shipment {shipment.Id} có Weight hoặc Volume không hợp lệ.");
+                            $"Shipment {shipment.Id} cÃ³ Weight hoáº·c Volume khÃ´ng há»£p lá»‡.");
 
                     if (await _repo.HasAcceptedProposalForShipmentAsync(shipment.Id, ct))
                         throw new InvalidOperationException(
@@ -509,11 +509,11 @@ namespace HMS.Modules.Matching.Application.Services
                 // Check total capacity
                 if (trip.CurrentLoadWeight + totalWeight > vehicle.MaxWeightKg)
                     throw new InvalidOperationException(
-                        "Xe không còn đủ tải trọng hoặc thể tích để nhận toàn bộ đề xuất.");
+                        "Xe khÃ´ng cÃ²n Ä‘á»§ táº£i trá»ng hoáº·c thá»ƒ tÃ­ch Ä‘á»ƒ nháº­n toÃ n bá»™ Ä‘á» xuáº¥t.");
 
                 if (trip.CurrentLoadVolume + totalVolume > vehicle.MaxVolumeCbm)
                     throw new InvalidOperationException(
-                        "Xe không còn đủ tải trọng hoặc thể tích để nhận toàn bộ đề xuất.");
+                        "Xe khÃ´ng cÃ²n Ä‘á»§ táº£i trá»ng hoáº·c thá»ƒ tÃ­ch Ä‘á»ƒ nháº­n toÃ n bá»™ Ä‘á» xuáº¥t.");
 
                 var dbConn = _repo.GetUnderlyingConnection();
                 var dbTxn = _repo.GetUnderlyingTransaction();
@@ -562,7 +562,10 @@ namespace HMS.Modules.Matching.Application.Services
 
                 await _repo.SaveChangesAsync(ct);
 
-                // SignalR: Notify capacity update to driver
+                await _repo.CommitTransactionAsync(ct);
+
+                // ── SignalR notifications (after commit, non-blocking) ──
+                // Notify capacity update to driver
                 try
                 {
                     var newRemainingWeight = vehicle.MaxWeightKg - trip.CurrentLoadWeight - totalWeight;
@@ -582,8 +585,6 @@ namespace HMS.Modules.Matching.Application.Services
                 {
                     _logger.LogWarning(ex, "Failed to broadcast accept-all signal to driver");
                 }
-
-                await _repo.CommitTransactionAsync(ct);
 
                 _logger.LogInformation(
                     "AcceptAll: Driver {DriverId} accepted {Count} proposals. Trip {TripId} capacity: {Weight}/{Volume}",

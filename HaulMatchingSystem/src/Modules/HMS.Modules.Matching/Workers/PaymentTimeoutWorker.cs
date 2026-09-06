@@ -76,7 +76,7 @@ public sealed class PaymentTimeoutWorker : BackgroundService
         await using var reader = await cmd.ExecuteReaderAsync(ct);
 
         var timedOutPayments = new List<(Guid Id, string Code, string Type, decimal Amount,
-            string Currency, Guid QuotationId, Guid ShipmentId, Guid CustomerId)>();
+            string Currency, Guid? QuotationId, Guid ShipmentId, Guid CustomerId)>();
 
         while (await reader.ReadAsync(ct))
         {
@@ -86,7 +86,7 @@ public sealed class PaymentTimeoutWorker : BackgroundService
                 reader.GetString(2),
                 reader.GetDecimal(3),
                 reader.GetString(4),
-                reader.GetGuid(5),
+                reader.IsDBNull(5) ? (Guid?)null : reader.GetGuid(5),
                 reader.GetGuid(6),
                 reader.GetGuid(7)
             ));

@@ -24,12 +24,13 @@ public class TripStateMachineTests
     }
 
     [Theory]
-    [InlineData(TripStatus.Scheduled)]
     [InlineData(TripStatus.Ready)]
     [InlineData(TripStatus.InProgress)]
     [InlineData(TripStatus.Cancelled)]
     public void Active_CannotTransition_To_Unallowed(TripStatus target)
     {
+        // Active→Scheduled is now allowed (legacy backward-compat), so use
+        // genuinely disallowed targets: Ready / InProgress / Cancelled.
         Assert.False(TripStateMachine.CanTransition(TripStatus.Active, target));
     }
 
@@ -100,10 +101,16 @@ public class TripStateMachineTests
     [InlineData(TripStatus.Scheduled)]
     [InlineData(TripStatus.Ready)]
     [InlineData(TripStatus.Cancelled)]
-    [InlineData(TripStatus.Breakdown)]
     public void InProgress_CannotTransition_To_Unallowed(TripStatus target)
     {
         Assert.False(TripStateMachine.CanTransition(TripStatus.InProgress, target));
+    }
+
+    [Fact]
+    public void InProgress_CanTransition_To_Breakdown()
+    {
+        // Trips can break down mid-transit (mechanical failure, accident, etc.)
+        Assert.True(TripStateMachine.CanTransition(TripStatus.InProgress, TripStatus.Breakdown));
     }
 
     #endregion
@@ -112,7 +119,6 @@ public class TripStateMachineTests
 
     [Theory]
     [InlineData(TripStatus.Completed)]
-    [InlineData(TripStatus.Breakdown)]
     [InlineData(TripStatus.Cancelled)]
     public void TerminalState_CannotTransition_To_Any(TripStatus terminal)
     {
@@ -122,6 +128,24 @@ public class TripStateMachineTests
             Assert.False(TripStateMachine.CanTransition(terminal, target),
                 $"{terminal} should not transition to {target}");
         }
+    }
+
+    [Fact]
+    public void Breakdown_CanTransition_To_Cancelled()
+    {
+        // Trips that broke down can be cancelled (operator decision).
+        Assert.True(TripStateMachine.CanTransition(TripStatus.Breakdown, TripStatus.Cancelled));
+    }
+
+    [Theory]
+    [InlineData(TripStatus.Completed)]
+    [InlineData(TripStatus.Ready)]
+    [InlineData(TripStatus.InProgress)]
+    [InlineData(TripStatus.Scheduled)]
+    [InlineData(TripStatus.Active)]
+    public void Breakdown_CannotTransition_To_Others(TripStatus target)
+    {
+        Assert.False(TripStateMachine.CanTransition(TripStatus.Breakdown, target));
     }
 
     #endregion

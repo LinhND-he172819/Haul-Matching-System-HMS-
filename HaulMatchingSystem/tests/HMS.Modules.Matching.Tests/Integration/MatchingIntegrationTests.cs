@@ -3,7 +3,9 @@ using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Modules.Matching.Infrastructure;
 using HMS.Modules.Matching.Infrastructure.Redis;
+using HMS.Shared.Core.Events;
 using HMS.Shared.Core.Interfaces;
+using HMS.Shared.Core.Sms;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 
@@ -50,10 +52,12 @@ namespace HMS.Modules.Matching.Tests.Integration
                     It.IsAny<object?>(),
                     It.IsAny<Guid?>(),
                     It.IsAny<string?>(),
+                    It.IsAny<Func<ShipmentStatusChangedEvent, CancellationToken, Task>?>(),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Guid _, HMS.Shared.Core.Enums.ShipmentStatus to, object? _, object? _, Guid? _, string? _, CancellationToken _) => to);
+                .ReturnsAsync((Guid _, HMS.Shared.Core.Enums.ShipmentStatus to, object? _, object? _, Guid? _, string? _, Func<ShipmentStatusChangedEvent, CancellationToken, Task>? _, CancellationToken _) => to);
 
-            var svc = new MatchingService(repo, redisMock.Object, dispatcherMock.Object, shipmentStateServiceMock.Object, loggerMock.Object);
+            var smsMock = new Mock<ISmsNotificationService>();
+            var svc = new MatchingService(repo, redisMock.Object, dispatcherMock.Object, shipmentStateServiceMock.Object, smsMock.Object, loggerMock.Object);
 
             // act
             await svc.AcceptAllAsync(trip.DriverId, CancellationToken.None);

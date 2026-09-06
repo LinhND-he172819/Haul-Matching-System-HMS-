@@ -13,6 +13,7 @@ import AdminHubsPage from './pages/AdminHubsPage';
 import AdminTripsPage from './pages/AdminTripsPage';
 import AdminVehiclesPage from './pages/AdminVehiclesPage';
 import HubInventoryPage from './pages/HubInventoryPage';
+import HubIntakePage from './pages/HubIntakePage';
 import TripPostManagementPage from './pages/TripPostManagementPage';
 import CreateProposalPage from './pages/CreateProposalPage';
 import MyShipmentsPage from './pages/MyShipmentsPage';
@@ -30,6 +31,8 @@ import DriverExternalShipmentHistory from './pages/DriverExternalShipmentHistory
 import DriverExternalShipmentDetail from './pages/DriverExternalShipmentDetail';
 import IncidentListPage from './pages/IncidentListPage';
 import IncidentDetailPage from './pages/IncidentDetailPage';
+import StaffFeedbackListPage from './pages/StaffFeedbackListPage';
+import StaffFeedbackDetailPage from './pages/StaffFeedbackDetailPage';
 import type { PublicTripPost } from './api/tripPostApi';
 
 type Page =
@@ -62,9 +65,13 @@ type Page =
   | 'staff-quotation-detail'
   | 'staff-payments'
   | 'staff-incidents'
-  | 'staff-incident-detail';
-type StaffTab = 'staff-proposals' | 'staff-quotations' | 'staff-payments' | 'staff-incidents';
-type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hub-inventory' | 'hubs' | 'trip-posts' | 'admin-proposals' | 'admin-quotations' | 'admin-payments' | 'admin-incidents';
+  | 'staff-incident-detail'
+  | 'staff-feedbacks'
+  | 'staff-feedback-detail'
+  | 'admin-incident-detail'
+  | 'admin-feedback-detail';
+type StaffTab = 'staff-proposals' | 'staff-quotations' | 'staff-payments' | 'staff-incidents' | 'staff-feedbacks';
+type AdminTab = 'dashboard' | 'live-map' | 'create-customer' | 'create-driver' | 'vehicles' | 'create-shipment' | 'driver-portal' | 'driver-trips' | 'admin-trips' | 'hub-intake' | 'hub-inventory' | 'hubs' | 'trip-posts' | 'admin-proposals' | 'admin-quotations' | 'admin-payments' | 'admin-incidents' | 'admin-feedbacks';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => {
@@ -100,6 +107,9 @@ function App() {
 
   // Incident detail state
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
+
+  // Feedback detail state
+  const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
 
   // Sync state if user changes localStorage directly or on mount
   useEffect(() => {
@@ -232,6 +242,12 @@ function App() {
     setCurrentPage(`${getPortalPrefix()}-incident-detail` as Page);
   };
 
+  // Navigate to Feedback Detail (Admin/Staff)
+  const handleSelectFeedback = (feedbackId: string) => {
+    setSelectedFeedbackId(feedbackId);
+    setCurrentPage(`${getPortalPrefix()}-feedback-detail` as Page);
+  };
+
   // Handle proposal creation from Trip Marketplace
   const handleNewProposal = (tripPostId: string, tripId: string, pickupMode?: string, trip?: PublicTripPost) => {
     const token = localStorage.getItem('accessToken');
@@ -274,17 +290,7 @@ function App() {
           <span className="text-label-lg font-bold">Tổng Quan</span>
         </button>
 
-        <button 
-          onClick={() => setAdminTab('live-map')} 
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
-            adminTab === 'live-map' 
-            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low' 
-            : 'text-on-surface-variant hover:bg-surface-container-low/60'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">map</span>
-          <span className="text-label-lg font-bold">Bản Đồ Live</span>
-        </button>
+
 
         <button 
           onClick={() => setAdminTab('create-customer')} 
@@ -306,8 +312,8 @@ function App() {
             : 'text-on-surface-variant hover:bg-surface-container-low/60'
           }`}
         >
-          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">person_add</span>
-          <span className="text-label-lg font-bold">Quản lý Tài Xế</span>
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">badge</span>
+          <span className="text-label-lg font-bold">Quản lý Nhân Viên</span>
         </button>
 
         <button
@@ -335,6 +341,18 @@ function App() {
         </button>
 
         <button
+          onClick={() => setAdminTab('hub-intake')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+            adminTab === 'hub-intake'
+            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+            : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">qr_code_scanner</span>
+          <span className="text-label-lg font-bold">Nhập Kho</span>
+        </button>
+
+        <button
           onClick={() => setAdminTab('vehicles')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
             adminTab === 'vehicles'
@@ -344,18 +362,6 @@ function App() {
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">garage</span>
           <span className="text-label-lg font-bold">Quản lý Xe</span>
-        </button>
-
-        <button 
-          onClick={() => setAdminTab('create-shipment')} 
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
-            adminTab === 'create-shipment' 
-            ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low' 
-            : 'text-on-surface-variant hover:bg-surface-container-low/60'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">add_box</span>
-          <span className="text-label-lg font-bold">Tạo Vận Đơn</span>
         </button>
 
         <button
@@ -431,20 +437,17 @@ function App() {
             <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">warning</span>
             <span className="text-label-lg font-bold">Sự cố</span>
           </button>
-        </div>
 
-        <div className="pt-4 border-t border-outline-variant/30 mt-4">
-          <p className="text-[11px] font-bold text-on-surface-variant/50 px-4 uppercase tracking-wider mb-2">Demo Roles</p>
-          <button 
-            onClick={() => setAdminTab('driver-portal')} 
+          <button
+            onClick={() => setAdminTab('admin-feedbacks')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
-              adminTab === 'driver-portal' 
-              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low' 
-              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+              adminTab === 'admin-feedbacks'
+                ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+                : 'text-on-surface-variant hover:bg-surface-container-low/60'
             }`}
           >
-            <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">account_circle</span>
-            <span className="text-label-lg font-bold">Driver Portal</span>
+            <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">star</span>
+            <span className="text-label-lg font-bold">Phản hồi KH</span>
           </button>
         </div>
       </div>
@@ -534,6 +537,18 @@ function App() {
         >
           <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">warning</span>
           <span className="text-label-lg font-bold">Sự cố</span>
+        </button>
+
+        <button
+          onClick={() => { setStaffTab('staff-feedbacks'); setCurrentPage('staff'); }}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-left ${
+            staffTab === 'staff-feedbacks'
+              ? 'text-primary font-bold border-r-4 border-primary bg-surface-container-low'
+              : 'text-on-surface-variant hover:bg-surface-container-low/60'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-105 transition-transform">star</span>
+          <span className="text-label-lg font-bold">Phản hồi KH</span>
         </button>
       </div>
 
@@ -778,6 +793,18 @@ function App() {
               </div>
             </div>
           );
+        case 'staff-feedbacks':
+          return (
+            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+              {renderStaffSidebar()}
+              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+                <StaffFeedbackListPage
+                  onLogout={handleLogout}
+                  onSelectFeedback={handleSelectFeedback}
+                />
+              </div>
+            </div>
+          );
         default:
           return (
             <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
@@ -962,6 +989,44 @@ function App() {
         </div>
       );
 
+    case 'admin-feedback-detail':
+      if (!selectedFeedbackId) {
+        setCurrentPage('admin');
+        setAdminTab('admin-feedbacks');
+        return null;
+      }
+      return (
+        <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+          {renderSidebar()}
+          <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+            <StaffFeedbackDetailPage
+              feedbackId={selectedFeedbackId}
+              onBack={() => { setAdminTab('admin-feedbacks'); setCurrentPage('admin'); }}
+              onLogout={handleLogout}
+            />
+          </div>
+        </div>
+      );
+
+    case 'staff-feedback-detail':
+      if (!selectedFeedbackId) {
+        setCurrentPage('staff');
+        setStaffTab('staff-feedbacks');
+        return null;
+      }
+      return (
+        <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+          {renderStaffSidebar()}
+          <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+            <StaffFeedbackDetailPage
+              feedbackId={selectedFeedbackId}
+              onBack={() => { setStaffTab('staff-feedbacks'); setCurrentPage('staff'); }}
+              onLogout={handleLogout}
+            />
+          </div>
+        </div>
+      );
+
     case 'admin':
       if (role !== 'Admin') {
         // Enforce admin permission restriction
@@ -1033,6 +1098,15 @@ function App() {
           return <TripPostManagementPage sidebar={renderSidebar()} />;
         case 'hub-inventory':
           return <HubInventoryPage sidebar={renderSidebar()} />;
+        case 'hub-intake':
+          return (
+            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+              {renderSidebar()}
+              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+                <HubIntakePage />
+              </div>
+            </div>
+          );
         case 'driver-portal':
           return <DriverProposalPage onBackToAdmin={() => setAdminTab('dashboard')} onLogout={handleLogout} />;
         case 'live-map':
@@ -1083,6 +1157,19 @@ function App() {
                 <IncidentListPage
                   onLogout={handleLogout}
                   onSelectIncident={handleSelectIncident}
+                />
+              </div>
+            </div>
+          );
+
+        case 'admin-feedbacks':
+          return (
+            <div className="bg-surface text-on-surface font-body-md min-h-screen flex text-body-md overflow-x-hidden relative">
+              {renderSidebar()}
+              <div className="flex-1 flex flex-col xl:ml-64 w-full overflow-y-auto">
+                <StaffFeedbackListPage
+                  onLogout={handleLogout}
+                  onSelectFeedback={handleSelectFeedback}
                 />
               </div>
             </div>

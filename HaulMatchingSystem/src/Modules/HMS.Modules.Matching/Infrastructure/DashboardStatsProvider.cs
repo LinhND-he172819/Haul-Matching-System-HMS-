@@ -19,7 +19,7 @@ public sealed class DashboardStatsProvider : IDashboardStatsProvider
         {
             var activeTrips = await _db.Trips
                 .AsNoTracking()
-                .CountAsync(trip => trip.Status == "Active", cancellationToken);
+                .CountAsync(trip => trip.Status == "Active" || trip.Status == "Scheduled", cancellationToken);
 
             var inTransitShipments = await _db.Shipments
                 .AsNoTracking()
@@ -36,7 +36,7 @@ public sealed class DashboardStatsProvider : IDashboardStatsProvider
 
             var activeTripLoads = await _db.Trips
                 .AsNoTracking()
-                .Where(trip => trip.Status == "Active")
+                .Where(trip => trip.Status == "Active" || trip.Status == "Scheduled")
                 .Join(
                     _db.Vehicles.AsNoTracking(),
                     trip => trip.VehicleId,

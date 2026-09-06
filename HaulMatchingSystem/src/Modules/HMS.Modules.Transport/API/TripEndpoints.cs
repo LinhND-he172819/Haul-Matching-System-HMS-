@@ -13,7 +13,8 @@ public static class TripEndpoints
     {
         var group = endpoints
             .MapGroup("/api/trips")
-            .WithTags("Trips");
+            .WithTags("Trips")
+            .RequireAuthorization();
 
         group.MapPost("/", async (CreateTripRequest request, ITripService service, CancellationToken cancellationToken) =>
         {
@@ -30,6 +31,10 @@ public static class TripEndpoints
             catch (ArgumentException exception)
             {
                 return ValidationResult(exception);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Results.Conflict(new { message = exception.Message });
             }
         });
 
@@ -116,6 +121,35 @@ public static class TripEndpoints
             return deleted ? Results.NoContent() : Results.NotFound();
         });
 
+        // ─── GET /api/trips/{id:guid}/shipments ────────────────────────
+        // Admin view: list every shipment currently linked to a trip (with status).
+        group.MapGet("/{id:guid}/shipments", async (Guid id, ITripService service, CancellationToken cancellationToken) =>
+        {
+            var shipments = await service.GetTripShipmentsAsync(id, cancellationToken);
+
+            return shipments is null ? Results.NotFound() : Results.Ok(shipments);
+        });
+
+        // ─── DELETE /api/trips/{id:guid}/shipments/{shipmentId:guid} ───
+        // Admin action: remove a single shipment from a trip (e.g. breakdown → reassign).
+        group.MapDelete("/{id:guid}/shipments/{shipmentId:guid}", async (
+            Guid id,
+            Guid shipmentId,
+            ITripService service,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var result = await service.UnlinkTripShipmentAsync(id, shipmentId, cancellationToken);
+
+                return result is null ? Results.NotFound() : Results.Ok(result);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Results.Conflict(new { message = exception.Message });
+            }
+        });
+
         return endpoints;
     }
 
@@ -134,6 +168,6 @@ public static class TripEndpoints
         return Results.Problem(
             title: "Route planning failed",
             detail: exception.Message,
-            statusCode: StatusCodes.Status502BadGateway);
+            statusCode: StatusCodes.Status422UnprocessableEntity);
     }
 }

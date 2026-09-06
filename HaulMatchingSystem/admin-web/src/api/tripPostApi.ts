@@ -115,6 +115,7 @@ export interface CreateTripPostPayload {
     tripId: string;
     description?: string;
     acceptUntil: string;
+    pickupMode?: string; // "DirectPickup" | "Hub" — default "DirectPickup"
 }
 
 export interface UpdateTripPostPayload {

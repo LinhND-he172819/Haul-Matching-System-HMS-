@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using HMS.Modules.Warehouse.Application.DTOs.Customer;
 using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Sms;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace HMS.Modules.Warehouse.Controllers;
@@ -14,10 +16,17 @@ namespace HMS.Modules.Warehouse.Controllers;
 public class CustomerShipmentController : ControllerBase
 {
     private readonly IConfiguration _configuration;
+    private readonly ISmsNotificationService _smsNotificationService;
+    private readonly ILogger<CustomerShipmentController> _logger;
 
-    public CustomerShipmentController(IConfiguration configuration)
+    public CustomerShipmentController(
+        IConfiguration configuration,
+        ISmsNotificationService smsNotificationService,
+        ILogger<CustomerShipmentController> logger)
     {
         _configuration = configuration;
+        _smsNotificationService = smsNotificationService;
+        _logger = logger;
     }
 
     private Guid GetCurrentUserId()
@@ -139,6 +148,7 @@ public class CustomerShipmentController : ControllerBase
                    COALESCE(t.trip_code, 'TRIP-' || LEFT(t.id::text, 8)) AS trip_code,
                    oh.name AS origin_name, dh.name AS destination_name,
                    t.started_at AS departure_time,
+                   t.scheduled_departure_at AS scheduled_departure_at,
                    v.license_plate AS vehicle_plate
             FROM warehouse.shipments s
             LEFT JOIN transport.trip_shipments ts ON ts.shipment_id = s.id AND ts.is_deleted = FALSE
@@ -181,6 +191,7 @@ public class CustomerShipmentController : ControllerBase
             OriginName = reader.IsDBNull(21) ? null : reader.GetString(21),
             DestinationName = reader.IsDBNull(22) ? null : reader.GetString(22),
             DepartureTime = reader.IsDBNull(23) ? (DateTimeOffset?)null : reader.GetDateTime(23),
+            ScheduledDepartureAt = reader.IsDBNull(25) ? (DateTimeOffset?)null : reader.GetFieldValue<DateTimeOffset>(25),
             VehiclePlate = reader.IsDBNull(24) ? null : reader.GetString(24),
             AllowedActions = ComputeAllowedActions(status)
         };
@@ -389,7 +400,7 @@ public class CustomerShipmentController : ControllerBase
             // Audit log
             const string auditSql = """
                 INSERT INTO shared.audit_log (entity_type, entity_id, action, performed_by, details, created_at)
-                VALUES ('Shipment', @entity_id, 'Cancelled', @performed_by, @details, NOW());
+                VALUES ('Shipment', @entity_id, 'Cancelled', @performed_by, @details::jsonb, NOW());
             """;
             await using var auditCmd = new NpgsqlCommand(auditSql, conn, tx);
             auditCmd.Parameters.AddWithValue("entity_id", shipmentId);
@@ -403,6 +414,27 @@ public class CustomerShipmentController : ControllerBase
         {
             await tx.RollbackAsync(ct);
             throw;
+        }
+
+        // SMS notification (after commit, non-blocking)
+        try
+        {
+            string shipmentCode = "";
+            const string readCodeSql = "SELECT shipment_code FROM warehouse.shipments WHERE id = @id;";
+            await using (var scCmd = new NpgsqlCommand(readCodeSql, conn))
+            {
+                scCmd.Parameters.AddWithValue("id", shipmentId);
+                shipmentCode = (await scCmd.ExecuteScalarAsync(ct)) as string ?? "";
+            }
+            if (!string.IsNullOrEmpty(shipmentCode))
+            {
+                await _smsNotificationService.SendShipmentStatusAsync(
+                    shipmentId, SmsMessageType.ShipmentCancelled, shipmentCode, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send ShipmentCancelled SMS for shipment {ShipmentId}", shipmentId);
         }
 
         return Ok(new { message = "Đã hủy đơn hàng thành công." });
@@ -419,7 +451,7 @@ public class CustomerShipmentController : ControllerBase
         "In_Warehouse" => new() { CanView = true, CanEdit = false, CanCancel = false, CanPayDeposit = false, CanPayRemaining = false },
         "In_Transit" => new() { CanView = true, CanEdit = false, CanCancel = false, CanPayDeposit = false, CanPayRemaining = false },
         "Delivered" => new() { CanView = true, CanEdit = false, CanCancel = false, CanPayDeposit = false, CanPayRemaining = true },
-        "Completed" => new() { CanView = true, CanEdit = false, CanCancel = false, CanPayDeposit = false, CanPayRemaining = false },
+        "Completed" => new() { CanView = true, CanEdit = false, CanCancel = false, CanPayDeposit = false, CanPayRemaining = false, CanGiveFeedback = true },
         "Cancelled" => new() { CanView = true, CanEdit = false, CanCancel = false, CanPayDeposit = false, CanPayRemaining = false },
         _ => new() { CanView = true }
     };

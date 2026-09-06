@@ -90,18 +90,6 @@ public sealed record IncidentStatusChangeRequest
     public string? Note { get; set; }
 }
 
-// ─── Incident History Item (Audit Log) ──────────────────────────────
-
-public sealed record IncidentHistoryItem
-{
-    public Guid Id { get; init; }
-    public string Action { get; init; } = string.Empty;
-    public Guid? ActorUserId { get; init; }
-    public string ActorName { get; init; } = string.Empty;
-    public string? Note { get; init; }
-    public DateTimeOffset CreatedAt { get; init; }
-}
-
 // ─── Paged Result (reused from existing pattern) ────────────────────
 
 public sealed record IncidentPagedResult

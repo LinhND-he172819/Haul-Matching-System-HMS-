@@ -1,4 +1,4 @@
-import type { PaymentHistoryEntry } from '../../api/customer/customerQuotationApi';
+import type { PaymentHistoryEntry } from '../../../api/customer/customerQuotationApi';
 import PaymentStatusBadge from './PaymentStatusBadge';
 
 const TYPE_LABELS: Record<string, string> = {

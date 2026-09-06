@@ -61,6 +61,9 @@ namespace HMS.Modules.Matching.Core.Models
         [Column("status")]
         public string? Status { get; set; }
 
+        [Column("shipment_code")]
+        public string? ShipmentCode { get; set; }
+
         // ── Ownership ──
         [Column("customer_id")]
         public Guid? CustomerId { get; set; }

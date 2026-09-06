@@ -35,7 +35,7 @@ export default function EditTripPostModal({ post, onClose, onSuccess, onError }:
                 description: description.trim(),
                 acceptUntil: new Date(acceptUntil).toISOString(),
             });
-            onSuccess(result.message);
+            onSuccess(result.id);
         } catch (err) {
             onError(err instanceof Error ? err.message : 'Cập nhật thất bại.');
         } finally {

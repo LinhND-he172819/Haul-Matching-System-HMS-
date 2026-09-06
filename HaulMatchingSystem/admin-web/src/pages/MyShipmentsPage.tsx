@@ -4,6 +4,10 @@ import {
   type CustomerShipmentListItem,
   type PagedResult,
 } from '../api/customerShipmentApi';
+import {
+  getCustomerDashboardStats,
+  type CustomerDashboardStats,
+} from '../api/customerDashboardApi';
 import Toast from '../components/matching/Toast';
 import AppHeader from '../components/AppHeader';
 
@@ -33,6 +37,11 @@ const STATUS_LABELS: Record<string, string> = {
   Cancelled: 'Đã hủy',
 };
 
+/* ─── Helpers ─────────────────────────────────────────────────────── */
+
+const fmtVND = (n: number) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
+
 /* ─── Component ───────────────────────────────────────────────────── */
 
 type Props = {
@@ -48,6 +57,7 @@ export default function MyShipmentsPage({ onSelectShipment, onLogout, onNavigate
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [custStats, setCustStats] = useState<CustomerDashboardStats | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -64,6 +74,12 @@ export default function MyShipmentsPage({ onSelectShipment, onLogout, onNavigate
   useEffect(() => {
     loadData();
   }, [page]);
+
+  useEffect(() => {
+    getCustomerDashboardStats()
+      .then(setCustStats)
+      .catch(() => {});
+  }, []);
 
   // Client-side filter
   const filteredItems = (data?.items ?? []).filter((item) => {
@@ -145,6 +161,48 @@ export default function MyShipmentsPage({ onSelectShipment, onLogout, onNavigate
             </button>
           )}
         </div>
+
+        {/* Customer Cost Summary Cards */}
+        {custStats && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+            <div className="bg-surface-container-lowest rounded-xl p-4 card-shadow border border-outline-variant/20 flex flex-col justify-between">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-label-md text-on-surface-variant uppercase tracking-wider">Tổng chi phí ước tính</span>
+                <span className="material-symbols-outlined text-[20px] text-primary">payments</span>
+              </div>
+              <span className="text-headline-md font-bold text-on-surface">{fmtVND(custStats.totalEstimatedCost)}</span>
+            </div>
+            <div className="bg-surface-container-lowest rounded-xl p-4 card-shadow border border-outline-variant/20 flex flex-col justify-between">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-label-md text-on-surface-variant uppercase tracking-wider">Tổng đặt cọc yêu cầu</span>
+                <span className="material-symbols-outlined text-[20px] text-amber-600">account_balance_wallet</span>
+              </div>
+              <span className="text-headline-md font-bold text-on-surface">{fmtVND(custStats.totalDepositRequired)}</span>
+            </div>
+            <div className="bg-surface-container-lowest rounded-xl p-4 card-shadow border border-outline-variant/20 flex flex-col justify-between">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-label-md text-on-surface-variant uppercase tracking-wider">Đã thanh toán</span>
+                <span className="material-symbols-outlined text-[20px] text-emerald-600">check_circle</span>
+              </div>
+              <span className="text-headline-md font-bold text-emerald-600">{fmtVND(custStats.totalPaid)}</span>
+              <span className="text-body-sm text-on-surface-variant mt-1">
+                Cọc: {fmtVND(custStats.depositPaid)} · Final: {fmtVND(custStats.finalPaid)}
+              </span>
+            </div>
+            <div className="bg-surface-container-lowest rounded-xl p-4 card-shadow border border-outline-variant/20 flex flex-col justify-between">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-label-md text-on-surface-variant uppercase tracking-wider">Còn nợ</span>
+                <span className="material-symbols-outlined text-[20px] text-red-600">money_off</span>
+              </div>
+              <span className={`text-headline-md font-bold ${custStats.outstandingAmount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                {fmtVND(custStats.outstandingAmount)}
+              </span>
+              {custStats.outstandingAmount > 0 && (
+                <span className="text-body-sm text-red-500 mt-1">Cần thanh toán để hoàn tất</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">

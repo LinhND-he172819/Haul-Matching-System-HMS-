@@ -1,3 +1,5 @@
+import { authFetch } from '../utils/authFetch';
+
 const API_BASE =
     import.meta.env.VITE_API_BASE_URL ??
     import.meta.env.VITE_API_URL ??
@@ -23,7 +25,7 @@ export type UpdateUserPayload = Omit<CreateUserPayload, 'password'> & {
 };
 
 export async function fetchHubs(): Promise<HubDto[]> {
-    const res = await fetch(`${API_BASE}/api/identity/hubs`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/identity/hubs`);
     if (!res.ok) {
         throw new Error(`Tải danh sách Hub thất bại: ${res.status}`);
     }
@@ -31,14 +33,10 @@ export async function fetchHubs(): Promise<HubDto[]> {
 }
 
 export async function createUser(payload: CreateUserPayload): Promise<any> {
-    const res = await fetch(`${API_BASE}/api/identity/users`, {
+    const res = await authFetch(`${API_BASE}/api/identity/users`, {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-    });
+        body: JSON.stringify(payload),
+    }, { includeJson: true });
 
     if (!res.ok) {
         let errorData;
@@ -68,7 +66,7 @@ export interface UserDto {
 }
 
 export async function fetchUsers(): Promise<UserDto[]> {
-    const res = await fetch(`${API_BASE}/api/identity/users`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/identity/users`);
     if (!res.ok) {
         throw new Error(`Tải danh sách tài khoản thất bại: ${res.status}`);
     }
@@ -76,14 +74,10 @@ export async function fetchUsers(): Promise<UserDto[]> {
 }
 
 export async function updateUser(id: string, payload: UpdateUserPayload): Promise<any> {
-    const res = await fetch(`${API_BASE}/api/identity/users/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/identity/users/${id}`, {
         method: 'PUT',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-    });
+        body: JSON.stringify(payload),
+    }, { includeJson: true });
 
     if (!res.ok) {
         let errorData;
@@ -98,9 +92,8 @@ export async function updateUser(id: string, payload: UpdateUserPayload): Promis
 }
 
 export async function deleteUser(id: string): Promise<any> {
-    const res = await fetch(`${API_BASE}/api/identity/users/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/identity/users/${id}`, {
         method: 'DELETE',
-        credentials: 'include'
     });
 
     if (!res.ok) {

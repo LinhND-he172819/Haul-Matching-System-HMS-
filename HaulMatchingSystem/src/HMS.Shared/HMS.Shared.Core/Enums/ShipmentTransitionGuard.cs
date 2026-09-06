@@ -38,6 +38,7 @@ public static class ShipmentTransitionGuard
             [ShipmentStatus.Matched] = new HashSet<ShipmentStatus>
             {
                 ShipmentStatus.In_Transit,
+                ShipmentStatus.In_Warehouse,    // Unlinked from trip (admin removes shipment from trip)
                 ShipmentStatus.Cancelled
             },
             [ShipmentStatus.In_Transit] = new HashSet<ShipmentStatus>

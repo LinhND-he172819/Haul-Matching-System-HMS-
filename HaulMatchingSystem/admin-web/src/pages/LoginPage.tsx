@@ -31,6 +31,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
 
             localStorage.setItem('accessToken', res.accessToken);
             localStorage.setItem('refreshToken', res.refreshToken);
+            localStorage.setItem('userId', res.userId);
             localStorage.setItem('fullName', res.fullName);
             localStorage.setItem('role', res.role);
             onNavigate('home');
@@ -79,6 +80,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
 
             localStorage.setItem('accessToken', res.accessToken);
             localStorage.setItem('refreshToken', res.refreshToken);
+            localStorage.setItem('userId', res.userId);
             localStorage.setItem('fullName', res.fullName);
             localStorage.setItem('role', res.role);
             onNavigate('home');

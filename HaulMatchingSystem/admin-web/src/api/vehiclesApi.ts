@@ -23,6 +23,8 @@ export type VehiclePayload = {
     status: VehicleStatus;
 };
 
+import { authFetch } from '../utils/authFetch';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5104';
 
 async function readApiError(response: Response, fallback: string) {
@@ -51,7 +53,7 @@ export async function fetchVehicles(search = '', status = ''): Promise<Vehicle[]
         url.searchParams.set('status', status.trim());
     }
 
-    const response = await fetch(url);
+    const response = await authFetch(url);
     if (!response.ok) {
         throw new Error(await readApiError(response, `Cannot load vehicles (${response.status}).`));
     }
@@ -60,11 +62,10 @@ export async function fetchVehicles(search = '', status = ''): Promise<Vehicle[]
 }
 
 export async function createVehicle(payload: VehiclePayload): Promise<Vehicle> {
-    const response = await fetch(`${API_BASE_URL}/api/vehicles`, {
+    const response = await authFetch(`${API_BASE_URL}/api/vehicles`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+        body: JSON.stringify(payload),
+    }, { includeJson: true });
 
     if (!response.ok) {
         throw new Error(await readApiError(response, `Cannot create vehicle (${response.status}).`));
@@ -74,11 +75,10 @@ export async function createVehicle(payload: VehiclePayload): Promise<Vehicle> {
 }
 
 export async function updateVehicle(id: string, payload: VehiclePayload): Promise<Vehicle> {
-    const response = await fetch(`${API_BASE_URL}/api/vehicles/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/api/vehicles/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+        body: JSON.stringify(payload),
+    }, { includeJson: true });
 
     if (!response.ok) {
         throw new Error(await readApiError(response, `Cannot update vehicle (${response.status}).`));

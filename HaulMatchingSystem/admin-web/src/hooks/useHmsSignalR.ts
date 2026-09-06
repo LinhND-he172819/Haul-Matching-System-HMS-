@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { getHmsConnection, startHmsConnection, onHmsEvent } from '../realtime/hmsFleetConnection';
+import { startHmsConnection, onHmsEvent } from '../realtime/hmsFleetConnection';
 
 /**
  * Hook to subscribe to a SignalR event with automatic cleanup.

@@ -257,11 +257,11 @@ public class AdminIncidentController : ControllerBase
         }
         await evReader.CloseAsync();
 
-        // Compute allowed actions — Admin can take/resolve/reject; Warehouse_Staff can take/resolve
+        // Compute allowed actions
         var allowedActions = new IncidentAllowedActions
         {
-            CanTake = info.Status == "Open" && (role == "Admin" || role == "Warehouse_Staff"),
-            CanResolve = info.Status == "InProgress" && (role == "Admin" || role == "Warehouse_Staff"),
+            CanTake = info.Status == "Open" && role == "Warehouse_Staff",
+            CanResolve = info.Status == "InProgress" && role == "Warehouse_Staff",
             CanReject = info.Status == "Open" && role == "Admin"
         };
 
@@ -279,12 +279,12 @@ public class AdminIncidentController : ControllerBase
             VehiclePlate = info.Vehicle,
             Route = info.Route,
             ReportedAt = info.ReportedAt,
-            UpdatedAt = info.UpdatedAt,
-            AssignedToUserId = info.AssignedToUserId,
-            AssignedToName = info.AssignedToName,
-            AssignedAt = info.AssignedAt,
+            UpdatedAt = info.ReportedAt, // Updated in state changes
+            AssignedToUserId = null,
+            AssignedToName = info.AssignedTo,
+            AssignedAt = null,
             ResolutionNote = info.ResolutionNote,
-            ResolvedByUserId = info.ResolvedByUserId,
+            ResolvedByUserId = null,
             ResolvedByName = info.ResolvedBy,
             ResolvedAt = info.ResolvedAt,
             Evidence = evidence,
@@ -350,33 +350,22 @@ public class AdminIncidentController : ControllerBase
 
             await tx.CommitAsync(ct);
 
-            // Send email (with result tracking)
-            var emailSent = false;
-            var emailError = (string?)null;
-            try
+            // Send email (non-blocking)
+            _ = Task.Run(async () =>
             {
-                using var emailConn = new NpgsqlConnection(_connStr);
-                await emailConn.OpenAsync(ct);
-                var recipients = await _incidentService.GetIncidentRecipientsAsync(emailConn, incidentId, "InProgress", ct);
-                if (recipients.Count > 0)
+                try
                 {
+                    using var emailConn = new NpgsqlConnection(_connStr);
+                    await emailConn.OpenAsync(ct);
                     await _incidentService.SendIncidentInProgressEmailAsync(emailConn, incidentId, userId, ct);
-                    emailSent = true;
-                    _logger.LogInformation("IncidentInProgress email sent to {Count} recipients for {IncidentId}", recipients.Count, incidentId);
                 }
-                else
+                catch (Exception ex)
                 {
-                    emailError = "Không tìm thấy người nhận email";
-                    _logger.LogWarning("No email recipients found for IncidentInProgress {IncidentId}", incidentId);
+                    _logger.LogError(ex, "Failed to send IncidentInProgress email for {IncidentId}", incidentId);
                 }
-            }
-            catch (Exception ex)
-            {
-                emailError = ex.Message;
-                _logger.LogError(ex, "Failed to send IncidentInProgress email for {IncidentId}", incidentId);
-            }
+            }, ct);
 
-            return Ok(new { message = "Đã tiếp nhận sự cố. Trạng thái: InProgress.", status = "InProgress", emailSent, emailError });
+            return Ok(new { message = "Đã tiếp nhận sự cố. Trạng thái: InProgress.", status = "InProgress" });
         }
         catch (InvalidOperationException ex)
         {
@@ -456,33 +445,22 @@ public class AdminIncidentController : ControllerBase
 
             await tx.CommitAsync(ct);
 
-            // Send email (with result tracking)
-            var emailSent = false;
-            var emailError = (string?)null;
-            try
+            // Send email (non-blocking)
+            _ = Task.Run(async () =>
             {
-                using var emailConn = new NpgsqlConnection(_connStr);
-                await emailConn.OpenAsync(ct);
-                var recipients = await _incidentService.GetIncidentRecipientsAsync(emailConn, incidentId, "Resolved", ct);
-                if (recipients.Count > 0)
+                try
                 {
+                    using var emailConn = new NpgsqlConnection(_connStr);
+                    await emailConn.OpenAsync(ct);
                     await _incidentService.SendIncidentResolvedEmailAsync(emailConn, incidentId, userId, request.Note, now, ct);
-                    emailSent = true;
-                    _logger.LogInformation("IncidentResolved email sent to {Count} recipients for {IncidentId}", recipients.Count, incidentId);
                 }
-                else
+                catch (Exception ex)
                 {
-                    emailError = "Không tìm thấy người nhận email";
-                    _logger.LogWarning("No email recipients found for IncidentResolved {IncidentId}", incidentId);
+                    _logger.LogError(ex, "Failed to send IncidentResolved email for {IncidentId}", incidentId);
                 }
-            }
-            catch (Exception ex)
-            {
-                emailError = ex.Message;
-                _logger.LogError(ex, "Failed to send IncidentResolved email for {IncidentId}", incidentId);
-            }
+            }, ct);
 
-            return Ok(new { message = "Đã xử lý xong sự cố.", status = "Resolved", note = request.Note, emailSent, emailError });
+            return Ok(new { message = "Đã xử lý xong sự cố.", status = "Resolved", note = request.Note });
         }
         catch (InvalidOperationException ex)
         {
@@ -559,33 +537,22 @@ public class AdminIncidentController : ControllerBase
 
             await tx.CommitAsync(ct);
 
-            // Send email (with result tracking)
-            var emailSent = false;
-            var emailError = (string?)null;
-            try
+            // Send email (non-blocking)
+            _ = Task.Run(async () =>
             {
-                using var emailConn = new NpgsqlConnection(_connStr);
-                await emailConn.OpenAsync(ct);
-                var recipients = await _incidentService.GetIncidentRecipientsAsync(emailConn, incidentId, "Rejected", ct);
-                if (recipients.Count > 0)
+                try
                 {
+                    using var emailConn = new NpgsqlConnection(_connStr);
+                    await emailConn.OpenAsync(ct);
                     await _incidentService.SendIncidentRejectedEmailAsync(emailConn, incidentId, userId, request.Note, now, ct);
-                    emailSent = true;
-                    _logger.LogInformation("IncidentRejected email sent to {Count} recipients for {IncidentId}", recipients.Count, incidentId);
                 }
-                else
+                catch (Exception ex)
                 {
-                    emailError = "Không tìm thấy người nhận email";
-                    _logger.LogWarning("No email recipients found for IncidentRejected {IncidentId}", incidentId);
+                    _logger.LogError(ex, "Failed to send IncidentRejected email for {IncidentId}", incidentId);
                 }
-            }
-            catch (Exception ex)
-            {
-                emailError = ex.Message;
-                _logger.LogError(ex, "Failed to send IncidentRejected email for {IncidentId}", incidentId);
-            }
+            }, ct);
 
-            return Ok(new { message = "Đã từ chối báo cáo sự cố.", status = "Rejected", reason = request.Note, emailSent, emailError });
+            return Ok(new { message = "Đã từ chối báo cáo sự cố.", status = "Rejected", reason = request.Note });
         }
         catch (InvalidOperationException ex)
         {
@@ -597,48 +564,6 @@ public class AdminIncidentController : ControllerBase
             await tx.RollbackAsync(ct);
             throw;
         }
-    }
-
-    // ─── GET /api/staff/incidents/{incidentId}/history ────────────────
-    [HttpGet("{incidentId:guid}/history")]
-    public async Task<IActionResult> GetIncidentHistory(Guid incidentId, CancellationToken ct)
-    {
-        var (userId, role) = GetCurrentUser();
-        await using var conn = new NpgsqlConnection(_connStr);
-        await conn.OpenAsync(ct);
-
-        // Hub isolation check
-        if (!await _incidentService.CanUserAccessIncidentAsync(conn, userId, role, incidentId, ct))
-            return NotFound(new { message = "Không tìm thấy sự cố hoặc bạn không có quyền truy cập." });
-
-        // Fetch audit log entries for this incident
-        const string sql = """
-            SELECT al.id, al.action, al.performed_by, al.details, al.created_at,
-                   u.full_name AS actor_name
-            FROM shared.audit_log al
-            LEFT JOIN identity.users u ON u.id = al.performed_by
-            WHERE al.entity_type = 'TripIncident' AND al.entity_id = @incident_id
-            ORDER BY al.created_at ASC;
-        """;
-        await using var cmd = new NpgsqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("incident_id", incidentId);
-
-        var items = new List<IncidentHistoryItem>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
-        {
-            items.Add(new IncidentHistoryItem
-            {
-                Id = reader.GetGuid(0),
-                Action = reader.GetString(1),
-                ActorUserId = reader.IsDBNull(2) ? (Guid?)null : reader.GetGuid(2),
-                ActorName = reader.IsDBNull(5) ? "N/A" : reader.GetString(5),
-                Note = reader.IsDBNull(3) ? null : reader.GetString(3),
-                CreatedAt = reader.GetDateTime(4)
-            });
-        }
-
-        return Ok(new { items });
     }
 
     // ─── GET /api/staff/incidents/{incidentId}/evidence/{evidenceId} ──

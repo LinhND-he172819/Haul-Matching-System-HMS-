@@ -147,9 +147,6 @@ export default function StaffProposalManagementPage({
     }
   };
 
-  const formatCurrency = (n: number) =>
-    n.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
-
   const formatDate = (s?: string) =>
     s
       ? new Date(s).toLocaleDateString('vi-VN', {

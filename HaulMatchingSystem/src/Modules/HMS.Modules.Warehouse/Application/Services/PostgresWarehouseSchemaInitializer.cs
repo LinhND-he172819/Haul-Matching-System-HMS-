@@ -216,6 +216,64 @@ public sealed class PostgresWarehouseSchemaInitializer
             await proposalsCmd.ExecuteNonQueryAsync(ct);
         }
 
+        // ── Create warehouse.shipment_feedbacks table ──
+        const string createFeedbackTable = """
+            CREATE TABLE IF NOT EXISTS warehouse.shipment_feedbacks (
+                id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                shipment_id     uuid NOT NULL,
+                customer_id     uuid NOT NULL,
+                rating          integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+                comment         text,
+                created_at      timestamptz NOT NULL DEFAULT now(),
+                updated_at      timestamptz NOT NULL DEFAULT now(),
+
+                CONSTRAINT fk_feedback_shipment
+                    FOREIGN KEY (shipment_id) REFERENCES warehouse.shipments(id)
+                    ON DELETE CASCADE
+            );
+
+            -- Unique constraint: one feedback per customer per shipment
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_shipment_feedbacks_customer_shipment
+                ON warehouse.shipment_feedbacks (customer_id, shipment_id);
+
+            -- Index for listing by shipment
+            CREATE INDEX IF NOT EXISTS idx_shipment_feedbacks_shipment_id
+                ON warehouse.shipment_feedbacks (shipment_id);
+
+            -- Index for listing by customer
+            CREATE INDEX IF NOT EXISTS idx_shipment_feedbacks_customer_id
+                ON warehouse.shipment_feedbacks (customer_id);
+        """;
+        await using (var feedbackCmd = new NpgsqlCommand(createFeedbackTable, conn))
+        {
+            await feedbackCmd.ExecuteNonQueryAsync(ct);
+        }
+
+        // ── Create warehouse.shipment_feedback_evidence table ──
+        const string createFeedbackEvidenceTable = """
+            CREATE TABLE IF NOT EXISTS warehouse.shipment_feedback_evidence (
+                id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                feedback_id         uuid NOT NULL,
+                storage_key         text NOT NULL,
+                original_file_name  text,
+                content_type        text,
+                file_size           bigint,
+                uploaded_by         uuid,
+                uploaded_at         timestamptz NOT NULL DEFAULT now(),
+
+                CONSTRAINT fk_feedback_evidence_feedback
+                    FOREIGN KEY (feedback_id) REFERENCES warehouse.shipment_feedbacks(id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_feedback_evidence_feedback_id
+                ON warehouse.shipment_feedback_evidence (feedback_id);
+        """;
+        await using (var evidenceCmd = new NpgsqlCommand(createFeedbackEvidenceTable, conn))
+        {
+            await evidenceCmd.ExecuteNonQueryAsync(ct);
+        }
+
         // ── One-time data migration: transition Approved → Confirmed for proposals
         //    that already have an Accepted quotation (deposit was paid before this
         //    automatic transition was added in PaymentService). ──
