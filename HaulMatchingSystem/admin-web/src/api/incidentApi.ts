@@ -76,19 +76,6 @@ export type AdminIncidentAllowedActions = {
   canReject: boolean;
 };
 
-export type AdminIncidentHistoryItem = {
-  id: string;
-  action: string;
-  actorUserId?: string;
-  actorName: string;
-  note?: string;
-  createdAt: string;
-};
-
-export type AdminIncidentHistoryResult = {
-  items: AdminIncidentHistoryItem[];
-};
-
 // ── API Functions ─────────────────────────────────────────────────────
 
 export async function listIncidents(params: {
@@ -131,7 +118,7 @@ export async function getIncidentDetail(
 export async function takeIncident(
   incidentId: string,
   note?: string
-): Promise<{ message: string; status: string; emailSent?: boolean; emailError?: string }> {
+): Promise<{ message: string; status: string }> {
   const res = await authFetch(
     `${API_BASE_URL}/api/staff/incidents/${incidentId}/take`,
     {
@@ -150,7 +137,7 @@ export async function takeIncident(
 export async function resolveIncident(
   incidentId: string,
   note: string
-): Promise<{ message: string; status: string; emailSent?: boolean; emailError?: string }> {
+): Promise<{ message: string; status: string }> {
   const res = await authFetch(
     `${API_BASE_URL}/api/staff/incidents/${incidentId}/resolve`,
     {
@@ -169,7 +156,7 @@ export async function resolveIncident(
 export async function rejectIncident(
   incidentId: string,
   reason: string
-): Promise<{ message: string; status: string; emailSent?: boolean; emailError?: string }> {
+): Promise<{ message: string; status: string }> {
   const res = await authFetch(
     `${API_BASE_URL}/api/staff/incidents/${incidentId}/reject`,
     {
@@ -187,17 +174,4 @@ export async function rejectIncident(
 
 export function getEvidenceDownloadUrl(incidentId: string, evidenceId: string): string {
   return `${API_BASE_URL}/api/staff/incidents/${incidentId}/evidence/${evidenceId}`;
-}
-
-export async function getIncidentHistory(
-  incidentId: string
-): Promise<AdminIncidentHistoryResult> {
-  const res = await authFetch(
-    `${API_BASE_URL}/api/staff/incidents/${incidentId}/history`
-  );
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({ message: 'Không thể tải lịch sử xử lý.' }));
-    throw new Error(data.message || 'Không thể tải lịch sử xử lý.');
-  }
-  return res.json();
 }

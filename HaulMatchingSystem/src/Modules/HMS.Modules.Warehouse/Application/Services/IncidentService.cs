@@ -191,9 +191,8 @@ public sealed class IncidentService
 
     public async Task<(string IncidentCode, string TripCode, string DriverName, string Vehicle, string Route,
         string IncidentType, string Description, int EvidenceCount, DateTimeOffset ReportedAt,
-        string Status, string? AssignedToName, Guid? AssignedToUserId, DateTimeOffset? AssignedAt,
-        string? ResolutionNote, string? ResolvedBy, Guid? ResolvedByUserId, DateTimeOffset? ResolvedAt,
-        DateTimeOffset UpdatedAt, Guid ReportedBy, Guid TripId)>
+        string Status, string? AssignedTo, string? ResolutionNote, string? ResolvedBy, DateTimeOffset? ResolvedAt,
+        Guid ReportedBy, Guid TripId)>
         GetIncidentInfoAsync(NpgsqlConnection conn, Guid incidentId, CancellationToken ct)
     {
         const string sql = """
@@ -206,8 +205,7 @@ public sealed class IncidentService
                    v.license_plate,
                    oh.name AS origin_name,
                    dh.name AS dest_name,
-                   (SELECT COUNT(*) FROM transport.trip_incident_evidence WHERE incident_id = ti.id) AS evidence_count,
-                   ti.assigned_to_user_id, ti.assigned_at, ti.updated_at
+                   (SELECT COUNT(*) FROM transport.trip_incident_evidence WHERE incident_id = ti.id) AS evidence_count
             FROM transport.trip_incidents ti
             JOIN transport.trips t ON t.id = ti.trip_id
             JOIN identity.users u_driver ON u_driver.id = ti.reported_by
@@ -238,21 +236,7 @@ public sealed class IncidentService
         var originName = reader.IsDBNull(13) ? "-" : reader.GetString(13);
         var destName = reader.IsDBNull(14) ? "-" : reader.GetString(14);
         var evidenceCount = reader.GetInt32(15);
-        var assignedToUserId = reader.IsDBNull(16) ? (Guid?)null : reader.GetGuid(16);
-        var assignedAt = reader.IsDBNull(17) ? (DateTimeOffset?)null : reader.GetDateTime(17);
-        var updatedAt = reader.IsDBNull(18) ? createdAt : reader.GetDateTime(18);
         await reader.CloseAsync();
-
-        // Resolve assigned_to name
-        string? assignedToName = null;
-        if (assignedToUserId.HasValue)
-        {
-            const string assignedNameSql = "SELECT full_name FROM identity.users WHERE id = @uid;";
-            await using var aCmd = new NpgsqlCommand(assignedNameSql, conn);
-            aCmd.Parameters.AddWithValue("uid", assignedToUserId.Value);
-            var nameResult = await aCmd.ExecuteScalarAsync(ct);
-            if (nameResult != null) assignedToName = (string)nameResult;
-        }
 
         // Resolve resolved_by name
         string? resolvedByName = null;
@@ -267,9 +251,8 @@ public sealed class IncidentService
 
         return (incidentCode, tripCode, driverName, vehiclePlate,
             $"{originName} → {destName}", incidentType, description, evidenceCount,
-            createdAt, status, assignedToName, assignedToUserId, assignedAt,
-            resolutionNote, resolvedByName, resolvedByUserId, resolvedAt,
-            updatedAt, reportedBy, tripId);
+            createdAt, status, null, resolutionNote, resolvedByName, resolvedAt,
+            reportedBy, tripId);
     }
 
     // ─── Email Dispatch ──────────────────────────────────────────────

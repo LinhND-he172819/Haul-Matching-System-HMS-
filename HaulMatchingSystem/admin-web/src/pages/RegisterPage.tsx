@@ -59,6 +59,7 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
             // Login after register
             localStorage.setItem('accessToken', res.accessToken);
             localStorage.setItem('refreshToken', res.refreshToken);
+            localStorage.setItem('userId', res.userId);
             localStorage.setItem('fullName', res.fullName);
             localStorage.setItem('role', res.role);
 

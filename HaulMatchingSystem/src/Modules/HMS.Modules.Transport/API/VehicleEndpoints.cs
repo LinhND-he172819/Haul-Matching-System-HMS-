@@ -12,7 +12,8 @@ public static class VehicleEndpoints
     {
         var group = endpoints
             .MapGroup("/api/vehicles")
-            .WithTags("Vehicles");
+            .WithTags("Vehicles")
+            .RequireAuthorization();
 
         group.MapGet("/", async (
             string? search,

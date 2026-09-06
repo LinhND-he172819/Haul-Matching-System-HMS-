@@ -20,7 +20,28 @@ public sealed class PostgresTripRepository : ITripRepository
     public async Task AddAsync(Trip trip, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenConnectionAsync(cancellationToken);
+        await AddCoreAsync(trip, connection, null, cancellationToken);
+    }
+
+    public async Task AddAsync(Trip trip, object? connection, object? transaction, CancellationToken cancellationToken = default)
+    {
+        var (conn, txn, ownsConnection) = await ResolveConnectionAsync(connection, transaction, cancellationToken);
+        try
+        {
+            await AddCoreAsync(trip, conn, txn, cancellationToken);
+        }
+        finally
+        {
+            if (ownsConnection && conn is not null)
+                await conn.DisposeAsync();
+        }
+    }
+
+    private async Task AddCoreAsync(Trip trip, NpgsqlConnection connection, NpgsqlTransaction? transaction, CancellationToken cancellationToken)
+    {
         await using var command = connection.CreateCommand();
+        if (transaction is not null)
+            command.Transaction = transaction;
 
         command.CommandText = """
             INSERT INTO transport.trips (
@@ -33,6 +54,7 @@ public sealed class PostgresTripRepository : ITripRepository
                 route_linestring,
                 current_load_weight,
                 current_load_volume,
+                scheduled_departure_at,
                 started_at,
                 finished_at,
                 version,
@@ -51,6 +73,7 @@ public sealed class PostgresTripRepository : ITripRepository
                 ST_GeomFromText(@route_linestring, 4326),
                 @current_load_weight,
                 @current_load_volume,
+                @scheduled_departure_at,
                 @started_at,
                 @finished_at,
                 @version,
@@ -122,7 +145,28 @@ public sealed class PostgresTripRepository : ITripRepository
     public async Task UpdateAsync(Trip trip, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenConnectionAsync(cancellationToken);
+        await UpdateCoreAsync(trip, connection, null, cancellationToken);
+    }
+
+    public async Task UpdateAsync(Trip trip, object? connection, object? transaction, CancellationToken cancellationToken = default)
+    {
+        var (conn, txn, ownsConnection) = await ResolveConnectionAsync(connection, transaction, cancellationToken);
+        try
+        {
+            await UpdateCoreAsync(trip, conn, txn, cancellationToken);
+        }
+        finally
+        {
+            if (ownsConnection && conn is not null)
+                await conn.DisposeAsync();
+        }
+    }
+
+    private async Task UpdateCoreAsync(Trip trip, NpgsqlConnection connection, NpgsqlTransaction? transaction, CancellationToken cancellationToken)
+    {
         await using var command = connection.CreateCommand();
+        if (transaction is not null)
+            command.Transaction = transaction;
 
         command.CommandText = """
             UPDATE transport.trips
@@ -134,6 +178,7 @@ public sealed class PostgresTripRepository : ITripRepository
                 route_linestring = ST_GeomFromText(@route_linestring, 4326),
                 current_load_weight = @current_load_weight,
                 current_load_volume = @current_load_volume,
+                scheduled_departure_at = @scheduled_departure_at,
                 started_at = @started_at,
                 finished_at = @finished_at,
                 version = @version,
@@ -164,6 +209,85 @@ public sealed class PostgresTripRepository : ITripRepository
 
         return affectedRows > 0;
     }
+    public async Task<int> CountActiveTripsForDriverAsync(Guid driverId, Guid? excludeTripId = null, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            SELECT COUNT(*) FROM transport.trips
+            WHERE driver_id = @driver_id
+                AND status IN ('Active', 'Scheduled', 'Ready')
+                AND is_deleted = FALSE
+                AND (@exclude_trip_id::uuid IS NULL OR id <> @exclude_trip_id);
+            """;
+        command.Parameters.AddWithValue("driver_id", driverId);
+        command.Parameters.AddWithValue("exclude_trip_id",
+            excludeTripId.HasValue ? excludeTripId.Value : (object)DBNull.Value);
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(result);
+    }
+
+    public async Task<int> CountActiveTripsForVehicleAsync(Guid vehicleId, Guid? excludeTripId = null, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            SELECT COUNT(*) FROM transport.trips
+            WHERE vehicle_id = @vehicle_id
+                AND status IN ('Active', 'Scheduled', 'Ready')
+                AND is_deleted = FALSE
+                AND (@exclude_trip_id::uuid IS NULL OR id <> @exclude_trip_id);
+            """;
+        command.Parameters.AddWithValue("vehicle_id", vehicleId);
+        command.Parameters.AddWithValue("exclude_trip_id",
+            excludeTripId.HasValue ? excludeTripId.Value : (object)DBNull.Value);
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(result);
+    }
+
+    public async Task<int> CountInProgressTripsForDriverAsync(Guid driverId, Guid? excludeTripId = null, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            SELECT COUNT(*) FROM transport.trips
+            WHERE driver_id = @driver_id
+                AND status = 'InProgress'
+                AND is_deleted = FALSE
+                AND (@exclude_trip_id::uuid IS NULL OR id <> @exclude_trip_id);
+            """;
+        command.Parameters.AddWithValue("driver_id", driverId);
+        command.Parameters.AddWithValue("exclude_trip_id",
+            excludeTripId.HasValue ? excludeTripId.Value : (object)DBNull.Value);
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(result);
+    }
+
+    public async Task<int> CountInProgressTripsForVehicleAsync(Guid vehicleId, Guid? excludeTripId = null, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            SELECT COUNT(*) FROM transport.trips
+            WHERE vehicle_id = @vehicle_id
+                AND status = 'InProgress'
+                AND is_deleted = FALSE
+                AND (@exclude_trip_id::uuid IS NULL OR id <> @exclude_trip_id);
+            """;
+        command.Parameters.AddWithValue("vehicle_id", vehicleId);
+        command.Parameters.AddWithValue("exclude_trip_id",
+            excludeTripId.HasValue ? excludeTripId.Value : (object)DBNull.Value);
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(result);
+    }
 
     private async Task<NpgsqlConnection> OpenConnectionAsync(CancellationToken cancellationToken)
     {
@@ -171,6 +295,26 @@ public sealed class PostgresTripRepository : ITripRepository
         await connection.OpenAsync(cancellationToken);
 
         return connection;
+    }
+
+    /// <summary>
+    /// Resolves a caller-provided connection/transaction pair, or opens a new connection.
+    /// Returns the connection to use, the transaction to attach (may be null), and whether
+    /// this method owns the connection (and therefore must dispose it).
+    /// </summary>
+    private async Task<(NpgsqlConnection Connection, NpgsqlTransaction? Transaction, bool OwnsConnection)> ResolveConnectionAsync(
+        object? connection,
+        object? transaction,
+        CancellationToken cancellationToken)
+    {
+        if (connection is NpgsqlConnection callerConn && callerConn.State == System.Data.ConnectionState.Open)
+        {
+            var callerTxn = transaction as NpgsqlTransaction;
+            return (callerConn, callerTxn, false);
+        }
+
+        var conn = await OpenConnectionAsync(cancellationToken);
+        return (conn, null, true);
     }
 
     private static void AddTripParameters(NpgsqlCommand command, Trip trip)
@@ -184,6 +328,7 @@ public sealed class PostgresTripRepository : ITripRepository
         command.Parameters.Add("route_linestring", NpgsqlDbType.Text).Value = trip.RouteLineString;
         command.Parameters.AddWithValue("current_load_weight", trip.CurrentLoadWeightKg);
         command.Parameters.AddWithValue("current_load_volume", trip.CurrentLoadVolumeCbm);
+        AddTimestampParameter(command, "scheduled_departure_at", trip.ScheduledDepartureAt);
         AddTimestampParameter(command, "started_at", trip.StartedAt);
         AddTimestampParameter(command, "finished_at", trip.FinishedAt);
         command.Parameters.AddWithValue("version", trip.Version);
@@ -215,7 +360,8 @@ public sealed class PostgresTripRepository : ITripRepository
             Enum.Parse<TripStatus>(reader.GetString(reader.GetOrdinal("status"))),
             reader.GetFieldValue<DateTimeOffset>(reader.GetOrdinal("created_at")),
             reader.GetFieldValue<DateTimeOffset>(reader.GetOrdinal("updated_at")),
-            reader.IsDBNull(reader.GetOrdinal("trip_code")) ? null : reader.GetString(reader.GetOrdinal("trip_code")));
+            reader.IsDBNull(reader.GetOrdinal("trip_code")) ? null : reader.GetString(reader.GetOrdinal("trip_code")),
+            ReadNullableTimestamp(reader, "scheduled_departure_at"));
     }
 
     private static DateTimeOffset? ReadNullableTimestamp(NpgsqlDataReader reader, string columnName)
@@ -236,6 +382,7 @@ public sealed class PostgresTripRepository : ITripRepository
             ST_AsText(route_linestring) AS route_linestring,
             current_load_weight,
             current_load_volume,
+            scheduled_departure_at,
             started_at,
             finished_at,
             version,

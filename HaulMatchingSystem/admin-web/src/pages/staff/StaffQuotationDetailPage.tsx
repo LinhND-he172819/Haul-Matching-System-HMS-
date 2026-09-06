@@ -194,7 +194,7 @@ export default function StaffQuotationDetailPage({
             <div>
               <h1 className="text-headline-lg font-bold text-on-surface">{detail.quotationCode}</h1>
               <p className="text-label-md text-on-surface-variant">
-                {formatDate(detail.quotationAt || detail.createdAt)}
+                {formatDate(detail.quotedAt || detail.createdAt)}
               </p>
             </div>
           </div>
@@ -249,7 +249,7 @@ export default function StaffQuotationDetailPage({
                 </div>
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Ngày báo giá</p>
-                  <p className="text-body-md">{formatDate(detail.quotationAt || detail.createdAt)}</p>
+                  <p className="text-body-md">{formatDate(detail.quotedAt || detail.createdAt)}</p>
                 </div>
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Ngày gửi</p>

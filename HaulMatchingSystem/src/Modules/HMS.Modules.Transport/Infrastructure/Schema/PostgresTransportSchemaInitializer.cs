@@ -95,6 +95,7 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
 
             CREATE TABLE IF NOT EXISTS transport.trips (
                 id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                trip_code text NOT NULL DEFAULT ('TRIP-' || left(id::text, 8)),
                 driver_id uuid NOT NULL REFERENCES identity.users(id),
                 vehicle_id uuid NOT NULL REFERENCES transport.vehicles(id),
                 origin_hub_id uuid NOT NULL REFERENCES identity.hubs(id),
@@ -102,6 +103,7 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
                 route_linestring geometry(LineString, 4326) NOT NULL,
                 current_load_weight numeric(12, 2) NOT NULL DEFAULT 0,
                 current_load_volume numeric(12, 2) NOT NULL DEFAULT 0,
+                scheduled_departure_at timestamptz NULL,
                 started_at timestamptz NULL,
                 finished_at timestamptz NULL,
                 version integer NOT NULL DEFAULT 1,
@@ -252,6 +254,34 @@ public sealed class PostgresTransportSchemaInitializer : ITransportSchemaInitial
                 WHERE status = 'Open' AND is_deleted = FALSE;
 
             -- ── Migration: add columns to existing tables ──
+
+            -- Scheduled departure (ngày khởi hành dự kiến) — nullable for legacy rows,
+            -- required for new trips at the application layer.
+            ALTER TABLE transport.trips
+                ADD COLUMN IF NOT EXISTS scheduled_departure_at timestamptz NULL;
+
+            -- Widen trip status CHECK to cover the new state machine
+            -- (Scheduled, Ready, InProgress, Cancelled) alongside legacy values.
+            DO $$
+            DECLARE
+                constraint_record record;
+            BEGIN
+                FOR constraint_record IN
+                    SELECT constraint_name
+                    FROM information_schema.table_constraints
+                    WHERE table_schema = 'transport'
+                        AND table_name = 'trips'
+                        AND constraint_type = 'CHECK'
+                        AND constraint_name = 'ck_transport_trips_status'
+                LOOP
+                    EXECUTE format('ALTER TABLE transport.trips DROP CONSTRAINT %I', constraint_record.constraint_name);
+                END LOOP;
+
+                ALTER TABLE transport.trips
+                    ADD CONSTRAINT ck_transport_trips_status
+                    CHECK (status IN ('Active', 'Scheduled', 'Ready', 'InProgress', 'Completed', 'Breakdown', 'Cancelled'));
+            END $$;
+
             ALTER TABLE transport.trip_posts
                 ADD COLUMN IF NOT EXISTS pickup_mode varchar(20) NOT NULL DEFAULT 'DirectPickup';
 

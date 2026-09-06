@@ -26,6 +26,7 @@ public sealed record AllowedActions
     public bool CanCancel { get; init; }
     public bool CanPayDeposit { get; init; }
     public bool CanPayRemaining { get; init; }
+    public bool CanGiveFeedback { get; init; }
 }
 
 // ─── Customer Shipment Detail ──────────────────────────────────────────
@@ -60,6 +61,10 @@ public sealed record CustomerShipmentDetail
     public string? OriginName { get; init; }
     public string? DestinationName { get; init; }
     public DateTimeOffset? DepartureTime { get; init; }
+
+    /// <summary>Ngày khởi hành dự kiến của chuyến (nếu đã ghép chuyến). DepartureTime = thời điểm đi thực tế.</summary>
+    public DateTimeOffset? ScheduledDepartureAt { get; init; }
+
     public string? VehiclePlate { get; init; }
 
     // Proposal info

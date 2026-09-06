@@ -3,6 +3,7 @@ using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Shared.Core.Enums;
+using HMS.Shared.Core.Events;
 using HMS.Shared.Core.Exceptions;
 using HMS.Shared.Core.Interfaces;
 using HMS.Shared.Core.Models.Realtime;
@@ -468,6 +469,7 @@ namespace HMS.Modules.Matching.Tests
                 It.IsAny<object?>(),
                 driverId,
                 It.IsAny<string?>(),
+                It.IsAny<Func<ShipmentStatusChangedEvent, CancellationToken, Task>?>(),
                 It.IsAny<CancellationToken>()), Times.Once);
 
             // Verify trip capacity update
@@ -670,6 +672,7 @@ namespace HMS.Modules.Matching.Tests
                 It.IsAny<Guid>(), ShipmentStatus.Matched,
                 It.IsAny<object?>(), It.IsAny<object?>(), driverId,
                 It.IsAny<string?>(),
+                It.IsAny<Func<ShipmentStatusChangedEvent, CancellationToken, Task>?>(),
                 It.IsAny<CancellationToken>()), Times.Exactly(2));
 
             // Verify SignalR notification

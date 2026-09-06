@@ -5,6 +5,7 @@ using HMS.Modules.Matching.Core.Models;
 using HMS.Modules.Matching.Infrastructure.Redis;
 using HMS.Shared.Core.Enums;
 using HMS.Shared.Core.Interfaces;
+using HMS.Shared.Core.Sms;
 using Microsoft.Extensions.Logging;
 
 namespace HMS.Modules.Matching.Application.Services
@@ -18,6 +19,7 @@ namespace HMS.Modules.Matching.Application.Services
         private readonly IRedisLockService _redis;
         private readonly IRealtimeDispatcher _dispatcher;
         private readonly IShipmentStateService _shipmentStateService;
+        private readonly ISmsNotificationService _smsNotificationService;
         private readonly ILogger<MatchingService> _logger;
 
         public MatchingService(
@@ -25,12 +27,14 @@ namespace HMS.Modules.Matching.Application.Services
             IRedisLockService redis,
             IRealtimeDispatcher dispatcher,
             IShipmentStateService shipmentStateService,
+            ISmsNotificationService smsNotificationService,
             ILogger<MatchingService> logger)
         {
             _repo = repo;
             _redis = redis;
             _dispatcher = dispatcher;
             _shipmentStateService = shipmentStateService;
+            _smsNotificationService = smsNotificationService;
             _logger = logger;
         }
 
@@ -62,7 +66,20 @@ namespace HMS.Modules.Matching.Application.Services
                     remainingWeightCapacity,
                     remainingVolumeCapacity);
 
-                tripShipments = selectedCandidates
+                // ── Acquire per-shipment Redis locks ──
+                // Prevents the same shipment from being suggested to multiple drivers concurrently.
+                var lockTtl = TimeSpan.FromMinutes(5);
+                var lockedShipments = new List<SpatialShipmentCandidate>();
+                foreach (var candidate in selectedCandidates)
+                {
+                    var key = $"shipment:{candidate.Shipment.Id}:matching-lock";
+                    if (await _redis.AcquireLockAsync(key, lockTtl, ct))
+                        lockedShipments.Add(candidate);
+                    else
+                        _logger.LogInformation("Shipment {ShipmentId} is already locked by another matching session, skipping", candidate.Shipment.Id);
+                }
+
+                tripShipments = lockedShipments
                     .Select((candidate, index) => new TripShipment
                     {
                         Id = Guid.NewGuid(),
@@ -78,7 +95,7 @@ namespace HMS.Modules.Matching.Application.Services
                 {
                     await _repo.AddTripShipmentSuggestionsAsync(tripShipments, ct);
                     await _repo.SaveChangesAsync(ct);
-                    spatialCandidatesByShipmentId = selectedCandidates.ToDictionary(candidate => candidate.Shipment.Id);
+                    spatialCandidatesByShipmentId = lockedShipments.ToDictionary(candidate => candidate.Shipment.Id);
                 }
             }
 
@@ -210,10 +227,27 @@ namespace HMS.Modules.Matching.Application.Services
                     await _redis.ReleaseLockAsync(key, ct);
                 }
 
-                // SignalR notifications
+                await _repo.CommitTransactionAsync(ct);
+
+                // SignalR notifications (after commit, non-blocking)
                 await _dispatcher.BroadcastMatchingAcceptedAsync(new { TripId = trip.Id, ShipmentIds = shipmentIds });
 
-                await _repo.CommitTransactionAsync(ct);
+                // SMS notifications (after commit, non-blocking)
+                foreach (var s in shipments)
+                {
+                    try
+                    {
+                        if (s.CustomerId.HasValue && !string.IsNullOrEmpty(s.ShipmentCode))
+                        {
+                            await _smsNotificationService.SendShipmentStatusAsync(
+                                s.CustomerId.Value, SmsMessageType.ShipmentMatched, s.ShipmentCode, ct);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send ShipmentMatched SMS for shipment {ShipmentId}", s.Id);
+                    }
+                }
             }
             catch
             {
@@ -258,9 +292,10 @@ namespace HMS.Modules.Matching.Application.Services
                     await _redis.ReleaseLockAsync(key, ct);
                 }
 
-                await _dispatcher.BroadcastMatchingRejectedAsync(new { TripId = trip.Id, ShipmentIds = shipmentIds });
-
                 await _repo.CommitTransactionAsync(ct);
+
+                // SignalR notifications (after commit, non-blocking)
+                await _dispatcher.BroadcastMatchingRejectedAsync(new { TripId = trip.Id, ShipmentIds = shipmentIds });
             }
             catch
             {
@@ -282,6 +317,12 @@ namespace HMS.Modules.Matching.Application.Services
                 var suggested = await _repo.GetSuggestedTripShipmentsAsync(trip.Id, ct);
                 var toAccept = suggested.Where(ts => request.ShipmentIds.Contains(ts.ShipmentId)).ToList();
                 var shipments = await _repo.GetShipmentsByIdsAsync(toAccept.Select(t => t.ShipmentId), ct);
+
+                // Guard: only accept shipments still in Suggested state (race protection).
+                var stale = toAccept.Where(ts => ts.Status != "Suggested").ToList();
+                if (stale.Any())
+                    throw new InvalidOperationException(
+                        $"Một số shipment không còn ở trạng thái Suggested: {string.Join(", ", stale.Select(ts => ts.ShipmentId))}");
 
                 var totalWeight = shipments.Sum(s => s.WeightKg);
                 var totalVolume = shipments.Sum(s => s.VolumeCbm);
@@ -321,15 +362,18 @@ namespace HMS.Modules.Matching.Application.Services
 
                 await _repo.SaveChangesAsync(ct);
 
-                foreach (var sid in request.ShipmentIds)
+                var acceptedIds = toAccept.Select(ts => ts.ShipmentId).ToList();
+
+                foreach (var sid in acceptedIds)
                 {
                     var key = $"shipment:{sid}:matching-lock";
                     await _redis.ReleaseLockAsync(key, ct);
                 }
 
-                await _dispatcher.BroadcastMatchingAcceptedAsync(new { TripId = trip.Id, ShipmentIds = request.ShipmentIds });
-
                 await _repo.CommitTransactionAsync(ct);
+
+                // SignalR notifications (after commit, non-blocking)
+                await _dispatcher.BroadcastMatchingAcceptedAsync(new { TripId = trip.Id, ShipmentIds = acceptedIds });
             }
             catch
             {
@@ -374,9 +418,10 @@ namespace HMS.Modules.Matching.Application.Services
                     await _redis.ReleaseLockAsync(key, ct);
                 }
 
-                await _dispatcher.BroadcastMatchingRejectedAsync(new { TripId = trip.Id, ShipmentIds = request.ShipmentIds });
-
                 await _repo.CommitTransactionAsync(ct);
+
+                // SignalR notifications (after commit, non-blocking)
+                await _dispatcher.BroadcastMatchingRejectedAsync(new { TripId = trip.Id, ShipmentIds = request.ShipmentIds });
             }
             catch
             {

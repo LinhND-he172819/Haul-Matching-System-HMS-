@@ -15,6 +15,8 @@ export type HubPayload = {
     longitude: number;
 };
 
+import { authFetch } from '../utils/authFetch';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5104';
 
 async function readApiError(response: Response, fallback: string) {
@@ -39,7 +41,7 @@ export async function fetchHubs(search = ''): Promise<Hub[]> {
         url.searchParams.set('search', search.trim());
     }
 
-    const response = await fetch(url);
+    const response = await authFetch(url);
     if (!response.ok) {
         throw new Error(await readApiError(response, `Cannot load hubs (${response.status}).`));
     }
@@ -48,11 +50,10 @@ export async function fetchHubs(search = ''): Promise<Hub[]> {
 }
 
 export async function createHub(payload: HubPayload): Promise<Hub> {
-    const response = await fetch(`${API_BASE_URL}/api/hubs`, {
+    const response = await authFetch(`${API_BASE_URL}/api/hubs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+        body: JSON.stringify(payload),
+    }, { includeJson: true });
 
     if (!response.ok) {
         throw new Error(await readApiError(response, `Cannot create hub (${response.status}).`));
@@ -62,11 +63,10 @@ export async function createHub(payload: HubPayload): Promise<Hub> {
 }
 
 export async function updateHub(id: string, payload: HubPayload): Promise<Hub> {
-    const response = await fetch(`${API_BASE_URL}/api/hubs/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/api/hubs/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+        body: JSON.stringify(payload),
+    }, { includeJson: true });
 
     if (!response.ok) {
         throw new Error(await readApiError(response, `Cannot update hub (${response.status}).`));

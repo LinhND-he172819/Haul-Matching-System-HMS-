@@ -4,7 +4,6 @@ import QuotationForm from '../../components/staff/quotations/QuotationForm';
 import Toast from '../../components/matching/Toast';
 import {
   createQuotation,
-  type QuotationResponseDto,
 } from '../../api/staff/staffQuotationApi';
 import {
   getStaffProposalDetail,

@@ -47,9 +47,9 @@ namespace HMS.Modules.Matching.Infrastructure
 
         public async Task<List<ShipmentProposal>> GetPendingByDriverAsync(Guid driverId, CancellationToken ct)
         {
-            // Get all trip posts for trips driven by this driver, then get pending proposals
+            // Get all trip posts for trips driven by this driver (Active or Scheduled), then get pending proposals
             var activeTrips = await _db.Trips
-                .Where(t => t.DriverId == driverId && t.Status == "Active" && !t.IsDeleted)
+                .Where(t => t.DriverId == driverId && (t.Status == "Active" || t.Status == "Scheduled") && !t.IsDeleted)
                 .Select(t => t.Id)
                 .ToListAsync(ct);
 
@@ -130,7 +130,7 @@ namespace HMS.Modules.Matching.Infrastructure
         public async Task<Trip?> GetActiveTripForDriverAsync(Guid driverId, CancellationToken ct)
         {
             return await _db.Trips.FirstOrDefaultAsync(
-                t => t.DriverId == driverId && t.Status == "Active" && !t.IsDeleted,
+                t => t.DriverId == driverId && (t.Status == "Active" || t.Status == "Scheduled") && !t.IsDeleted,
                 ct);
         }
 
@@ -225,14 +225,20 @@ namespace HMS.Modules.Matching.Infrastructure
         public async Task UpdateTripLoadAsync(
             Guid tripId, decimal addWeight, decimal addVolume, int expectedVersion, CancellationToken ct)
         {
-            var trip = await _db.Trips.FindAsync(new object[] { tripId }, ct)
-                ?? throw new InvalidOperationException($"Trip {tripId} not found.");
+            // Optimistic concurrency: only update when the Version still matches the value
+            // the caller read. Prevents lost updates when two proposals are approved concurrently.
+            var affected = await _db.Database.ExecuteSqlInterpolatedAsync($"""
+                UPDATE transport.trips
+                SET current_load_weight = current_load_weight + {addWeight},
+                    current_load_volume = current_load_volume + {addVolume},
+                    version = version + 1,
+                    updated_at = NOW()
+                WHERE id = {tripId} AND version = {expectedVersion};
+                """, ct);
 
-            trip.CurrentLoadWeight += addWeight;
-            trip.CurrentLoadVolume += addVolume;
-            trip.Version += 1;
-
-            _db.Trips.Update(trip);
+            if (affected == 0)
+                throw new DbUpdateConcurrencyException(
+                    $"Trip {tripId} đã bị thay đổi bởi giao dịch khác (version mismatch). Vui lòng thử lại.");
         }
 
         public async Task SaveChangesAsync(CancellationToken ct)

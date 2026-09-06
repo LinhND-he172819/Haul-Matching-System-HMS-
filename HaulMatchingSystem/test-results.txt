@@ -1,70 +1,1207 @@
-﻿Test run for C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Matching.Tests\bin\Debug\net8.0\HMS.Modules.Matching.Tests.dll (.NETCoreApp,Version=v8.0)
+﻿Build started 8/23/2026 3:12:26 PM.
+     1>Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" on node 1 (Restore target(s)).
+     1>_GetAllRestoreProjectPathItems:
+         Determining projects to restore...
+       Restore:
+         X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+         X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+         Assets file has not changed. Skipping assets file writing. Path: C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Transport\obj\project.assets.json
+         Assets file has not changed. Skipping assets file writing. Path: C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\HMS.Shared\HMS.Shared.Infrastructure\obj\project.assets.json
+         Assets file has not changed. Skipping assets file writing. Path: C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\HMS.Shared\HMS.Shared.Core\obj\project.assets.json
+         Assets file has not changed. Skipping assets file writing. Path: C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Warehouse\obj\project.assets.json
+         Assets file has not changed. Skipping assets file writing. Path: C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\obj\project.assets.json
+         Restored C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\HMS.Shared\HMS.Shared.Infrastructure\HMS.Shared.Infrastructure.csproj (in 98 ms).
+         Restored C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Warehouse\HMS.Modules.Warehouse.csproj (in 97 ms).
+         Restored C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\HMS.Shared\HMS.Shared.Core\HMS.Shared.Core.csproj (in 97 ms).
+         Restored C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj (in 104 ms).
+         Restored C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Transport\HMS.Modules.Transport.csproj (in 98 ms).
+         
+         NuGet Config files used:
+             C:\Users\DUC MINH\AppData\Roaming\NuGet\NuGet.Config
+             C:\Program Files (x86)\NuGet\Config\Microsoft.VisualStudio.FallbackLocation.config
+             C:\Program Files (x86)\NuGet\Config\Microsoft.VisualStudio.Offline.config
+         
+         Feeds used:
+             https://api.nuget.org/v3/index.json
+             C:\Program Files (x86)\Microsoft SDKs\NuGetPackages\
+             C:\Program Files\dotnet\library-packs
+         All projects are up-to-date for restore.
+     1>Done Building Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" (Restore target(s)).
+   1:7>Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" on node 3 (VSTest target(s)).
+     1>BuildProject:
+         Build started, please wait...
+   1:7>Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" (1:7) is building "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" (1:8) on node 3 (default targets).
+   1:8>Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" (1:8) is building "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\HMS.Shared\HMS.Shared.Core\HMS.Shared.Core.csproj" (3:8) on node 1 (default targets).
+     3>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+       CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj\Debug\net8.0\HMS.Shared.Core.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       GenerateBuildDependencyFile:
+       Skipping target "GenerateBuildDependencyFile" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         HMS.Shared.Core -> C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\HMS.Shared\HMS.Shared.Core\bin\Debug\net8.0\HMS.Shared.Core.dll
+     3>Done Building Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\HMS.Shared\HMS.Shared.Core\HMS.Shared.Core.csproj" (default targets).
+   1:8>Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" (1:8) is building "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\HMS.Shared\HMS.Shared.Infrastructure\HMS.Shared.Infrastructure.csproj" (4:7) on node 4 (default targets).
+     4>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+       CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       AddEFCoreNpgsqlNetTopologySuite:
+       Skipping target "AddEFCoreNpgsqlNetTopologySuite" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj\Debug\net8.0\HMS.Shared.Infrastructure.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       GenerateBuildDependencyFile:
+       Skipping target "GenerateBuildDependencyFile" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         HMS.Shared.Infrastructure -> C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\HMS.Shared\HMS.Shared.Infrastructure\bin\Debug\net8.0\HMS.Shared.Infrastructure.dll
+     4>Done Building Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\HMS.Shared\HMS.Shared.Infrastructure\HMS.Shared.Infrastructure.csproj" (default targets).
+   1:8>Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" (1:8) is building "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Transport\HMS.Modules.Transport.csproj" (5:6) on node 3 (default targets).
+     5>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+       CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj\Debug\net8.0\HMS.Modules.Transport.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       GenerateBuildDependencyFile:
+       Skipping target "GenerateBuildDependencyFile" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         HMS.Modules.Transport -> C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Transport\bin\Debug\net8.0\HMS.Modules.Transport.dll
+     5>Done Building Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Transport\HMS.Modules.Transport.csproj" (default targets).
+   1:8>Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" (1:8) is building "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Warehouse\HMS.Modules.Warehouse.csproj" (2:6) on node 2 (default targets).
+     2>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+       CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj\Debug\net8.0\HMS.Modules.Warehouse.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       GenerateBuildDependencyFile:
+       Skipping target "GenerateBuildDependencyFile" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         HMS.Modules.Warehouse -> C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Warehouse\bin\Debug\net8.0\HMS.Modules.Warehouse.dll
+     2>Done Building Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Warehouse\HMS.Modules.Warehouse.csproj" (default targets).
+     1>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+       CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj\Debug\net8.0\HMS.Modules.Warehouse.Tests.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       _CopyOutOfDateSourceItemsToOutputDirectory:
+       Skipping target "_CopyOutOfDateSourceItemsToOutputDirectory" because all output files are up-to-date with respect to the input files.
+       GenerateBuildDependencyFile:
+       Skipping target "GenerateBuildDependencyFile" because all output files are up-to-date with respect to the input files.
+       GenerateBuildRuntimeConfigurationFiles:
+       Skipping target "GenerateBuildRuntimeConfigurationFiles" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         HMS.Modules.Warehouse.Tests -> C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\bin\Debug\net8.0\HMS.Modules.Warehouse.Tests.dll
+     1>Done Building Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" (default targets).
+     1>BuildProject:
+         Build completed.
+         
+Test run for C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\bin\Debug\net8.0\HMS.Modules.Warehouse.Tests.dll (.NETCoreApp,Version=v8.0)
 Microsoft (R) Test Execution Command Line Tool Version 17.9.0 (x64)
 Copyright (c) Microsoft Corporation.  All rights reserved.
 
 Starting test execution, please wait...
 A total of 1 test files matched the specified pattern.
-dotnet : [xUnit.net 00:00:00.55]     HMS.Modules.Matching.Tests.ProposalService
-Tests.AcceptAll_Success_AcceptsAllAndSendsNotification [FAIL]
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 8.0.4)
+[xUnit.net 00:00:00.25]   Discovering: HMS.Modules.Warehouse.Tests
+[xUnit.net 00:00:00.58]   Discovered:  HMS.Modules.Warehouse.Tests
+[xUnit.net 00:00:00.60]   Starting:    HMS.Modules.Warehouse.Tests
+dotnet : [xUnit.net 00:00:01.26]     HMS.Modules.Warehouse.Tests.FeedbackFlowTe
+sts.UploadEvidence_WrongContentType_ReturnsBadRequest [FAIL]
 At line:1 char:1
-+ dotnet test tests/HMS.Modules.Matching.Tests/HMS.Modules.Matching.Tes ...
++ dotnet test tests/HMS.Modules.Warehouse.Tests/ --filter "Category=Fee ...
 + ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...fication [FAIL] 
+    + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...dRequest [FAIL] 
    :String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
-  Failed HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptAll_Success_AcceptsAllAndSendsNotification [209 ms]
+[xUnit.net 00:00:01.26]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.26]       
+[xUnit.net 00:00:01.26]       POSITION: 51
+[xUnit.net 00:00:01.26]       Stack Trace:
+[xUnit.net 00:00:01.27]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.27]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.27]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.27]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.27]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.27]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.27]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.27]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.27]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.27]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.27]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.27]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.27]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.34]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_CommentTooLong_ReturnsBadRequest [FAIL]
+[xUnit.net 00:00:01.34]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.34]       
+[xUnit.net 00:00:01.34]       POSITION: 51
+[xUnit.net 00:00:01.34]       Stack Trace:
+[xUnit.net 00:00:01.34]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.34]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.34]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.34]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.34]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.34]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.34]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.GetMy
+Feedback_NoFeedback_ReturnsNotFound [FAIL]
+[xUnit.net 00:00:01.34]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.34]       
+[xUnit.net 00:00:01.34]       POSITION: 51
+[xUnit.net 00:00:01.34]       Stack Trace:
+[xUnit.net 00:00:01.34]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.34]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.34]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.35]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.35]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_InvalidRating_ReturnsBadRequest(rating: 6) [FAIL]
+[xUnit.net 00:00:01.35]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.35]       
+[xUnit.net 00:00:01.35]       POSITION: 51
+[xUnit.net 00:00:01.35]       Stack Trace:
+[xUnit.net 00:00:01.35]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.35]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.35]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.35]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_InvalidRating_ReturnsBadRequest(rating: 100) [FAIL]
+[xUnit.net 00:00:01.35]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.35]       
+[xUnit.net 00:00:01.35]       POSITION: 51
+[xUnit.net 00:00:01.35]       Stack Trace:
+[xUnit.net 00:00:01.35]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.35]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.35]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.35]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_InvalidRating_ReturnsBadRequest(rating: 0) [FAIL]
+[xUnit.net 00:00:01.35]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.35]       
+[xUnit.net 00:00:01.35]       POSITION: 51
+[xUnit.net 00:00:01.35]       Stack Trace:
+[xUnit.net 00:00:01.35]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.35]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.35]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.35]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_InvalidRating_ReturnsBadRequest(rating: -1) [FAIL]
+[xUnit.net 00:00:01.35]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.35]       
+[xUnit.net 00:00:01.35]       POSITION: 51
+[xUnit.net 00:00:01.35]       Stack Trace:
+[xUnit.net 00:00:01.35]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.35]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.35]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.35]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.35]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.35]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_NullOrEmptyComment_Returns201(comment: "   ") [FAIL]
+[xUnit.net 00:00:01.36]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.36]       
+[xUnit.net 00:00:01.36]       POSITION: 51
+[xUnit.net 00:00:01.36]       Stack Trace:
+[xUnit.net 00:00:01.36]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.36]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.36]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.36]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.36]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.36]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.36]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_NullOrEmptyComment_Returns201(comment: "") [FAIL]
+[xUnit.net 00:00:01.36]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.36]       
+[xUnit.net 00:00:01.36]       POSITION: 51
+[xUnit.net 00:00:01.36]       Stack Trace:
+[xUnit.net 00:00:01.36]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.36]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.36]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.36]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.36]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.36]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.36]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.UploadEvidence_WrongContentType_ReturnsBadRequest [1 ms]
   Error Message:
-   System.NotSupportedException : Unsupported expression: t => t.Connection
-Non-overridable members (here: DbTransaction.get_Connection) may not be used in setup / verification expressions.
-  Stack Trace:
-     at Moq.Guard.IsOverridable(MethodInfo method, Expression expression) in /_/src/Moq/Guard.cs:line 99
-   at Moq.MethodExpectation..ctor(LambdaExpression expression, MethodInfo method, IReadOnlyList`1 arguments, Boolean exactGenericTypeArguments, Boolean skipMatcherInitialization, Boolean allowNonOverridable) in /_/src/Moq/MethodExpectation.cs:line 236
-   at Moq.ExpressionExtensions.<Split>g__Split|5_0(Expression e, Expression& r, MethodExpectation& p, Boolean assignment, Boolean allowNonOverridableLastProperty) in /_/src/Moq/ExpressionExtensions.cs:line 347
-   at Moq.ExpressionExtensions.Split(LambdaExpression expression, Boolean allowNonOverridableLastProperty) in /_/src/Moq/ExpressionExtensions.cs:line 170
-   at Moq.Mock.SetupRecursive[TSetup](Mock mock, LambdaExpression expression, Func`4 setupLast, Boolean allowNonOverridableLastProperty) in /_/src/Moq/Mock.cs:line 728
-   at Moq.Mock.Setup(Mock mock, LambdaExpression expression, Condition condition) in /_/src/Moq/Mock.cs:line 562
-   at Moq.Mock`1.Setup[TResult](Expression`1 expression) in /_/src/Moq/Mock`1.cs:line 645
-   at HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptAll_Success_AcceptsAllAndSendsNotification() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Matching.Tests\ProposalServiceTests.cs:line 618
---- End of stack trace from previous location ---
-[xUnit.net 00:00:00.74]     HMS.Modules.Matching.Tests.ProposalServiceTests.Cre
-ateProposal_Success_ReturnsResponseAndSendsSignalR [FAIL]
-  Failed HMS.Modules.Matching.Tests.ProposalServiceTests.CreateProposal_Success_ReturnsResponseAndSendsSignalR [28 ms]
-  Error Message:
-   System.InvalidOperationException : Ch├í┬╗ΓÇ░ h├í┬╗ΓÇö tr├í┬╗┬ú Pickup Mode DirectPickup cho ├äΓÇÿ├í┬╗┬ü xu├í┬║┬Ñt.
-  Stack Trace:
-     at HMS.Modules.Matching.Application.Services.ProposalService.CreateProposalAsync(Guid tripPostId, Guid customerId, CreateProposalRequest request, CancellationToken ct) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Matching\Application\Services\ProposalService.cs:line 78
-   at HMS.Modules.Matching.Tests.ProposalServiceTests.CreateProposal_Success_ReturnsResponseAndSendsSignalR() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Matching.Tests\ProposalServiceTests.cs:line 220
---- End of stack trace from previous location ---
-[xUnit.net 00:00:00.79]     HMS.Modules.Matching.Tests.ProposalServiceTests.Acc
-eptProposal_Success_TransitionsAndSendsNotifications [FAIL]
-[xUnit.net 00:00:00.81]     HMS.Modules.Matching.Tests.ProposalServiceTests.Acc
-eptProposal_ProposalNotForThisDriver_ThrowsUnauthorized [FAIL]
-  Failed HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptProposal_Success_TransitionsAndSendsNotifications [13 ms]
-  Error Message:
-   System.NotSupportedException : Unsupported expression: t => t.Connection
-Non-overridable members (here: DbTransaction.get_Connection) may not be used in setup / verification expressions.
-  Stack Trace:
-     at Moq.Guard.IsOverridable(MethodInfo method, Expression expression) in /_/src/Moq/Guard.cs:line 99
-   at Moq.MethodExpectation..ctor(LambdaExpression expression, MethodInfo method, IReadOnlyList`1 arguments, Boolean exactGenericTypeArguments, Boolean skipMatcherInitialization, Boolean allowNonOverridable) in /_/src/Moq/MethodExpectation.cs:line 236
-   at Moq.ExpressionExtensions.<Split>g__Split|5_0(Expression e, Expression& r, MethodExpectation& p, Boolean assignment, Boolean allowNonOverridableLastProperty) in /_/src/Moq/ExpressionExtensions.cs:line 347
-   at Moq.ExpressionExtensions.Split(LambdaExpression expression, Boolean allowNonOverridableLastProperty) in /_/src/Moq/ExpressionExtensions.cs:line 170
-   at Moq.Mock.SetupRecursive[TSetup](Mock mock, LambdaExpression expression, Func`4 setupLast, Boolean allowNonOverridableLastProperty) in /_/src/Moq/Mock.cs:line 728
-   at Moq.Mock.Setup(Mock mock, LambdaExpression expression, Condition condition) in /_/src/Moq/Mock.cs:line 562
-   at Moq.Mock`1.Setup[TResult](Expression`1 expression) in /_/src/Moq/Mock`1.cs:line 645
-   at HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptProposal_Success_TransitionsAndSendsNotifications() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Matching.Tests\ProposalServiceTests.cs:line 411
---- End of stack trace from previous location ---
-  Failed HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptProposal_ProposalNotForThisDriver_ThrowsUnauthorized [16 ms]
-  Error Message:
-   Assert.Throws() Failure: Exception type was not an exact match
-Expected: typeof(System.UnauthorizedAccessException)
-Actual:   typeof(System.InvalidOperationException)
----- System.InvalidOperationException : Trip Post kh├â┬┤ng c├â┬▓n m├í┬╗┼╕.
-  Stack Trace:
-     at HMS.Modules.Matching.Tests.ProposalServiceTests.AcceptProposal_ProposalNotForThisDriver_ThrowsUnauthorized() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Matching.Tests\ProposalServiceTests.cs:line 312
---- End of stack trace from previous location ---
------ Inner Stack Trace -----
-   at HMS.Modules.Matching.Application.Services.ProposalService.AcceptProposalAsync(Guid proposalId, Guid driverId, CancellationToken ct) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Matching\Application\Services\ProposalService.cs:line 235
-   at HMS.Modules.Matching.Application.Services.ProposalService.AcceptProposalAsync(Guid proposalId, Guid driverId, CancellationToken ct) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\src\Modules\HMS.Modules.Matching\Application\Services\ProposalService.cs:line 350
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
 
-Failed!  - Failed:     4, Passed:    22, Skipped:     0, Total:    26, Duration: 1 s - HMS.Modules.Matching.Tests.dll (net8.0)
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_CommentTooLong_ReturnsBadRequest [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.GetMyFeedback_NoFeedback_ReturnsNotFound [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_InvalidRating_ReturnsBadRequest(rating: 6) [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_InvalidRating_ReturnsBadRequest(rating: 100) [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_InvalidRating_ReturnsBadRequest(rating: 0) [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_InvalidRating_ReturnsBadRequest(rating: -1) [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_NullOrEmptyComment_Returns201(comment: "   ") [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_NullOrEmptyComment_Returns201(comment: "") [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.39]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_NullOrEmptyComment_Returns201(comment: null) [FAIL]
+[xUnit.net 00:00:01.39]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.39]       
+[xUnit.net 00:00:01.39]       POSITION: 51
+[xUnit.net 00:00:01.39]       Stack Trace:
+[xUnit.net 00:00:01.39]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.39]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.39]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.39]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.39]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.39]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.39]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.39]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.39]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.39]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.39]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.39]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.39]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.40]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.40]       
+[xUnit.net 00:00:01.40]       POSITION: 51
+[xUnit.net 00:00:01.40]       Stack Trace:
+[xUnit.net 00:00:01.40]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.40]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.40]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Uploa
+dEvidence_NoFiles_ReturnsBadRequest [FAIL]
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.40]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.40]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.40]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.40]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.40]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_DuplicateFeedback_Returns409Conflict [FAIL]
+[xUnit.net 00:00:01.40]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.40]       
+[xUnit.net 00:00:01.40]       POSITION: 51
+[xUnit.net 00:00:01.40]       Stack Trace:
+[xUnit.net 00:00:01.40]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.40]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.40]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.40]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.40]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.40]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.40]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_AllRatings_Returns201 [FAIL]
+[xUnit.net 00:00:01.40]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.40]       
+[xUnit.net 00:00:01.40]       POSITION: 51
+[xUnit.net 00:00:01.40]       Stack Trace:
+[xUnit.net 00:00:01.40]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.40]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.40]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.40]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.40]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.40]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.40]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_ShipmentNotCompleted_ReturnsBadRequest [FAIL]
+[xUnit.net 00:00:01.40]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.40]       
+[xUnit.net 00:00:01.40]       POSITION: 51
+[xUnit.net 00:00:01.40]       Stack Trace:
+[xUnit.net 00:00:01.40]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.40]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.40]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.41]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.41]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.FullF
+eedbackLifecycle_CreateThenGetThenList [FAIL]
+[xUnit.net 00:00:01.41]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.41]       
+[xUnit.net 00:00:01.41]       POSITION: 51
+[xUnit.net 00:00:01.41]       Stack Trace:
+[xUnit.net 00:00:01.41]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.41]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.41]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.41]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_ValidRating_Returns201 [FAIL]
+[xUnit.net 00:00:01.41]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.41]       
+[xUnit.net 00:00:01.41]       POSITION: 51
+[xUnit.net 00:00:01.41]       Stack Trace:
+[xUnit.net 00:00:01.41]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.41]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.41]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.41]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.GetMy
+Feedback_AfterCreation_ReturnsFeedback [FAIL]
+[xUnit.net 00:00:01.41]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.41]       
+[xUnit.net 00:00:01.41]       POSITION: 51
+[xUnit.net 00:00:01.41]       Stack Trace:
+[xUnit.net 00:00:01.41]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.41]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.41]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.41]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Admin
+GetFeedbackDetail_ValidId_ReturnsDetail [FAIL]
+[xUnit.net 00:00:01.41]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.41]       
+[xUnit.net 00:00:01.41]       POSITION: 51
+[xUnit.net 00:00:01.41]       Stack Trace:
+[xUnit.net 00:00:01.41]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.41]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.41]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.41]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.41]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_NullOrEmptyComment_Returns201(comment: null) [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.UploadEvidence_NoFiles_ReturnsBadRequest [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_DuplicateFeedback_Returns409Conflict [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_AllRatings_Returns201 [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_ShipmentNotCompleted_ReturnsBadRequest [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.FullFeedbackLifecycle_CreateThenGetThenList [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_ValidRating_Returns201 [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.GetMyFeedback_AfterCreation_ReturnsFeedback [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.AdminGetFeedbackDetail_ValidId_ReturnsDetail [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.44]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Admin
+ListFeedbacks_AsAdmin_ReturnsPagedResult [FAIL]
+[xUnit.net 00:00:01.44]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.44]       
+[xUnit.net 00:00:01.44]       POSITION: 51
+[xUnit.net 00:00:01.44]       Stack Trace:
+[xUnit.net 00:00:01.44]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.44]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.44]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.44]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.44]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.44]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.44]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_Exactly2000CharComment_Returns201 [FAIL]
+[xUnit.net 00:00:01.44]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.44]       
+[xUnit.net 00:00:01.44]       POSITION: 51
+[xUnit.net 00:00:01.44]       Stack Trace:
+[xUnit.net 00:00:01.44]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.44]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.44]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.44]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.44]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.45]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.45]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.45]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Admin
+ListFeedbacks_FilterByRating_ReturnsFiltered [FAIL]
+[xUnit.net 00:00:01.45]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.45]       
+[xUnit.net 00:00:01.45]       POSITION: 51
+[xUnit.net 00:00:01.45]       Stack Trace:
+[xUnit.net 00:00:01.45]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.45]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.45]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.45]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.45]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.45]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.45]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_ShipmentBelongsToOther_ReturnsNotFound [FAIL]
+[xUnit.net 00:00:01.45]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.45]       
+[xUnit.net 00:00:01.45]       POSITION: 51
+[xUnit.net 00:00:01.45]       Stack Trace:
+[xUnit.net 00:00:01.45]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.45]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.45]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.45]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.45]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.45]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.45]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Uploa
+dEvidence_InvalidFeedbackOwnership_ReturnsNotFound [FAIL]
+[xUnit.net 00:00:01.45]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.45]       
+[xUnit.net 00:00:01.45]       POSITION: 51
+[xUnit.net 00:00:01.45]       Stack Trace:
+[xUnit.net 00:00:01.45]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.45]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.45]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.46]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.46]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Uploa
+dEvidence_ValidFile_ReturnsSuccess [FAIL]
+[xUnit.net 00:00:01.46]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.46]       
+[xUnit.net 00:00:01.46]       POSITION: 51
+[xUnit.net 00:00:01.46]       Stack Trace:
+[xUnit.net 00:00:01.46]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.46]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.46]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.46]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Uploa
+dEvidence_FeedbackNotFound_ReturnsNotFound [FAIL]
+[xUnit.net 00:00:01.46]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.46]       
+[xUnit.net 00:00:01.46]       POSITION: 51
+[xUnit.net 00:00:01.46]       Stack Trace:
+[xUnit.net 00:00:01.46]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.46]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.46]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.46]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Admin
+GetFeedbackDetail_InvalidId_ReturnsNotFound [FAIL]
+[xUnit.net 00:00:01.46]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.46]       
+[xUnit.net 00:00:01.46]       POSITION: 51
+[xUnit.net 00:00:01.46]       Stack Trace:
+[xUnit.net 00:00:01.46]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.46]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.46]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.46]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.46]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.46]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Admin
+ListFeedbacks_WithSearchFilter_ReturnsMatching [FAIL]
+[xUnit.net 00:00:01.47]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.47]       
+[xUnit.net 00:00:01.47]       POSITION: 51
+[xUnit.net 00:00:01.47]       Stack Trace:
+[xUnit.net 00:00:01.47]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.47]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.47]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.47]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.47]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.47]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.AdminListFeedbacks_AsAdmin_ReturnsPagedResult [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_Exactly2000CharComment_Returns201 [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.AdminListFeedbacks_FilterByRating_ReturnsFiltered [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_ShipmentBelongsToOther_ReturnsNotFound [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.UploadEvidence_InvalidFeedbackOwnership_ReturnsNotFound [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.UploadEvidence_ValidFile_ReturnsSuccess [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.UploadEvidence_FeedbackNotFound_ReturnsNotFound [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.AdminGetFeedbackDetail_InvalidId_ReturnsNotFound [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.AdminListFeedbacks_WithSearchFilter_ReturnsMatching [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.47]     HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Creat
+eFeedback_ShipmentNotFound_ReturnsNotFound [FAIL]
+[xUnit.net 00:00:01.47]       Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+[xUnit.net 00:00:01.47]       
+[xUnit.net 00:00:01.47]       POSITION: 51
+[xUnit.net 00:00:01.47]       Stack Trace:
+[xUnit.net 00:00:01.47]            at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+[xUnit.net 00:00:01.47]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlDataReader.NextResult()
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+[xUnit.net 00:00:01.47]            at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+[xUnit.net 00:00:01.47]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(779,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql)
+[xUnit.net 00:00:01.47]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(87,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData()
+[xUnit.net 00:00:01.47]         C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs(64,0): at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor()
+[xUnit.net 00:00:01.47]            at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+[xUnit.net 00:00:01.48]   Finished:    HMS.Modules.Warehouse.Tests
+  Failed HMS.Modules.Warehouse.Tests.FeedbackFlowTests.CreateFeedback_ShipmentNotFound_ReturnsNotFound [1 ms]
+  Error Message:
+   Npgsql.PostgresException : 42703: column "lat" of relation "hubs" does not exist
+
+POSITION: 51
+  Stack Trace:
+     at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult()
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteNonQuery()
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.Exec(NpgsqlConnection conn, String sql) in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 779
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests.SeedTestData() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 87
+   at HMS.Modules.Warehouse.Tests.FeedbackFlowTests..ctor() in C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\FeedbackFlowTests.cs:line 64
+   at System.RuntimeType.CreateInstanceDefaultCtor(Boolean publicOnly, Boolean wrapExceptions)
+
+Test Run Failed.
+Total tests: 28
+     Failed: 28
+ Total time: 3.3128 Seconds
+       _VSTestConsole:
+         MSB4181: The "VSTestTask" task returned false but did not log an error.
+     1>Done Building Project "C:\Do_An\Haul-Matching-System-HMS-\HaulMatchingSystem\tests\HMS.Modules.Warehouse.Tests\HMS.Modules.Warehouse.Tests.csproj" (VSTest target(s)) -- FAILED.
+
+Build FAILED.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:13.84

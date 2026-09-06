@@ -4,10 +4,12 @@ using HMS.Modules.Warehouse.Application.DTOs.Driver;
 using HMS.Modules.Warehouse.Application.Services;
 using HMS.Shared.Core.Enums;
 using HMS.Shared.Core.Interfaces;
+using HMS.Shared.Core.Sms;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace HMS.Modules.Warehouse.Controllers;
@@ -20,12 +22,21 @@ public class DriverTripController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly IncidentService _incidentService;
     private readonly IFileStorageService _fileStorage;
+    private readonly ISmsNotificationService _smsNotificationService;
+    private readonly ILogger<DriverTripController> _logger;
 
-    public DriverTripController(IConfiguration configuration, IncidentService incidentService, IFileStorageService fileStorage)
+    public DriverTripController(
+        IConfiguration configuration,
+        IncidentService incidentService,
+        IFileStorageService fileStorage,
+        ISmsNotificationService smsNotificationService,
+        ILogger<DriverTripController> logger)
     {
         _configuration = configuration;
         _incidentService = incidentService;
         _fileStorage = fileStorage;
+        _smsNotificationService = smsNotificationService;
+        _logger = logger;
     }
 
     private Guid GetCurrentUserId()
@@ -55,6 +66,7 @@ public class DriverTripController : ControllerBase
                    t.started_at AS departure_time, v.license_plate, t.status,
                    t.current_load_weight, t.current_load_volume,
                    v.max_weight_kg, v.max_volume_cbm,
+                   t.scheduled_departure_at AS scheduled_departure_at,
                    (SELECT COUNT(*) FROM transport.trip_shipments ts
                     WHERE ts.trip_id = t.id AND ts.is_deleted = FALSE) AS total_shipments
             FROM transport.trips t
@@ -91,6 +103,9 @@ public class DriverTripController : ControllerBase
             var maxVolume = reader.GetDecimal(10);
             var currentWeight = reader.GetDecimal(7);
             var currentVolume = reader.GetDecimal(8);
+            var scheduledDepartureAt = reader.IsDBNull(11)
+                ? (DateTimeOffset?)null
+                : reader.GetFieldValue<DateTimeOffset>(11);
 
             items.Add(new DriverTripListItem
             {
@@ -101,11 +116,12 @@ public class DriverTripController : ControllerBase
                 DepartureTime = reader.IsDBNull(4) ? (DateTimeOffset?)null : reader.GetDateTime(4),
                 VehiclePlate = reader.GetString(5),
                 Status = status,
-                TotalShipments = reader.GetInt32(11),
+                TotalShipments = reader.GetInt32(12),
                 CurrentWeight = currentWeight,
                 RemainingWeight = maxWeight - currentWeight,
                 CurrentVolume = currentVolume,
                 RemainingVolume = maxVolume - currentVolume,
+                ScheduledDepartureAt = scheduledDepartureAt,
                 AllowedActions = ComputeTripAllowedActions(status)
             });
         }
@@ -126,7 +142,8 @@ public class DriverTripController : ControllerBase
                    v.license_plate, oh.name AS origin_name, dh.name AS destination_name,
                    ST_AsText(t.route_linestring) AS route_wkt,
                    t.current_load_weight, t.current_load_volume,
-                   v.max_weight_kg, v.max_volume_cbm
+                   v.max_weight_kg, v.max_volume_cbm,
+                   t.scheduled_departure_at
             FROM transport.trips t
             JOIN transport.vehicles v ON v.id = t.vehicle_id AND v.is_deleted = FALSE
             JOIN identity.hubs oh ON oh.id = t.origin_hub_id AND oh.is_deleted = FALSE
@@ -147,6 +164,9 @@ public class DriverTripController : ControllerBase
         var maxVolume = reader.GetDecimal(12);
         var currentWeight = reader.GetDecimal(9);
         var currentVolume = reader.GetDecimal(10);
+        var scheduledDepartureAt = reader.IsDBNull(13)
+            ? (DateTimeOffset?)null
+            : reader.GetFieldValue<DateTimeOffset>(13);
 
         var detail = new DriverTripDetail
         {
@@ -154,6 +174,7 @@ public class DriverTripController : ControllerBase
             TripCode = reader.IsDBNull(1) ? $"TRIP-{reader.GetGuid(0).ToString()[..8]}" : reader.GetString(1),
             Status = status,
             DepartureTime = reader.IsDBNull(3) ? (DateTimeOffset?)null : reader.GetDateTime(3),
+            ScheduledDepartureAt = scheduledDepartureAt,
             VehiclePlate = reader.GetString(5),
             OriginName = reader.GetString(6),
             DestinationName = reader.GetString(7),
@@ -476,7 +497,7 @@ public class DriverTripController : ControllerBase
             // Audit log
             const string auditSql = """
                 INSERT INTO shared.audit_log (entity_type, entity_id, action, performed_by, details, created_at)
-                VALUES ('Shipment', @entity_id, 'ConfirmPickup', @performed_by, @details, NOW());
+                VALUES ('Shipment', @entity_id, 'ConfirmPickup', @performed_by, @details::jsonb, NOW());
             """;
             await using (var cmd = new NpgsqlCommand(auditSql, conn, tx))
             {
@@ -493,6 +514,9 @@ public class DriverTripController : ControllerBase
             await tx.RollbackAsync(ct);
             throw;
         }
+
+        // SMS notification (after commit, non-blocking)
+        await SendShipmentStatusSmsAsync(conn, shipmentId, SmsMessageType.ShipmentInTransit, ct);
 
         return Ok(new { message = "Đã xác nhận nhận hàng.", status = "In_Transit" });
     }
@@ -566,6 +590,9 @@ public class DriverTripController : ControllerBase
             throw;
         }
 
+        // SMS notification (after commit, non-blocking)
+        await SendShipmentStatusSmsAsync(conn, shipmentId, SmsMessageType.ShipmentInTransit, ct);
+
         return Ok(new { message = "Đã bắt đầu vận chuyển.", status = "In_Transit" });
     }
 
@@ -638,7 +665,7 @@ public class DriverTripController : ControllerBase
             // Audit log
             const string auditSql = """
                 INSERT INTO shared.audit_log (entity_type, entity_id, action, performed_by, details, created_at)
-                VALUES ('Shipment', @entity_id, 'ConfirmDelivery', @performed_by, @details, NOW());
+                VALUES ('Shipment', @entity_id, 'ConfirmDelivery', @performed_by, @details::jsonb, NOW());
             """;
             await using (var cmd = new NpgsqlCommand(auditSql, conn, tx))
             {
@@ -655,6 +682,9 @@ public class DriverTripController : ControllerBase
             await tx.RollbackAsync(ct);
             throw;
         }
+
+        // SMS notification (after commit, non-blocking)
+        await SendShipmentStatusSmsAsync(conn, shipmentId, SmsMessageType.ShipmentDelivered, ct);
 
         return Ok(new { message = "Đã xác nhận giao hàng thành công.", status = "Delivered" });
     }
@@ -1219,4 +1249,45 @@ public class DriverTripController : ControllerBase
         "Cancelled" => "Đã hủy",
         _ => status
     };
+
+    /// <summary>
+    /// Sends an SMS notification for a shipment status change.
+    /// Resolves customer_id and shipment_code, then calls ISmsNotificationService.
+    /// Failures are logged but never affect the business response.
+    /// </summary>
+    private async Task SendShipmentStatusSmsAsync(
+        NpgsqlConnection conn, Guid shipmentId, SmsMessageType messageType, CancellationToken ct)
+    {
+        try
+        {
+            // Resolve shipment_code and customer_id
+            const string sql = """
+                SELECT s.shipment_code, s.customer_id
+                FROM warehouse.shipments s
+                WHERE s.id = @id AND s.is_deleted = FALSE;
+            """;
+            string shipmentCode = "";
+            Guid? customerId = null;
+            await using (var cmd = new NpgsqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("id", shipmentId);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                if (await reader.ReadAsync(ct))
+                {
+                    shipmentCode = reader.GetString(0);
+                    customerId = reader.IsDBNull(1) ? null : reader.GetGuid(1);
+                }
+            }
+
+            if (customerId.HasValue && !string.IsNullOrEmpty(shipmentCode))
+            {
+                await _smsNotificationService.SendShipmentStatusAsync(
+                    customerId.Value, messageType, shipmentCode, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send {MessageType} SMS for shipment {ShipmentId}", messageType, shipmentId);
+        }
+    }
 }

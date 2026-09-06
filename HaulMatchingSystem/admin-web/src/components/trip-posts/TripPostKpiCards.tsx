@@ -30,7 +30,7 @@ export default function TripPostKpiCards({ kpi, loading }: Props) {
                             <div className="h-7 w-10 mx-auto bg-surface-variant/50 rounded animate-pulse" />
                         ) : (
                             <p className="text-headline-sm font-bold text-on-surface">
-                                {kpi ? (kpi as Record<string, number>)[c.key] ?? 0 : '—'}
+                                {kpi ? (kpi as unknown as Record<string, number>)[c.key] ?? 0 : '—'}
                             </p>
                         )}
                         <p className="text-label-sm text-on-surface-variant mt-0.5">{c.label}</p>

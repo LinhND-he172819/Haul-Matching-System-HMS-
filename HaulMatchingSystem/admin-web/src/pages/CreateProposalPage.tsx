@@ -1,5 +1,4 @@
 ﻿import { useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
 import {
     createDraftShipment,
     geocodeAddress,
@@ -20,7 +19,7 @@ interface CreateProposalPageProps {
 /* ────────────────────────────────────────────────────── */
 /*  Success Screen                                       */
 /* ────────────────────────────────────────────────────── */
-function SuccessScreen({ qrCode, tripTitle, onBack }: { qrCode: string; tripTitle: string; onBack: () => void }) {
+function SuccessScreen({ tripTitle: _tripTitle, onBack }: { tripTitle: string; onBack: () => void }) {
     return (
         <main className="min-h-screen bg-gradient-to-br from-[#f0f4ff] via-[#f8f9ff] to-[#f0f4ff] flex items-center justify-center p-4 font-sans">
             <div className="w-full max-w-lg bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,40,142,0.08)] p-8 flex flex-col items-center gap-4 text-center animate-fade-in">
@@ -38,16 +37,7 @@ function SuccessScreen({ qrCode, tripTitle, onBack }: { qrCode: string; tripTitl
 
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 rounded-full border border-emerald-200">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-semibold text-emerald-700">Đề xuất ghép chuyến đã được gửi đến tài xế</span>
-                </div>
-
-                {/* QR Code */}
-                <div className="w-full bg-[#f8f9ff] p-6 rounded-xl border border-gray-100 flex flex-col items-center gap-3 mt-2">
-                    <p className="text-sm font-semibold text-gray-500">Mã đơn hàng</p>
-                    <p className="text-xl font-bold text-[#00288e] tracking-wide">{qrCode}</p>
-                    <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-100">
-                        <QRCodeCanvas value={qrCode} size={180} />
-                    </div>
+                    <span className="text-xs font-semibold text-emerald-700">Đề xuất ghép chuyến đã được gửi đến warehouse staff</span>
                 </div>
 
                 {/* Next Steps */}
@@ -57,22 +47,22 @@ function SuccessScreen({ qrCode, tripTitle, onBack }: { qrCode: string; tripTitl
                         <li className="flex items-start gap-3 p-3 rounded-xl bg-blue-50/50">
                             <span className="material-symbols-outlined text-[#00288e] text-[20px] mt-0.5">send</span>
                             <div>
-                                <p className="text-sm font-bold text-[#0b1c30]">1. Chờ tài xế xác nhận</p>
-                                <p className="text-sm text-gray-500 mt-0.5">Tài xế sẽ xem và chấp nhận/từ chối đề xuất ghép chuyến.</p>
+                                <p className="text-sm font-bold text-[#0b1c30]">1. Đề xuất đã được gửi</p>
+                                <p className="text-sm text-gray-500 mt-0.5">Warehouse staff sẽ xem và duyệt/từ chối đề xuất ghép chuyến của bạn.</p>
                             </div>
                         </li>
                         <li className="flex items-start gap-3 p-3 rounded-xl bg-blue-50/50">
                             <span className="material-symbols-outlined text-[#00288e] text-[20px] mt-0.5">inventory_2</span>
                             <div>
                                 <p className="text-sm font-bold text-[#0b1c30]">2. Đóng gói hàng cẩn thận</p>
-                                <p className="text-sm text-gray-500 mt-0.5">Hàng hóa sẽ được tài xế đến nhận trực tiếp tại địa chỉ của bạn.</p>
+                                <p className="text-sm text-gray-500 mt-0.5">Đảm bảo hàng hóa được bảo vệ an toàn trước khi vận chuyển.</p>
                             </div>
                         </li>
                         <li className="flex items-start gap-3 p-3 rounded-xl bg-blue-50/50">
-                            <span className="material-symbols-outlined text-[#00288e] text-[20px] mt-0.5">qr_code_scanner</span>
+                            <span className="material-symbols-outlined text-[#00288e] text-[20px] mt-0.5">local_shipping</span>
                             <div>
                                 <p className="text-sm font-bold text-[#0b1c30]">3. Giao hàng cho tài xế</p>
-                                <p className="text-sm text-gray-500 mt-0.5">Đưa mã QR cho tài xế khi giao nhận hàng.</p>
+                                <p className="text-sm text-gray-500 mt-0.5">Tài xế sẽ đến nhận hàng trực tiếp tại địa chỉ của bạn.</p>
                             </div>
                         </li>
                     </ul>
@@ -114,8 +104,8 @@ export default function CreateProposalPage({ trip, tripPostId, onBack, onLogout 
 
     /* ── Customer-only extra fields ── */
     const [pickupNote, setPickupNote] = useState("");
-    const [pickupLatitude, setPickupLatitude] = useState("");
-    const [pickupLongitude, setPickupLongitude] = useState("");
+    const [pickupLatitude, _setPickupLatitude] = useState("");
+    const [pickupLongitude, _setPickupLongitude] = useState("");
     const [destLat, setDestLat] = useState("");
     const [destLng, setDestLng] = useState("");
     const [destResolvedName, setDestResolvedName] = useState("");
@@ -208,7 +198,6 @@ export default function CreateProposalPage({ trip, tripPostId, onBack, onLogout 
     if (result) {
         return (
             <SuccessScreen
-                qrCode={result.qrCode}
                 tripTitle={trip.title}
                 onBack={onBack}
             />

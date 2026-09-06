@@ -17,7 +17,8 @@ public sealed class Trip
         Guid destHubId,
         string routeLineString,
         decimal currentLoadWeightKg,
-        decimal currentLoadVolumeCbm)
+        decimal currentLoadVolumeCbm,
+        DateTimeOffset scheduledDepartureAt)
     {
         Id = id;
         TripCode = "TRIP-" + id.ToString()[..8];
@@ -28,7 +29,8 @@ public sealed class Trip
         RouteLineString = routeLineString;
         CurrentLoadWeightKg = currentLoadWeightKg;
         CurrentLoadVolumeCbm = currentLoadVolumeCbm;
-        Status = TripStatus.Active;
+        ScheduledDepartureAt = scheduledDepartureAt;
+        Status = TripStatus.Scheduled;
         Version = 1;
         CreatedAt = DateTimeOffset.UtcNow;
         StartedAt = CreatedAt;
@@ -44,6 +46,10 @@ public sealed class Trip
     public string RouteLineString { get; private set; }
     public decimal CurrentLoadWeightKg { get; private set; }
     public decimal CurrentLoadVolumeCbm { get; private set; }
+
+    /// <summary>Ngày khởi hành dự kiến (bắt buộc khi tạo chuyến).</summary>
+    public DateTimeOffset ScheduledDepartureAt { get; private set; }
+
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? FinishedAt { get; private set; }
     public int Version { get; private set; }
@@ -58,7 +64,8 @@ public sealed class Trip
         Guid destHubId,
         string routeLineString,
         decimal currentLoadWeightKg,
-        decimal currentLoadVolumeCbm)
+        decimal currentLoadVolumeCbm,
+        DateTimeOffset scheduledDepartureAt)
     {
         Validate(
             driverId,
@@ -69,6 +76,11 @@ public sealed class Trip
             currentLoadWeightKg,
             currentLoadVolumeCbm);
 
+        if (scheduledDepartureAt == default)
+        {
+            throw new ArgumentException("ScheduledDepartureAt is required.", nameof(scheduledDepartureAt));
+        }
+
         return new Trip(
             Guid.NewGuid(),
             driverId,
@@ -77,7 +89,8 @@ public sealed class Trip
             destHubId,
             NormalizeRouteLineString(routeLineString),
             currentLoadWeightKg,
-            currentLoadVolumeCbm);
+            currentLoadVolumeCbm,
+            scheduledDepartureAt);
     }
 
     public static Trip Rehydrate(
@@ -95,7 +108,8 @@ public sealed class Trip
         TripStatus status,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt,
-        string? tripCode = null)
+        string? tripCode = null,
+        DateTimeOffset? scheduledDepartureAt = null)
     {
         var trip = new Trip(
             id,
@@ -105,7 +119,8 @@ public sealed class Trip
             destHubId,
             NormalizeRouteLineString(routeLineString),
             currentLoadWeightKg,
-            currentLoadVolumeCbm)
+            currentLoadVolumeCbm,
+            scheduledDepartureAt ?? DateTimeOffset.UtcNow)
         {
             StartedAt = startedAt,
             FinishedAt = finishedAt,
@@ -126,11 +141,12 @@ public sealed class Trip
         Guid destHubId,
         string routeLineString,
         decimal currentLoadWeightKg,
-        decimal currentLoadVolumeCbm)
+        decimal currentLoadVolumeCbm,
+        DateTimeOffset scheduledDepartureAt)
     {
-        if (Status != TripStatus.Active)
+        if (Status != TripStatus.Active && Status != TripStatus.Scheduled)
         {
-            throw new InvalidOperationException("Only active trips can be updated.");
+            throw new InvalidOperationException("Only active or scheduled trips can be updated.");
         }
 
         Validate(
@@ -142,6 +158,11 @@ public sealed class Trip
             currentLoadWeightKg,
             currentLoadVolumeCbm);
 
+        if (scheduledDepartureAt == default)
+        {
+            throw new ArgumentException("ScheduledDepartureAt is required.", nameof(scheduledDepartureAt));
+        }
+
         DriverId = driverId;
         VehicleId = vehicleId;
         OriginHubId = originHubId;
@@ -149,6 +170,7 @@ public sealed class Trip
         RouteLineString = NormalizeRouteLineString(routeLineString);
         CurrentLoadWeightKg = currentLoadWeightKg;
         CurrentLoadVolumeCbm = currentLoadVolumeCbm;
+        ScheduledDepartureAt = scheduledDepartureAt;
         Version++;
         UpdatedAt = DateTimeOffset.UtcNow;
     }

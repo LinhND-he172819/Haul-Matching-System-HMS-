@@ -221,6 +221,14 @@ public class ShipmentsController : ControllerBase
     public async Task<ActionResult<DraftShipmentResponse>> CreateDraft(
         [FromBody] CreateDraftShipmentRequest request)
     {
+        // When authenticated, override customerId with JWT user for security
+        var jwtUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                        ?? User.FindFirst("sub")?.Value;
+        if (!string.IsNullOrEmpty(jwtUserId) && Guid.TryParse(jwtUserId, out var parsedUserId))
+        {
+            request.CustomerId = parsedUserId;
+        }
+
         if (request.WeightKg <= 0 || request.VolumeCbm <= 0)
             return BadRequest("Weight and volume must be greater than 0.");
 

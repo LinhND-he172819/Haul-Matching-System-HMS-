@@ -13,6 +13,7 @@ export type AllowedActions = {
   canCancel: boolean;
   canPayDeposit: boolean;
   canPayRemaining: boolean;
+  canGiveFeedback?: boolean;
 };
 
 export type CustomerShipmentListItem = {

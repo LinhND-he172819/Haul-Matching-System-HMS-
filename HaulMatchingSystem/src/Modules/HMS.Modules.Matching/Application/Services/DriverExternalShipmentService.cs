@@ -416,7 +416,7 @@ namespace HMS.Modules.Matching.Application.Services
                 FROM transport.trips t
                 WHERE t.driver_id = @driver_id
                     AND t.is_deleted = FALSE
-                    AND t.status IN ('InProgress', 'Active')
+                    AND t.status IN ('InProgress', 'Active', 'Scheduled')
                 ORDER BY t.created_at DESC
                 LIMIT 1;
             """;

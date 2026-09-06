@@ -3,6 +3,7 @@ using HMS.Modules.Matching.Application.Services;
 using HMS.Modules.Matching.Core.Interfaces;
 using HMS.Modules.Matching.Core.Models;
 using HMS.Shared.Core.Interfaces;
+using HMS.Shared.Core.Sms;
 using Moq;
 using Xunit;
 
@@ -18,11 +19,12 @@ namespace HMS.Modules.Matching.Tests
             var dispatcher = new Mock<IRealtimeDispatcher>();
             var shipmentStateService = new Mock<IShipmentStateService>();
             var logger = new Mock<Microsoft.Extensions.Logging.ILogger<MatchingService>>();
+            var sms = new Mock<ISmsNotificationService>();
 
             repo.Setup(r => r.GetActiveTripForDriverAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Trip?)null);
 
-            var svc = new MatchingService(repo.Object, redis.Object, dispatcher.Object, shipmentStateService.Object, logger.Object);
+            var svc = new MatchingService(repo.Object, redis.Object, dispatcher.Object, shipmentStateService.Object, sms.Object, logger.Object);
 
             var res = await svc.GetSuggestionsForDriverAsync(Guid.NewGuid(), CancellationToken.None);
 
@@ -75,6 +77,7 @@ namespace HMS.Modules.Matching.Tests
             var dispatcher = new Mock<IRealtimeDispatcher>();
             var shipmentStateService = new Mock<IShipmentStateService>();
             var logger = new Mock<Microsoft.Extensions.Logging.ILogger<MatchingService>>();
+            var sms = new Mock<ISmsNotificationService>();
             List<TripShipment> capturedSuggestions = [];
 
             repo.Setup(r => r.GetActiveTripForDriverAsync(driverId, It.IsAny<CancellationToken>()))
@@ -101,7 +104,9 @@ namespace HMS.Modules.Matching.Tests
                     new[] { firstShipment, secondShipment }
                         .Where(shipment => ids.Contains(shipment.Id))
                         .ToList());
-            var svc = new MatchingService(repo.Object, redis.Object, dispatcher.Object, shipmentStateService.Object, logger.Object);
+            redis.Setup(r => r.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            var svc = new MatchingService(repo.Object, redis.Object, dispatcher.Object, shipmentStateService.Object, sms.Object, logger.Object);
 
             var res = await svc.GetSuggestionsForDriverAsync(driverId, CancellationToken.None);
 

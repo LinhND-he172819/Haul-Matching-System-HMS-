@@ -47,7 +47,8 @@ namespace HMS.Modules.Identity.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logUnexpected(nameof(Login), ex);
+                return BadRequest(new { message = "Đăng nhập thất bại. Vui lòng thử lại." });
             }
         }
 
@@ -84,10 +85,15 @@ namespace HMS.Modules.Identity.Controllers
 
                 return Ok(new { message = "Đăng ký tài khoản thành công!" });
             }
+            catch (InvalidOperationException ex)
+            {
+                // Business validation errors (e.g. duplicate email) — safe to expose.
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
-                // Bắt lỗi trùng email được quăng ra từ Service
-                return BadRequest(new { message = ex.Message });
+                _logUnexpected(nameof(Register), ex);
+                return BadRequest(new { message = "Đăng ký tài khoản thất bại, vui lòng thử lại!" });
             }
         }
         /// <summary>
@@ -103,9 +109,15 @@ namespace HMS.Modules.Identity.Controllers
                 await _authService.RequestLoginOtpAsync(request);
                 return Ok(new { message = "Mã OTP đã được gửi." });
             }
+            catch (InvalidOperationException ex)
+            {
+                // Rate-limit and validation messages are safe to expose.
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logUnexpected(nameof(RequestLoginOtp), ex);
+                return BadRequest(new { message = "Không thể gửi OTP. Vui lòng thử lại sau." });
             }
         }
 
@@ -127,9 +139,15 @@ namespace HMS.Modules.Identity.Controllers
             {
                 return StatusCode(403, new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                // Rate-limit message is safe to expose.
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logUnexpected(nameof(VerifyLoginOtp), ex);
+                return BadRequest(new { message = "Xác thực OTP thất bại. Vui lòng thử lại." });
             }
         }
 
@@ -146,9 +164,14 @@ namespace HMS.Modules.Identity.Controllers
                 await _authService.RequestRegisterOtpAsync(request);
                 return Ok(new { message = "Mã OTP đã được gửi." });
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logUnexpected(nameof(RequestRegisterOtp), ex);
+                return BadRequest(new { message = "Không thể gửi OTP. Vui lòng thử lại sau." });
             }
         }
 
@@ -166,10 +189,23 @@ namespace HMS.Modules.Identity.Controllers
                 if (result == null) return BadRequest(new { message = "Xác thực thất bại." });
                 return Ok(result);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                _logUnexpected(nameof(VerifyRegisterOtp), ex);
+                return BadRequest(new { message = "Xác thực OTP thất bại. Vui lòng thử lại." });
+            }
+        }
+
+        /// <summary>
+        /// Logs unexpected exceptions server-side without leaking details to clients.
+        /// </summary>
+        private void _logUnexpected(string operation, Exception ex)
+        {
+            Console.Error.WriteLine($"[AuthController.{operation}] Unexpected error: {ex.GetType().Name}: {ex.Message}");
         }
     }
 }

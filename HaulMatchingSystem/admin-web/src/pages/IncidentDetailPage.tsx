@@ -6,13 +6,11 @@ import { useEffect, useState, useRef } from 'react';
 import { authFetch } from '../utils/authFetch';
 import {
   getIncidentDetail,
-  getIncidentHistory,
   takeIncident,
   resolveIncident,
   rejectIncident,
   getEvidenceDownloadUrl,
   type AdminIncidentDetail,
-  type AdminIncidentHistoryItem,
 } from '../api/incidentApi';
 import Toast from '../components/matching/Toast';
 
@@ -28,24 +26,8 @@ const STATUS_BADGE: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   Open: 'Mới',
   InProgress: 'Đang xử lý',
-  Resolved: 'Đã xử lý',
+  Resolved: 'Đã giải quyết',
   Rejected: 'Đã từ chối',
-};
-
-/** Audit action → Vietnamese label */
-const ACTION_LABEL: Record<string, string> = {
-  IncidentReported: 'Báo cáo sự cố',
-  IncidentTaken: 'Tiếp nhận xử lý',
-  IncidentResolved: 'Hoàn tất xử lý',
-  IncidentRejected: 'Từ chối sự cố',
-};
-
-/** State transition display */
-const ACTION_TRANSITION: Record<string, string> = {
-  IncidentReported: '→ Mới',
-  IncidentTaken: 'Mới → Đang xử lý',
-  IncidentResolved: 'Đang xử lý → Đã xử lý',
-  IncidentRejected: 'Mới → Đã từ chối',
 };
 
 const INCIDENT_TYPE_LABEL: Record<string, string> = {
@@ -72,7 +54,7 @@ type Props = {
 
 /* ─── Component ─────────────────────────────────────────────────── */
 
-export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdmin }: Props) {
+export default function IncidentDetailPage({ incidentId, onBack, onLogout: _onLogout, isAdmin }: Props) {
   const [detail, setDetail] = useState<AdminIncidentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -82,9 +64,6 @@ export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdm
   const [showResolveDialog, setShowResolveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [actionNote, setActionNote] = useState('');
-
-  // Incident history
-  const [historyItems, setHistoryItems] = useState<AdminIncidentHistoryItem[]>([]);
 
   // Evidence lightbox
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -132,13 +111,6 @@ export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdm
       if (result.evidence.length > 0) {
         loadEvidenceImages(result);
       }
-      // Load history
-      try {
-        const historyResult = await getIncidentHistory(incidentId);
-        setHistoryItems(historyResult.items || []);
-      } catch {
-        // History load failure is non-critical
-      }
     } catch (err: any) {
       setToast({ message: err.message || 'Lỗi tải dữ liệu', type: 'error' });
     } finally {
@@ -154,8 +126,7 @@ export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdm
     setActionLoading(true);
     try {
       const res = await takeIncident(incidentId);
-      const emailMsg = res.emailSent ? ' ✉️ Email đã gửi.' : res.emailError ? ` ⚠️ Email lỗi: ${res.emailError}` : '';
-      setToast({ message: (res.message || 'Đã tiếp nhận sự cố.') + emailMsg, type: 'success' });
+      setToast({ message: res.message || 'Đã tiếp nhận sự cố.', type: 'success' });
       await loadDetail();
     } catch (err: any) {
       setToast({ message: err.message || 'Lỗi', type: 'error' });
@@ -166,14 +137,13 @@ export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdm
 
   const handleResolve = async () => {
     if (!actionNote.trim()) {
-      setToast({ message: 'Vui lòng nhập kết quả xử lý.', type: 'error' });
+      setToast({ message: 'Vui lòng nhập ghi chú giải quyết.', type: 'error' });
       return;
     }
     setActionLoading(true);
     try {
       const res = await resolveIncident(incidentId, actionNote.trim());
-      const emailMsg = res.emailSent ? ' ✉️ Email đã gửi.' : res.emailError ? ` ⚠️ Email lỗi: ${res.emailError}` : '';
-      setToast({ message: (res.message || 'Đã hoàn tất xử lý sự cố.') + emailMsg, type: 'success' });
+      setToast({ message: res.message || 'Đã giải quyết sự cố.', type: 'success' });
       setShowResolveDialog(false);
       setActionNote('');
       await loadDetail();
@@ -192,8 +162,7 @@ export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdm
     setActionLoading(true);
     try {
       const res = await rejectIncident(incidentId, actionNote.trim());
-      const emailMsg = res.emailSent ? ' ✉️ Email đã gửi.' : res.emailError ? ` ⚠️ Email lỗi: ${res.emailError}` : '';
-      setToast({ message: (res.message || 'Đã từ chối sự cố.') + emailMsg, type: 'success' });
+      setToast({ message: res.message || 'Đã từ chối sự cố.', type: 'success' });
       setShowRejectDialog(false);
       setActionNote('');
       await loadDetail();
@@ -291,7 +260,7 @@ export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdm
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-label-md font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[18px]">handshake</span>
-              Tiếp nhận xử lý
+              Tiếp nhận
             </button>
           )}
           {allowed.canResolve && (
@@ -301,7 +270,7 @@ export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdm
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-label-md font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[18px]">check_circle</span>
-              Hoàn tất xử lý
+              Giải quyết
             </button>
           )}
           {allowed.canReject && isAdmin && (
@@ -395,153 +364,6 @@ export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdm
               </div>
             </div>
           )}
-
-          {/* ─── Xử lý sự cố Section ─────────────────────────── */}
-          <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-5">
-            <h3 className="text-title-lg font-bold text-on-surface flex items-center gap-2 mb-4">
-              <span className="material-symbols-outlined text-[20px]">construction</span>
-              Xử lý sự cố
-            </h3>
-
-            {/* CASE 1: Open */}
-            {detail.status === 'Open' && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-label-md font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                    Mới
-                  </span>
-                </div>
-                <p className="text-body-md text-on-surface-variant">
-                  Chưa có người tiếp nhận xử lý.
-                </p>
-                <p className="text-body-sm text-on-surface-variant/60 italic">
-                  Sử dụng nút "Tiếp nhận xử lý" hoặc "Từ chối" ở trên để thực hiện hành động.
-                </p>
-              </div>
-            )}
-
-            {/* CASE 2: InProgress */}
-            {detail.status === 'InProgress' && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-label-md font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                    Đang xử lý
-                  </span>
-                </div>
-                {detail.assignedToName && (
-                  <div className="space-y-1">
-                    <InfoRow icon="person" label="Người tiếp nhận" value={detail.assignedToName} />
-                    {detail.assignedAt && (
-                      <InfoRow icon="schedule" label="Thời gian tiếp nhận" value={new Date(detail.assignedAt).toLocaleString('vi-VN')} />
-                    )}
-                  </div>
-                )}
-                {allowed.canResolve && (
-                  <p className="text-body-sm text-on-surface-variant/60 italic pt-2">
-                    Sử dụng nút "Hoàn tất xử lý" ở trên để hoàn tất.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* CASE 3: Resolved */}
-            {detail.status === 'Resolved' && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-label-md font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    Đã xử lý
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  {detail.assignedToName && (
-                    <InfoRow icon="person" label="Người tiếp nhận" value={detail.assignedToName} />
-                  )}
-                  {detail.assignedAt && (
-                    <InfoRow icon="schedule" label="Thời gian tiếp nhận" value={new Date(detail.assignedAt).toLocaleString('vi-VN')} />
-                  )}
-                  {detail.resolvedByName && (
-                    <InfoRow icon="person" label="Người hoàn tất" value={detail.resolvedByName} />
-                  )}
-                  {detail.resolvedAt && (
-                    <InfoRow icon="check_circle" label="Thời gian hoàn tất" value={new Date(detail.resolvedAt).toLocaleString('vi-VN')} />
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* CASE 4: Rejected */}
-            {detail.status === 'Rejected' && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-label-md font-medium bg-red-50 text-red-700 border border-red-200">
-                    Đã từ chối
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  {detail.resolvedByName && (
-                    <InfoRow icon="person" label="Người từ chối" value={detail.resolvedByName} />
-                  )}
-                  {detail.resolvedAt && (
-                    <InfoRow icon="schedule" label="Thời gian từ chối" value={new Date(detail.resolvedAt).toLocaleString('vi-VN')} />
-                  )}
-                  {detail.resolutionNote && (
-                    <InfoRow icon="notes" label="Lý do" value={detail.resolutionNote} />
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ─── Lịch sử xử lý Section ────────────────────────── */}
-          <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-5">
-            <h3 className="text-title-lg font-bold text-on-surface flex items-center gap-2 mb-4">
-              <span className="material-symbols-outlined text-[20px]">history</span>
-              Lịch sử xử lý
-            </h3>
-            {historyItems.length === 0 ? (
-              <p className="text-body-md text-on-surface-variant/60 italic">Chưa có lịch sử.</p>
-            ) : (
-              <div className="relative">
-                {/* Timeline line */}
-                <div className="absolute left-[7px] top-3 bottom-3 w-0.5 bg-outline-variant/30" />
-                <div className="space-y-4">
-                  {historyItems.map((item, idx) => (
-                    <div key={item.id || idx} className="relative flex gap-3">
-                      {/* Dot */}
-                      <div className={`relative z-10 w-[15px] h-[15px] rounded-full border-2 shrink-0 mt-0.5 ${
-                        item.action === 'IncidentReported' ? 'bg-amber-100 border-amber-400' :
-                        item.action === 'IncidentTaken' ? 'bg-blue-100 border-blue-400' :
-                        item.action === 'IncidentResolved' ? 'bg-emerald-100 border-emerald-400' :
-                        'bg-red-100 border-red-400'
-                      }`} />
-                      {/* Content */}
-                      <div className="flex-1 min-w-0 pb-1">
-                        <p className="text-label-md font-bold text-on-surface">
-                          {ACTION_LABEL[item.action] || item.action}
-                        </p>
-                        <p className="text-label-sm text-on-surface-variant mt-0.5">
-                          {item.actorName}
-                          {ACTION_TRANSITION[item.action] && (
-                            <span className="ml-1 text-on-surface-variant/70">
-                              ({ACTION_TRANSITION[item.action]})
-                            </span>
-                          )}
-                        </p>
-                        {item.note && (
-                          <p className="text-label-sm text-on-surface-variant/70 mt-0.5 italic">
-                            {item.action === 'IncidentRejected' ? 'Lý do: ' : 'Ghi chú: '}{item.note}
-                          </p>
-                        )}
-                        <p className="text-caption text-on-surface-variant/50 mt-1">
-                          {new Date(item.createdAt).toLocaleString('vi-VN')}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Right: Sidebar info */}
@@ -609,14 +431,14 @@ export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdm
       {showResolveDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 w-full max-w-md card-shadow">
-            <h3 className="text-title-lg font-bold text-on-surface mb-2">Hoàn tất xử lý sự cố</h3>
+            <h3 className="text-title-lg font-bold text-on-surface mb-2">Giải quyết sự cố</h3>
             <p className="text-body-md text-on-surface-variant mb-4">
-              Nhập kết quả xử lý sự cố này.
+              Nhập ghi chú về cách xử lý sự cố này.
             </p>
             <textarea
               value={actionNote}
               onChange={(e) => setActionNote(e.target.value)}
-              placeholder="Nhập nội dung xử lý sự cố..."
+              placeholder="Ghi chú giải quyết..."
               className="w-full px-4 py-3 rounded-xl border border-outline-variant bg-surface text-on-surface text-body-md placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary resize-none"
               rows={3}
             />
@@ -632,7 +454,7 @@ export default function IncidentDetailPage({ incidentId, onBack, onLogout, isAdm
                 disabled={!actionNote.trim() || actionLoading}
                 className="flex-1 px-4 py-3 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors text-label-md font-bold disabled:opacity-50"
               >
-                {actionLoading ? 'Đang xử lý...' : 'Xác nhận hoàn tất'}
+                {actionLoading ? 'Đang xử lý...' : 'Xác nhận'}
               </button>
             </div>
           </div>

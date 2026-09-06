@@ -18,4 +18,5 @@ public sealed record EligibleTripResponse(
     decimal CurrentLoadVolumeCbm,
     decimal RemainingVolumeCbm,
     DateTimeOffset? StartedAt,
+    DateTimeOffset? ScheduledDepartureAt,
     string Status);

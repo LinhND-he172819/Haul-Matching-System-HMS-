@@ -7,4 +7,6 @@ public sealed record UpdateTripRequest(
     Guid DestHubId,
     string? RouteLineString,
     decimal CurrentLoadWeightKg,
-    decimal CurrentLoadVolumeCbm);
+    decimal CurrentLoadVolumeCbm,
+    DateTimeOffset? ScheduledDepartureAt = null,
+    List<Guid>? WarehouseShipmentIds = null);

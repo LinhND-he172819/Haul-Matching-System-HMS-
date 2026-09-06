@@ -13,6 +13,7 @@ public sealed record TripResponse(
     decimal CurrentLoadVolumeCbm,
     DateTimeOffset? StartedAt,
     DateTimeOffset? FinishedAt,
+    DateTimeOffset ScheduledDepartureAt,
     int Version,
     TripStatus Status,
     DateTimeOffset CreatedAt,

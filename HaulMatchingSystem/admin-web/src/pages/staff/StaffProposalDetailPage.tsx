@@ -270,7 +270,7 @@ export default function StaffProposalDetailPage({
                 </div>
                 <div>
                   <p className="text-label-sm text-on-surface-variant">Thời gian khởi hành</p>
-                  <p className="text-body-md">{formatDate(trip.departureTime)}</p>
+                  <p className="text-body-md">{formatDate(trip.departureTime ?? undefined)}</p>
                 </div>
               </div>
             </div>
@@ -365,7 +365,7 @@ export default function StaffProposalDetailPage({
                     </button>
                   </>
                 )}
-                {detail.status === 'Approved' && onCreateQuotation && quotations.length === 0 && (
+                {detail.status === 'Approved' && onCreateQuotation && quotations && quotations.length === 0 && (
                   <button
                     onClick={() => onCreateQuotation(proposalId)}
                     className="w-full bg-primary text-on-primary px-4 py-3 rounded-xl text-label-md font-semibold
@@ -384,13 +384,13 @@ export default function StaffProposalDetailPage({
                 <span className="material-symbols-outlined text-primary">receipt_long</span>
                 Lịch sử báo giá
               </h2>
-              {quotations.length === 0 ? (
+              {(!quotations || quotations.length === 0) ? (
                 <p className="text-body-md text-on-surface-variant text-center py-4">
                   Chưa có báo giá
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {quotations.map((q) => (
+                  {quotations!.map((q) => (
                     <div
                       key={q.id}
                       className="border border-outline-variant rounded-xl p-3 hover:bg-surface-container-low cursor-pointer transition-colors"
@@ -422,13 +422,13 @@ export default function StaffProposalDetailPage({
                 <span className="material-symbols-outlined text-primary">history</span>
                 Lịch sử thay đổi
               </h2>
-              {audit.length === 0 ? (
+              {(!audit || audit.length === 0) ? (
                 <p className="text-body-md text-on-surface-variant text-center py-4">
                   Chưa có lịch sử
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {audit.map((a, i) => (
+                  {audit!.map((a, i) => (
                     <div key={i} className="flex gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <span className="material-symbols-outlined text-primary text-[14px]">

@@ -9,6 +9,10 @@ public sealed record DriverTripListItem
     public string? OriginName { get; init; }
     public string? DestinationName { get; init; }
     public DateTimeOffset? DepartureTime { get; init; }
+
+    /// <summary>Ngày khởi hành dự kiến (scheduled departure). Giữ nguyên DepartureTime = thời điểm đi thực tế.</summary>
+    public DateTimeOffset? ScheduledDepartureAt { get; init; }
+
     public string? VehiclePlate { get; init; }
     public string Status { get; init; } = string.Empty;
     public int TotalShipments { get; init; }
@@ -34,6 +38,10 @@ public sealed record DriverTripDetail
     public string TripCode { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public DateTimeOffset? DepartureTime { get; init; }
+
+    /// <summary>Ngày khởi hành dự kiến (scheduled departure). DepartureTime = thời điểm đi thực tế.</summary>
+    public DateTimeOffset? ScheduledDepartureAt { get; init; }
+
     public string? VehiclePlate { get; init; }
     public string? OriginName { get; init; }
     public string? DestinationName { get; init; }

@@ -50,7 +50,7 @@ namespace HMS.Modules.Identity.Application.Services
 
             // Lưu Refresh Token vào database
             int expiredDays = _jwtConfigs.ExpiredDate;
-            user.RefreshToken = refreshToken;
+            user.RefreshToken = HashRefreshToken(refreshToken);
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(expiredDays);
             user.UpdatedAt = DateTime.UtcNow;
 
@@ -79,8 +79,8 @@ namespace HMS.Modules.Identity.Application.Services
 
             var user = await _context.Users.FindAsync(userId);
 
-            // Kiểm tra tính hợp lệ của RefreshToken
-            if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow || user.IsDeleted)
+            // Kiểm tra tính hợp lệ của RefreshToken (so sánh hash, constant-time)
+            if (user == null || !VerifyRefreshToken(user.RefreshToken, refreshToken) || user.RefreshTokenExpiryTime <= DateTime.UtcNow || user.IsDeleted)
             {
                 return null; // Token không hợp lệ hoặc đã hết hạn
             }
@@ -91,7 +91,7 @@ namespace HMS.Modules.Identity.Application.Services
 
             // Cập nhật lại Refresh Token mới vào DB (Xoay vòng token bảo mật)
             int expiredDays = _jwtConfigs.ExpiredDate;
-            user.RefreshToken = newRefreshToken;
+            user.RefreshToken = HashRefreshToken(newRefreshToken);
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(expiredDays);
             user.UpdatedAt = DateTime.UtcNow;
 
@@ -111,7 +111,6 @@ namespace HMS.Modules.Identity.Application.Services
         // 3. Xử lý OTP
         public async Task RequestLoginOtpAsync(LoginOtpRequest request)
         {
-            var test = await _context.Users.ToListAsync();
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Phone == request.Phone && !u.IsDeleted);
             if (user == null) throw new UnauthorizedAccessException("Số điện thoại chưa đăng ký.");
 
@@ -120,16 +119,17 @@ namespace HMS.Modules.Identity.Application.Services
                 throw new UnauthorizedAccessException("Tài khoản của bạn không có quyền đăng nhập vào mục này.");
             }
 
+            await EnsureOtpNotRateLimitedAsync("OTP_LOGIN_REQ_" + request.Phone);
             var otp = GenerateOtp();
             _cache.Set("OTP_LOGIN_" + request.Phone, otp, TimeSpan.FromMinutes(3));
-            Console.WriteLine($"[OTP LOGIN] Gửi OTP {otp} đến số điện thoại {request.Phone}");
-            // await _smsService.SendSmsAsync(request.Phone, $"Ma OTP dang nhap cua ban la: {otp}. Ma co hieu luc trong 3 phut.");
+            // Never log the OTP — it must only travel through the SMS channel.
         }
 
         public async Task<AuthResponse?> VerifyLoginOtpAsync(VerifyLoginOtpRequest request)
         {
             if (!_cache.TryGetValue("OTP_LOGIN_" + request.Phone, out string? cachedOtp) || cachedOtp != request.Otp)
             {
+                await CountOtpFailedAttemptAsync("OTP_LOGIN_FAIL_" + request.Phone);
                 throw new UnauthorizedAccessException("Mã OTP không hợp lệ hoặc đã hết hạn.");
             }
 
@@ -147,7 +147,7 @@ namespace HMS.Modules.Identity.Application.Services
             var refreshToken = GenerateRefreshToken();
 
             int expiredDays = _jwtConfigs.ExpiredDate;
-            user.RefreshToken = refreshToken;
+            user.RefreshToken = HashRefreshToken(refreshToken);
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(expiredDays);
             user.UpdatedAt = DateTime.UtcNow;
 
@@ -169,28 +169,37 @@ namespace HMS.Modules.Identity.Application.Services
             var userExists = await _context.Users.AnyAsync(u => u.Phone == request.Phone && !u.IsDeleted);
             if (userExists) throw new UnauthorizedAccessException("SĐT đã có tài khoản, vui lòng đăng nhập.");
 
+            await EnsureOtpNotRateLimitedAsync("OTP_REG_REQ_" + request.Phone);
             var otp = GenerateOtp();
             _cache.Set("OTP_REG_" + request.Phone, otp, TimeSpan.FromMinutes(3));
-            Console.WriteLine($"[OTP REG] Gửi OTP {otp} đến số điện thoại {request.Phone}");
+            // Never log the OTP — it must only travel through the SMS channel.
         }
 
         public async Task<AuthResponse?> VerifyRegisterOtpAsync(VerifyRegisterOtpRequest request)
         {
             if (!_cache.TryGetValue("OTP_REG_" + request.Phone, out string? cachedOtp) || cachedOtp != request.Otp)
             {
+                await CountOtpFailedAttemptAsync("OTP_REG_FAIL_" + request.Phone);
                 throw new UnauthorizedAccessException("Mã OTP không hợp lệ hoặc đã hết hạn.");
             }
 
             var userExists = await _context.Users.AnyAsync(u => u.Phone == request.Phone && !u.IsDeleted);
             if (userExists) throw new UnauthorizedAccessException("SĐT đã có tài khoản, vui lòng đăng nhập.");
 
-            // Create new user
+            // Create new user.
+            // SECURITY: public registration must never trust a client-supplied role.
+            // Force the lowest-privilege role; privileged accounts are provisioned by Admin via /api/identity/users.
+            var requestedRole = string.IsNullOrWhiteSpace(request.Role) ? "Customer" : request.Role.Trim();
+            var role = string.Equals(requestedRole, "Driver", StringComparison.OrdinalIgnoreCase)
+                ? "Driver"
+                : "Customer";
+
             var user = new User
             {
                 Id = Guid.NewGuid(),
                 Phone = request.Phone,
                 FullName = request.FullName,
-                Role = request.Role,
+                Role = role,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsDeleted = false
@@ -204,7 +213,7 @@ namespace HMS.Modules.Identity.Application.Services
             var refreshToken = GenerateRefreshToken();
 
             int expiredDays = _jwtConfigs.ExpiredDate;
-            user.RefreshToken = refreshToken;
+            user.RefreshToken = HashRefreshToken(refreshToken);
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(expiredDays);
 
             await _context.SaveChangesAsync();
@@ -223,8 +232,33 @@ namespace HMS.Modules.Identity.Application.Services
 
         private string GenerateOtp()
         {
-            var random = new Random();
-            return random.Next(100000, 999999).ToString();
+            // Cryptographically secure OTP (new Random() is predictable).
+            return RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        }
+
+        private const int MaxOtpRequestsPerWindow = 3;
+        private const int MaxOtpVerifyFailures = 5;
+
+        private async Task EnsureOtpNotRateLimitedAsync(string counterKey)
+        {
+            if (_cache.TryGetValue(counterKey, out int requestCount) && requestCount >= MaxOtpRequestsPerWindow)
+                throw new UnauthorizedAccessException("Bạn đã yêu cầu OTP quá nhiều lần. Vui lòng thử lại sau 10 phút.");
+
+            _cache.Set(counterKey, requestCount + 1, TimeSpan.FromMinutes(10));
+            await Task.CompletedTask;
+        }
+
+        private async Task CountOtpFailedAttemptAsync(string failKey)
+        {
+            var failures = _cache.TryGetValue(failKey, out int count) ? count + 1 : 1;
+            // Lock out OTP verification for this phone for 10 minutes after too many failures.
+            if (failures >= MaxOtpVerifyFailures)
+            {
+                _cache.Set(failKey, failures, TimeSpan.FromMinutes(10));
+                throw new UnauthorizedAccessException("Nhập sai OTP quá nhiều lần. Vui lòng thử lại sau 10 phút.");
+            }
+            _cache.Set(failKey, failures, TimeSpan.FromMinutes(10));
+            await Task.CompletedTask;
         }
 
         private string GenerateAccessToken(User user)
@@ -264,6 +298,25 @@ namespace HMS.Modules.Identity.Application.Services
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomNumber);
             return Convert.ToBase64String(randomNumber);
+        }
+
+        // SECURITY: refresh tokens are stored as SHA-256 hashes so a database
+        // leak does not expose usable tokens. The raw token is returned to the
+        // client exactly once; verification hashes the candidate and compares
+        // in constant time.
+        private static string HashRefreshToken(string rawToken)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken));
+            return Convert.ToHexString(bytes);
+        }
+
+        private static bool VerifyRefreshToken(string? storedHash, string rawToken)
+        {
+            if (string.IsNullOrEmpty(storedHash)) return false;
+            var candidate = HashRefreshToken(rawToken);
+            return CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(candidate),
+                Encoding.UTF8.GetBytes(storedHash));
         }
 
         private ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)

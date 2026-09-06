@@ -12,11 +12,12 @@ interface CreateDriverPageProps {
     sidebar?: ReactNode;
 }
 
-interface DriverForm {
+interface StaffForm {
     fullName: string;
     phone: string;
     email: string;
     hubId: string;
+    role: string;
     password: string;
     confirmPassword: string;
 }
@@ -27,11 +28,12 @@ interface Toast {
     type: 'success' | 'error';
 }
 
-const emptyForm = (hubId = ''): DriverForm => ({
+const emptyForm = (hubId = ''): StaffForm => ({
     fullName: '',
     phone: '',
     email: '',
     hubId,
+    role: 'Driver',
     password: '',
     confirmPassword: ''
 });
@@ -39,7 +41,7 @@ const emptyForm = (hubId = ''): DriverForm => ({
 export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
     const [drivers, setDrivers] = useState<UserDto[]>([]);
     const [hubs, setHubs] = useState<HubDto[]>([]);
-    const [form, setForm] = useState<DriverForm>(emptyForm());
+    const [form, setForm] = useState<StaffForm>(emptyForm());
     const [editingId, setEditingId] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
@@ -60,10 +62,10 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
         try {
             const [hubData, userData] = await Promise.all([fetchHubs(), fetchUsers()]);
             setHubs(hubData);
-            setDrivers(userData.filter(user => user.role === 'Driver'));
+            setDrivers(userData.filter(user => user.role === 'Driver' || user.role === 'Warehouse_Staff'));
             setForm(current => ({ ...current, hubId: current.hubId || hubData[0]?.id || '' }));
         } catch (error) {
-            showToast(error instanceof Error ? error.message : 'Không thể tải dữ liệu tài xế.', 'error');
+            showToast(error instanceof Error ? error.message : 'Không thể tải dữ liệu nhân viên.', 'error');
         } finally {
             setLoading(false);
         }
@@ -105,7 +107,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
         return { label: 'Yếu', width: 'w-1/3', color: 'bg-error' };
     }, [form.password]);
 
-    const updateForm = (field: keyof DriverForm, value: string) => {
+    const updateForm = (field: keyof StaffForm, value: string) => {
         setForm(current => ({ ...current, [field]: value }));
     };
 
@@ -122,6 +124,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
             phone: driver.phone || '',
             email: driver.email || '',
             hubId: driver.hubId || hubs[0]?.id || '',
+            role: driver.role || 'Driver',
             password: '',
             confirmPassword: ''
         });
@@ -142,12 +145,12 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (!form.fullName.trim() || !form.phone.trim() || !form.email.trim() || !form.hubId) {
-            showToast('Vui lòng điền đầy đủ thông tin tài xế.', 'error');
+        if (!form.fullName.trim() || !form.phone.trim() || !form.email.trim() || !form.hubId || !form.role) {
+            showToast('Vui lòng điền đầy đủ thông tin nhân viên.', 'error');
             return;
         }
         if (!editingId && !form.password) {
-            showToast('Mật khẩu là bắt buộc khi tạo tài xế.', 'error');
+            showToast('Mật khẩu là bắt buộc khi tạo tài khoản.', 'error');
             return;
         }
         if (form.password && form.password.length < 6) {
@@ -166,7 +169,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                 phone: form.phone.trim(),
                 email: form.email.trim(),
                 hubId: form.hubId,
-                role: 'Driver'
+                role: form.role
             };
 
             if (editingId) {
@@ -174,16 +177,16 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                     ...payload,
                     password: form.password || undefined
                 });
-                showToast(`Đã cập nhật tài xế "${payload.fullName}".`);
+                showToast(`Đã cập nhật nhân viên "${payload.fullName}".`);
             } else {
                 await createUser({ ...payload, password: form.password });
-                showToast(`Đã tạo tài xế "${payload.fullName}".`);
+                showToast(`Đã tạo nhân viên "${payload.fullName}".`);
             }
 
             resetForm();
             await loadData();
         } catch (error) {
-            showToast(error instanceof Error ? error.message : 'Không thể lưu tài xế.', 'error');
+            showToast(error instanceof Error ? error.message : 'Không thể lưu nhân viên.', 'error');
         } finally {
             setSaving(false);
         }
@@ -196,7 +199,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                 <header className="sticky top-0 z-20 flex min-h-16 items-center border-b border-outline-variant bg-surface-container-lowest px-5 md:px-8">
                     <div className="flex items-center gap-2 text-headline-md font-bold text-primary">
                         <span className="material-symbols-outlined">badge</span>
-                        Quản lý Tài Xế
+                        Quản lý Nhân Viên
                     </div>
                 </header>
 
@@ -204,8 +207,8 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                     <section className="order-2 min-w-0 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 card-shadow xl:order-1 md:p-5">
                         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                             <div>
-                                <h1 className="text-xl font-bold text-on-surface">Danh sách tài xế</h1>
-                                <p className="mt-1 text-sm text-on-surface-variant">{drivers.length} tài khoản tài xế</p>
+                                <h1 className="text-xl font-bold text-on-surface">Danh sách nhân viên</h1>
+                                <p className="mt-1 text-sm text-on-surface-variant">{drivers.length} tài khoản nhân viên</p>
                             </div>
                             <div className="flex w-full items-center gap-2 lg:w-auto">
                                 <label className="flex h-10 flex-1 items-center rounded-lg border border-outline-variant/50 bg-surface-container-low px-3 lg:w-80">
@@ -222,8 +225,9 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                             <table className="w-full min-w-[760px] border-collapse text-left text-sm">
                                 <thead className="bg-surface-container-low text-xs text-on-surface-variant">
                                     <tr>
-                                        <th className="px-4 py-3 font-bold">Tài xế</th>
+                                        <th className="px-4 py-3 font-bold">Nhân viên</th>
                                         <th className="px-4 py-3 font-bold">Liên hệ</th>
+                                        <th className="px-4 py-3 font-bold">Vai trò</th>
                                         <th className="px-4 py-3 font-bold">Hub trực thuộc</th>
                                         <th className="px-4 py-3 font-bold">Ngày tạo</th>
                                         <th className="px-4 py-3 text-center font-bold">Thao tác</th>
@@ -231,9 +235,9 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                 </thead>
                                 <tbody>
                                     {loading ? (
-                                        <tr><td className="px-4 py-12 text-center text-on-surface-variant" colSpan={5}>Đang tải danh sách tài xế...</td></tr>
+                                        <tr><td className="px-4 py-12 text-center text-on-surface-variant" colSpan={6}>Đang tải danh sách nhân viên...</td></tr>
                                     ) : filteredDrivers.length === 0 ? (
-                                        <tr><td className="px-4 py-12 text-center text-on-surface-variant" colSpan={5}>Không tìm thấy tài xế phù hợp.</td></tr>
+                                        <tr><td className="px-4 py-12 text-center text-on-surface-variant" colSpan={6}>Không tìm thấy nhân viên phù hợp.</td></tr>
                                     ) : filteredDrivers.map(driver => (
                                         <tr className={`border-t border-outline-variant/15 hover:bg-surface-container-low/50 ${editingId === driver.id ? 'bg-primary/5' : ''}`} key={driver.id}>
                                             <td className="px-4 py-3">
@@ -243,10 +247,11 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3"><p className="font-medium">{driver.phone || '--'}</p><p className="mt-0.5 text-xs text-on-surface-variant">{driver.email || '--'}</p></td>
+                                            <td className="px-4 py-3"><span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${driver.role === 'Driver' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}`}>{driver.role === 'Driver' ? 'Tài xế' : driver.role === 'Warehouse_Staff' ? 'NV Kho' : driver.role}</span></td>
                                             <td className="px-4 py-3 font-medium">{driver.hubId ? hubNames[driver.hubId] || 'Hub không xác định' : 'Chưa liên kết'}</td>
                                             <td className="px-4 py-3 text-on-surface-variant">{new Date(driver.createdAt).toLocaleDateString('vi-VN')}</td>
                                             <td className="px-4 py-3 text-center">
-                                                <button aria-label={`Sửa tài xế ${driver.fullName}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary hover:bg-primary/10" onClick={() => editDriver(driver)} title="Sửa tài xế" type="button">
+                                                <button aria-label={`Sửa nhân viên ${driver.fullName}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary hover:bg-primary/10" onClick={() => editDriver(driver)} title="Sửa nhân viên" type="button">
                                                     <span className="material-symbols-outlined text-[20px]">edit</span>
                                                 </button>
                                             </td>
@@ -260,7 +265,7 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
                     <aside className="order-1 xl:order-2">
                         <form className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-5 card-shadow xl:sticky xl:top-20" onSubmit={handleSubmit}>
                             <div className="mb-5 flex items-start justify-between gap-3 border-b border-outline-variant/20 pb-4">
-                                <div><h2 className="text-xl font-bold">{editingId ? 'Cập nhật tài xế' : 'Tạo tài xế'}</h2><p className="mt-1 text-sm text-on-surface-variant">{editingId ? 'Để trống mật khẩu nếu muốn giữ nguyên.' : 'Tạo tài khoản Driver mới.'}</p></div>
+                                <div><h2 className="text-xl font-bold">{editingId ? 'Cập nhật nhân viên' : 'Tạo nhân viên'}</h2><p className="mt-1 text-sm text-on-surface-variant">{editingId ? 'Để trống mật khẩu nếu muốn giữ nguyên.' : 'Tạo tài khoản nhân viên mới.'}</p></div>
                                 {editingId && <button aria-label="Hủy chỉnh sửa" className="flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant/50 text-on-surface-variant hover:bg-surface-container-low" onClick={resetForm} title="Hủy chỉnh sửa" type="button"><span className="material-symbols-outlined text-[20px]">close</span></button>}
                             </div>
 
@@ -271,11 +276,13 @@ export default function CreateDriverPage({ sidebar }: CreateDriverPageProps) {
 
                                 <label className="flex flex-col gap-2"><span className="text-sm font-bold text-on-surface-variant">Hub trực thuộc *</span><div className="flex h-11 items-center rounded-lg border border-outline-variant/50 bg-surface-container-low px-3"><span className="material-symbols-outlined mr-2 text-[20px] text-on-surface-variant">warehouse</span><select className="w-full bg-transparent text-sm outline-none" disabled={hubs.length === 0} onChange={event => updateForm('hubId', event.target.value)} required value={form.hubId}>{hubs.length === 0 ? <option value="">Chưa có Hub</option> : hubs.map(hub => <option key={hub.id} value={hub.id}>{hub.name}</option>)}</select></div></label>
 
+                                <label className="flex flex-col gap-2"><span className="text-sm font-bold text-on-surface-variant">Vai trò *</span><div className="flex h-11 items-center rounded-lg border border-outline-variant/50 bg-surface-container-low px-3"><span className="material-symbols-outlined mr-2 text-[20px] text-on-surface-variant">badge</span><select className="w-full bg-transparent text-sm outline-none" onChange={event => updateForm('role', event.target.value)} required value={form.role}><option value="Driver">Tài xế</option><option value="Warehouse_Staff">Nhân viên kho</option></select></div></label>
+
                                 <div className="flex flex-col gap-2"><div className="flex items-center justify-between"><span className="text-sm font-bold text-on-surface-variant">Mật khẩu {editingId ? 'mới' : '*'}</span><button className="text-xs font-bold text-primary hover:underline" onClick={generatePassword} type="button">Tạo ngẫu nhiên</button></div><PasswordField onChange={value => updateForm('password', value)} onToggleVisibility={() => setShowPassword(current => !current)} placeholder={editingId ? 'Để trống để giữ nguyên' : 'Tối thiểu 6 ký tự'} required={!editingId} showPassword={showPassword} value={form.password} /><div className="flex items-center gap-3 px-1"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-container-high"><div className={`h-full transition-all ${passwordStrength.width} ${passwordStrength.color}`} /></div><span className="min-w-16 text-right text-xs font-semibold text-on-surface-variant">{passwordStrength.label}</span></div></div>
                                 <div className="flex flex-col gap-2"><span className="text-sm font-bold text-on-surface-variant">Nhập lại mật khẩu {editingId ? 'mới' : '*'}</span><PasswordField onChange={value => updateForm('confirmPassword', value)} onToggleVisibility={() => setShowPassword(current => !current)} placeholder="Nhập lại mật khẩu" required={!editingId || Boolean(form.password)} showPassword={showPassword} value={form.confirmPassword} /></div>
                             </div>
 
-                            <div className="mt-6 flex gap-3 border-t border-outline-variant/20 pt-5"><button className="flex-1 rounded-lg border border-outline-variant px-4 py-3 text-sm font-bold hover:bg-surface-container-low" onClick={resetForm} type="button">Làm mới</button><button className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-on-primary hover:bg-primary/90 disabled:opacity-50" disabled={saving || hubs.length === 0} type="submit"><span className={`material-symbols-outlined text-[20px] ${saving ? 'animate-spin' : ''}`}>{saving ? 'progress_activity' : 'save'}</span>{saving ? 'Đang lưu...' : editingId ? 'Cập nhật' : 'Tạo tài xế'}</button></div>
+                            <div className="mt-6 flex gap-3 border-t border-outline-variant/20 pt-5"><button className="flex-1 rounded-lg border border-outline-variant px-4 py-3 text-sm font-bold hover:bg-surface-container-low" onClick={resetForm} type="button">Làm mới</button><button className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-on-primary hover:bg-primary/90 disabled:opacity-50" disabled={saving || hubs.length === 0} type="submit"><span className={`material-symbols-outlined text-[20px] ${saving ? 'animate-spin' : ''}`}>{saving ? 'progress_activity' : 'save'}</span>{saving ? 'Đang lưu...' : editingId ? 'Cập nhật' : 'Tạo nhân viên'}</button></div>
                         </form>
                     </aside>
                 </main>

@@ -20,6 +20,7 @@ using HMS.Modules.Transport.Channels;
 using HMS.Modules.Transport.Workers;
 using HMS.Modules.Warehouse.Application.Services;
 using HMS.Shared.Core.Interfaces;
+using HMS.Shared.Core.Sms;
 using HMS.Shared.Infrastructure.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,9 @@ using StackExchange.Redis;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load local-only overrides (gitignored — never commit secrets)
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // Configure Kestrel to listen on all network interfaces 
 builder.WebHost.UseUrls("http://0.0.0.0:5104");
@@ -42,9 +46,19 @@ builder.Services.AddCors(options =>
         "SignalRPolicy",
         policy =>
         {
-            //policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // Domain của React/Vue Admin & App
+            // Allowlist origins from config (CORS:Origins). In Development, localhost dev servers are
+            // also allowed. Never allow arbitrary origins together with AllowCredentials.
+            var allowedOrigins = builder.Configuration.GetSection("CORS:Origins").Get<string[]>() ?? [];
+            if (builder.Environment.IsDevelopment())
+            {
+                allowedOrigins = allowedOrigins
+                    .Concat(["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"])
+                    .Distinct()
+                    .ToArray();
+            }
             policy
-                .SetIsOriginAllowed(origin => true) //test tạm thời, cho phép tất cả origin (không khuyến khích trong production)
+                .WithOrigins(allowedOrigins)
+                .SetIsOriginAllowedToAllowWildcardSubdomains()
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials(); // Bắt buộc phải có để WebSocket hoạt động
@@ -58,15 +72,12 @@ builder.Services.AddSignalR();
 // Add controllers
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(HMS.Modules.Transport.Controllers.TripPostsController).Assembly)
-    .AddApplicationPart(typeof(HMS.Modules.Warehouse.Controllers.DriverTripController).Assembly)
     .AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.PropertyNameCaseInsensitive = true;
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
@@ -99,6 +110,13 @@ builder.Services.AddScoped<IHubInventoryService, HubInventoryService>();
 builder.Services.AddScoped<IShipmentStateService, ShipmentStateService>();
 builder.Services.AddScoped<HMS.Modules.Warehouse.Application.Services.PostgresWarehouseSchemaInitializer>();
 builder.Services.AddScoped<HMS.Modules.Warehouse.Application.Services.CustomerDriverSchemaInitializer>();
+
+// Warehouse module services (controllers need these)
+builder.Services.AddScoped<HMS.Modules.Warehouse.Application.Services.IncidentService>();
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(HMS.Shared.Core.Events.ShipmentStatusChangedEvent).Assembly));
 builder.Services.AddMediatR(cfg =>
@@ -131,12 +149,6 @@ builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IDriverExternalS
 builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IQuotationService, HMS.Modules.Matching.Application.Services.QuotationService>();
 builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IPaymentService, HMS.Modules.Matching.Application.Services.PaymentService>();
 builder.Services.AddScoped<HMS.Modules.Matching.Core.Interfaces.IQuotationPaymentRepository, HMS.Modules.Matching.Infrastructure.QuotationPaymentRepository>();
-
-// Incident Management services
-builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
-builder.Services.AddScoped<IEmailService, SmtpEmailService>();
-builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
-builder.Services.AddScoped<IncidentService>();
 
 // Exception middleware (registered as transient through pipeline)
 
@@ -172,6 +184,24 @@ builder.Services.AddHostedService<TripPostExpiryWorker>();
 
 // Đăng ký dịch vụ SMS qua cổng API nội địa (Sẽ tự fallback về Mock nếu thiếu Key)
 builder.Services.AddHttpClient<ISmsSender, VietNamSmsSender>();
+
+// SMS Notification Service (business-level abstraction)
+builder.Services.AddSingleton(builder.Configuration.GetSection(SmsConfig.SectionName).Get<SmsConfig>() ?? new SmsConfig());
+builder.Services.AddScoped<SmsLogRepository>(sp =>
+{
+    var connStr = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+    var logger = sp.GetRequiredService<ILogger<SmsLogRepository>>();
+    return new SmsLogRepository(connStr, logger);
+});
+builder.Services.AddScoped<ISmsNotificationService>(sp =>
+{
+    var smsSender = sp.GetRequiredService<ISmsSender>();
+    var config = sp.GetRequiredService<SmsConfig>();
+    var logRepo = sp.GetRequiredService<SmsLogRepository>();
+    var connStr = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+    var logger = sp.GetRequiredService<ILogger<SmsNotificationService>>();
+    return new SmsNotificationService(smsSender, config, logRepo, connStr, logger);
+});
 
 builder.Services.AddHttpClient();
 //----------------------------------------------------------------------------
@@ -219,6 +249,13 @@ await using (var matchScope = app.Services.CreateAsyncScope())
 {
     var initializer = matchScope.ServiceProvider.GetRequiredService<IMatchingSpatialSchemaInitializer>();
     await initializer.InitializeAsync();
+}
+
+// Step 6: SMS logs table (for SMS notification tracking)
+await using (var smsScope = app.Services.CreateAsyncScope())
+{
+    var smsLogRepo = smsScope.ServiceProvider.GetRequiredService<SmsLogRepository>();
+    await smsLogRepo.EnsureTableExistsAsync();
 }
 
 // Configure the HTTP request pipeline.

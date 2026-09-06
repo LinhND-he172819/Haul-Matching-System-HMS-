@@ -23,7 +23,7 @@ namespace HMS.Modules.Matching.Application.DTOs
     {
         public Guid Id { get; set; }
         public string PaymentCode { get; set; } = string.Empty;
-        public Guid QuotationId { get; set; }
+        public Guid? QuotationId { get; set; }
         public Guid ShipmentId { get; set; }
         public string PaymentType { get; set; } = string.Empty;
         public decimal Amount { get; set; }
@@ -112,7 +112,7 @@ namespace HMS.Modules.Matching.Application.DTOs
     {
         public string TransactionReference { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty; // "Paid" or "Failed"
-        public decimal Amount { get; set; }
+        public decimal? Amount { get; set; }
         public string Currency { get; set; } = "VND";
         public DateTime PaidAt { get; set; }
         public string? PaymentMethod { get; set; }

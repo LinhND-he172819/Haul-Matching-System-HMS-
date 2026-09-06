@@ -8,13 +8,15 @@ public static class TripStateMachine
         new Dictionary<TripStatus, TripStatus[]>
         {
             // Legacy statuses (backward compatible)
-            [TripStatus.Active] = [TripStatus.Completed, TripStatus.Breakdown],
+            [TripStatus.Active] = [TripStatus.Scheduled, TripStatus.Completed, TripStatus.Breakdown],
             // New Driver Trip Management statuses
             [TripStatus.Scheduled] = [TripStatus.Ready, TripStatus.Cancelled],
             [TripStatus.Ready] = [TripStatus.InProgress, TripStatus.Cancelled],
-            [TripStatus.InProgress] = [TripStatus.Completed],
+            // InProgress trips can break down (mechanical failure, accident, etc.)
+            [TripStatus.InProgress] = [TripStatus.Completed, TripStatus.Breakdown],
             [TripStatus.Completed] = [],
-            [TripStatus.Breakdown] = [],
+            // Trips that broke down can be cancelled (operator decision).
+            [TripStatus.Breakdown] = [TripStatus.Cancelled],
             [TripStatus.Cancelled] = []
         };
 

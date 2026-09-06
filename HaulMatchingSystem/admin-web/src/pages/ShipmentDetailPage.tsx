@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import {
   getShipmentDetail,
   cancelShipment,
@@ -16,13 +16,13 @@ import {
   type CustomerQuotationDetail,
   type PaymentResponseDto,
   type PaymentHistoryEntry,
-  type PaymentDetailDto,
 } from '../api/customer/customerQuotationApi';
 import QuotationCountdown from '../components/customer/quotations/QuotationCountdown';
-import PaymentStatusBadge from '../components/customer/payments/PaymentStatusBadge';
+
 import PaymentHistory from '../components/customer/payments/PaymentHistory';
 import MockPaymentCheckoutDialog from '../components/customer/payments/MockPaymentCheckoutDialog';
 import PaymentDetailDialog from '../components/customer/payments/PaymentDetailDialog';
+import FeedbackSection from '../components/customer/feedback/FeedbackSection';
 import Toast from '../components/matching/Toast';
 
 /* ─── Status Badge ────────────────────────────────────────────────── */
@@ -70,10 +70,10 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Payment state
-  const [quotationDetail, setQuotationDetail] = useState<CustomerQuotationDetail | null>(null);
+  const [_quotationDetail, setQuotationDetail] = useState<CustomerQuotationDetail | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryEntry[]>([]);
-  const [payingDeposit, setPayingDeposit] = useState(false);
-  const [payingFinal, setPayingFinal] = useState(false);
+  const [_payingDeposit, setPayingDeposit] = useState(false);
+  const [_payingFinal, setPayingFinal] = useState(false);
 
   const [showHistory, setShowHistory] = useState(false);
 
@@ -149,7 +149,7 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
   const handlePayDeposit = async () => {
     setPayingDeposit(true);
     try {
-      if (!detail.quotation?.id) throw new Error('Không tìm thấy báo giá.');
+      if (!detail || !detail.quotation?.id) throw new Error('Không tìm thấy báo giá.');
       const result = await createDepositPayment(detail.quotation.id);
       setMockCheckoutPayment(result);
       setShowMockCheckout(true);
@@ -164,7 +164,7 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
   const handlePayFinal = async () => {
     setPayingFinal(true);
     try {
-      if (!detail.quotation?.id) throw new Error('Không tìm thấy báo giá.');
+      if (!detail || !detail.quotation?.id) throw new Error('Không tìm thấy báo giá.');
       const result = await createFinalPayment(detail.quotation.id);
       setMockCheckoutPayment(result);
       setShowMockCheckout(true);
@@ -177,7 +177,7 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
   };
 
   // ─── Mock Checkout Handlers ───
-  const handleMockCheckoutComplete = async (result: 'Paid' | 'Failed' | 'Cancelled') => {
+  const handleMockCheckoutComplete = async (_result: 'Paid' | 'Failed' | 'Cancelled') => {
     setShowMockCheckout(false);
     setMockCheckoutPayment(null);
     await loadDetail();
@@ -430,7 +430,7 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
                 <span className="text-body-md text-on-surface font-medium">{formatCurrency(detail.quotation.shippingFee)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-body-md text-on-surface-variant">Đặt cọc ({quotationDetail?.depositPercentage ? `${quotationDetail.depositPercentage}%` : ''})</span>
+                <span className="text-body-md text-on-surface-variant">Đặt cọc</span>
                 <span className="text-body-md text-on-surface font-medium">{formatCurrency(detail.quotation.depositAmount)}</span>
               </div>
               <div className="flex justify-between">
@@ -583,6 +583,15 @@ export default function ShipmentDetailPage({ shipmentId, onBack, onLogout }: Pro
             </div>
           </div>
         )}
+
+        {/* Feedback Section */}
+        <FeedbackSection
+          shipmentId={shipmentId}
+          shipmentCode={detail.shipmentCode}
+          status={detail.status}
+          canGiveFeedback={detail.allowedActions?.canGiveFeedback === true}
+          onFeedbackChanged={loadDetail}
+        />
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2 pb-8">

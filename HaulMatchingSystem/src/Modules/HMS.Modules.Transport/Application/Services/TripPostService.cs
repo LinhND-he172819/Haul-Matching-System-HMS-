@@ -39,7 +39,7 @@ public sealed class TripPostService : ITripPostService
 
         var conditions = new List<string>
         {
-            "t.status = 'Active'",
+            "t.status IN ('Active', 'Scheduled')",
             "t.is_deleted = FALSE",
             "u.is_deleted = FALSE",
             "v.is_deleted = FALSE",
@@ -76,7 +76,7 @@ public sealed class TripPostService : ITripPostService
                 (v.max_weight_kg - t.current_load_weight) AS remaining_weight,
                 v.max_volume_cbm, t.current_load_volume,
                 (v.max_volume_cbm - t.current_load_volume) AS remaining_volume,
-                t.started_at, t.status
+                t.started_at, t.status, t.scheduled_departure_at
             FROM transport.trips t
             JOIN identity.users u ON u.id = t.driver_id AND u.is_deleted = FALSE
             JOIN transport.vehicles v ON v.id = t.vehicle_id AND v.is_deleted = FALSE
@@ -108,6 +108,7 @@ public sealed class TripPostService : ITripPostService
                 CurrentLoadVolumeCbm: reader.GetDecimal(14),
                 RemainingVolumeCbm: reader.GetDecimal(15),
                 StartedAt: reader.IsDBNull(16) ? null : reader.GetDateTime(16),
+                ScheduledDepartureAt: reader.IsDBNull(18) ? null : reader.GetFieldValue<DateTimeOffset>(18),
                 Status: reader.GetString(17)
             ));
         }
@@ -130,8 +131,9 @@ public sealed class TripPostService : ITripPostService
         var destHub = tripInfo.DestHub;
 
         // 2. Validate status
-        if (trip.Status != "Active")
-            throw new InvalidOperationException("Chuyến đi phải ở trạng thái Active.");
+        // Chấp nhận các trạng thái: Scheduled, Ready, Active (legacy).
+        if (trip.Status != "Active" && trip.Status != "Scheduled" && trip.Status != "Ready")
+            throw new InvalidOperationException("Chuyến đi phải ở trạng thái Active, Scheduled hoặc Ready.");
 
         // 3. Validate Staff hub scope
         if (role == "Warehouse_Staff")
@@ -151,8 +153,20 @@ public sealed class TripPostService : ITripPostService
         if (await _postRepo.HasOpenPostForTripAsync(request.TripId, ct))
             throw new InvalidOperationException("Chuyến này đã có một bài đăng đang mở.");
 
+        // 5b. Validate AcceptUntil: must be in the future and not after scheduled departure
+        if (request.AcceptUntil <= DateTimeOffset.UtcNow)
+            throw new ArgumentException("Hạn nhận đề xuất phải lớn hơn thời điểm hiện tại.");
+
+        if (trip.ScheduledDepartureAt.HasValue && request.AcceptUntil > trip.ScheduledDepartureAt.Value)
+            throw new ArgumentException("Hạn nhận đề xuất không được sau ngày khởi hành dự kiến của chuyến.");
+
         // 6. Generate title
         var title = GenerateTitle(originHub.Name, destHub.Name, vehicle.LicensePlate, remainingWeight, remainingVolume);
+
+        // Validate PickupMode
+        var pickupMode = string.Equals(request.PickupMode, "DirectPickup", StringComparison.OrdinalIgnoreCase)
+            ? "DirectPickup"
+            : "Hub";
 
         var now = DateTimeOffset.UtcNow;
         var post = new TripPostRecord
@@ -163,6 +177,7 @@ public sealed class TripPostService : ITripPostService
             Title = title,
             Description = request.Description,
             AcceptUntil = request.AcceptUntil,
+            PickupMode = pickupMode,
             Status = "Open",
             PublishedAt = now,
             CreatedAt = now,
@@ -248,6 +263,7 @@ public sealed class TripPostService : ITripPostService
             RemainingWeightKg: remainingWeight,
             RemainingVolumeCbm: remainingVolume,
             TripStartedAt: trip.StartedAt,
+            ScheduledDepartureAt: trip.ScheduledDepartureAt,
             TripStatus: trip.Status,
             Status: post.Status,
             AcceptUntil: post.AcceptUntil,
@@ -296,6 +312,10 @@ public sealed class TripPostService : ITripPostService
         {
             if (request.AcceptUntil.Value <= DateTimeOffset.UtcNow)
                 throw new ArgumentException("Hạn nhận đề xuất phải lớn hơn thời điểm hiện tại.");
+
+            if (trip.ScheduledDepartureAt.HasValue && request.AcceptUntil.Value > trip.ScheduledDepartureAt.Value)
+                throw new ArgumentException("Hạn nhận đề xuất không được sau ngày khởi hành dự kiến của chuyến.");
+
             post.AcceptUntil = request.AcceptUntil.Value;
         }
 
@@ -430,6 +450,7 @@ public sealed class TripPostService : ITripPostService
             SELECT
                 t.id, t.driver_id, t.vehicle_id, t.origin_hub_id, t.dest_hub_id,
                 t.current_load_weight, t.current_load_volume, t.started_at, t.status,
+                t.scheduled_departure_at,
                 v.id, v.license_plate, v.vehicle_type, v.max_weight_kg, v.max_volume_cbm,
                 oh.id, oh.name,
                 dh.id, dh.name,
@@ -459,18 +480,19 @@ public sealed class TripPostService : ITripPostService
                 CurrentLoadVolume = reader.GetDecimal(6),
                 StartedAt = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
                 Status = reader.GetString(8),
+                ScheduledDepartureAt = reader.IsDBNull(9) ? null : reader.GetFieldValue<DateTimeOffset>(9),
             },
             Vehicle = new VehicleData
             {
-                Id = reader.GetGuid(9),
-                LicensePlate = reader.GetString(10),
-                VehicleType = reader.GetString(11),
-                MaxWeightKg = reader.GetDecimal(12),
-                MaxVolumeCbm = reader.GetDecimal(13),
+                Id = reader.GetGuid(10),
+                LicensePlate = reader.GetString(11),
+                VehicleType = reader.GetString(12),
+                MaxWeightKg = reader.GetDecimal(13),
+                MaxVolumeCbm = reader.GetDecimal(14),
             },
-            OriginHub = new HubData { Id = reader.GetGuid(14), Name = reader.GetString(15) },
-            DestHub = new HubData { Id = reader.GetGuid(16), Name = reader.GetString(17) },
-            Driver = new DriverData { Id = reader.GetGuid(18), FullName = reader.GetString(19) },
+            OriginHub = new HubData { Id = reader.GetGuid(15), Name = reader.GetString(16) },
+            DestHub = new HubData { Id = reader.GetGuid(17), Name = reader.GetString(18) },
+            Driver = new DriverData { Id = reader.GetGuid(19), FullName = reader.GetString(20) },
         };
     }
 
@@ -502,6 +524,7 @@ public sealed class TripPostService : ITripPostService
         public decimal CurrentLoadVolume { get; set; }
         public DateTimeOffset? StartedAt { get; set; }
         public string Status { get; set; } = null!;
+        public DateTimeOffset? ScheduledDepartureAt { get; set; }
     }
 
     private sealed class VehicleData

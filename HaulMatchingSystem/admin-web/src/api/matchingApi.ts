@@ -45,24 +45,15 @@ export interface HubResponse {
     updatedAt: string;
 }
 
+import { authFetch } from '../utils/authFetch';
+
 const API_BASE =
     import.meta.env.VITE_API_BASE_URL ??
     import.meta.env.VITE_API_URL ??
     'http://localhost:5104';
 
-function authHeaders(includeJson = false): HeadersInit {
-    const token = localStorage.getItem('accessToken');
-    return {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(includeJson ? { 'Content-Type': 'application/json' } : {})
-    };
-}
-
 export async function fetchMatchingSuggestions(): Promise<MatchingSuggestionsResponse | null> {
-    const res = await fetch(`${API_BASE}/api/drivers/me/matching-suggestions`, {
-        credentials: 'include',
-        headers: authHeaders()
-    });
+    const res = await authFetch(`${API_BASE}/api/drivers/me/matching-suggestions`);
 
     if (res.status === 404) {
         return null;
@@ -73,48 +64,37 @@ export async function fetchMatchingSuggestions(): Promise<MatchingSuggestionsRes
 }
 
 export async function postAcceptAll(): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/drivers/me/matching-suggestions/accept-all`, {
+    const res = await authFetch(`${API_BASE}/api/drivers/me/matching-suggestions/accept-all`, {
         method: 'POST',
-        credentials: 'include',
-        headers: authHeaders()
     });
     if (!res.ok) throw new Error(`Accept all failed: ${res.status}`);
 }
 
 export async function postRejectAll(): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/drivers/me/matching-suggestions/reject-all`, {
+    const res = await authFetch(`${API_BASE}/api/drivers/me/matching-suggestions/reject-all`, {
         method: 'POST',
-        credentials: 'include',
-        headers: authHeaders()
     });
     if (!res.ok) throw new Error(`Reject all failed: ${res.status}`);
 }
 
 export async function postAcceptSelected(shipmentIds: string[]): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/drivers/me/matching-suggestions/accept-selected`, {
+    const res = await authFetch(`${API_BASE}/api/drivers/me/matching-suggestions/accept-selected`, {
         method: 'POST',
-        credentials: 'include',
-        headers: authHeaders(true),
-        body: JSON.stringify({ shipmentIds })
-    });
+        body: JSON.stringify({ shipmentIds }),
+    }, { includeJson: true });
     if (!res.ok) throw new Error(`Accept selected failed: ${res.status}`);
 }
 
 export async function postRejectSelected(shipmentIds: string[]): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/drivers/me/matching-suggestions/reject-selected`, {
+    const res = await authFetch(`${API_BASE}/api/drivers/me/matching-suggestions/reject-selected`, {
         method: 'POST',
-        credentials: 'include',
-        headers: authHeaders(true),
-        body: JSON.stringify({ shipmentIds })
-    });
+        body: JSON.stringify({ shipmentIds }),
+    }, { includeJson: true });
     if (!res.ok) throw new Error(`Reject selected failed: ${res.status}`);
 }
 
 export async function fetchTripById(tripId: string): Promise<TripResponse> {
-    const res = await fetch(`${API_BASE}/api/trips/${tripId}`, {
-        credentials: 'include',
-        headers: authHeaders()
-    });
+    const res = await authFetch(`${API_BASE}/api/trips/${tripId}`);
 
     if (!res.ok) throw new Error(`Trip fetch failed: ${res.status}`);
 
@@ -122,10 +102,7 @@ export async function fetchTripById(tripId: string): Promise<TripResponse> {
 }
 
 export async function fetchHubById(hubId: string): Promise<HubResponse> {
-    const res = await fetch(`${API_BASE}/api/hubs/${hubId}`, {
-        credentials: 'include',
-        headers: authHeaders()
-    });
+    const res = await authFetch(`${API_BASE}/api/hubs/${hubId}`);
 
     if (!res.ok) throw new Error(`Hub fetch failed: ${res.status}`);
 

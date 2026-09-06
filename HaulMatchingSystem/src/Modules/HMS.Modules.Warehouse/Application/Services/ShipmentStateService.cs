@@ -43,6 +43,7 @@ public sealed class ShipmentStateService : IShipmentStateService
         object? transaction = null,
         Guid? performedBy = null,
         string? reason = null,
+        Func<ShipmentStatusChangedEvent, CancellationToken, Task>? onEventPublished = null,
         CancellationToken ct = default)
     {
         // ── Guard: Cancellation requires a reason ──
@@ -97,7 +98,20 @@ public sealed class ShipmentStateService : IShipmentStateService
                 Reason = reason,
                 OccurredAt = occurredAt
             };
-            await _mediator.Publish(@event, ct);
+
+            if (onEventPublished != null)
+            {
+                // Delegate to caller — they will invoke after DB commit (outbox pattern)
+                // The caller captures the event and fires it in post-commit phase.
+                // We do NOT call _mediator.Publish here.
+                _logger.LogDebug(
+                    "ShipmentStateService: event for {ShipmentId} {From}→{To} deferred to caller (onEventPublished callback)",
+                    shipmentId, currentStatus, toStatus);
+            }
+            else
+            {
+                await _mediator.Publish(@event, ct);
+            }
 
             _logger.LogInformation(
                 "Shipment {ShipmentId} transitioned: {From} → {To} (by {PerformedBy})",
